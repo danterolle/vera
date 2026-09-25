@@ -23,7 +23,12 @@
     "expected_route": "FULL",
     "minimum_available_sources": 2,
     "events_file": "network-events.jsonl",
-    "simulated": true
+    "simulated": true,
+    "expected_rules": [
+      "HTTP-LOG4SHELL-PATTERN",
+      "HTTP-PATH-TRAVERSAL",
+      "NET-PORT-SCAN"
+    ]
   },
   {
     "name": "benign web traffic",
@@ -31,7 +36,17 @@
     "expected_route": "STREAM",
     "minimum_available_sources": 1,
     "events_file": "benign-web.jsonl",
-    "simulated": true
+    "simulated": true,
+    "expected_rules": []
+  },
+  {
+    "name": "mixed vulnerability and traffic",
+    "query": "Analyze CVE-2021-44228 in this controlled traffic.",
+    "expected_route": "FULL",
+    "minimum_available_sources": 2,
+    "events_file": "benign-web.jsonl",
+    "simulated": true,
+    "expected_rules": []
   },
   {
     "name": "network service discovery",
@@ -39,7 +54,8 @@
     "expected_route": "FULL",
     "minimum_available_sources": 2,
     "events_file": "port-scan.jsonl",
-    "simulated": true
+    "simulated": true,
+    "expected_rules": ["NET-PORT-SCAN"]
   },
   {
     "name": "authentication attack",
@@ -47,7 +63,8 @@
     "expected_route": "FULL",
     "minimum_available_sources": 2,
     "events_file": "http-brute-force.jsonl",
-    "simulated": true
+    "simulated": true,
+    "expected_rules": ["HTTP-AUTH-FAILURES"]
   },
   {
     "name": "syn burst",
@@ -55,7 +72,8 @@
     "expected_route": "FULL",
     "minimum_available_sources": 2,
     "events_file": "syn-flood.jsonl",
-    "simulated": true
+    "simulated": true,
+    "expected_rules": ["TCP-SYN-BURST"]
   },
   {
     "name": "web exploitation patterns",
@@ -63,6 +81,11 @@
     "expected_route": "FULL",
     "minimum_available_sources": 2,
     "events_file": "web-exploitation.jsonl",
-    "simulated": true
+    "simulated": true,
+    "expected_rules": [
+      "HTTP-COMMAND-INJECTION",
+      "HTTP-LOG4SHELL-PATTERN",
+      "HTTP-PATH-TRAVERSAL"
+    ]
   }
 ]

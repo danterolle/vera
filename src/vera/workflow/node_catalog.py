@@ -8,8 +8,8 @@ NODE_DETAILS = {
         "Query and normalized events", "Alerts, statistics, and recalled memories",
     ),
     "route": (
-        "Control", "Select the minimum sufficient processing route.",
-        "Initialized state", "One deterministic or model-assisted route",
+        "Control", "Select the minimum sufficient compositional resource plan.",
+        "Initialized state", "ResourcePlan and derived compatibility route",
     ),
     "cag": (
         "Context", "Load stable curated cybersecurity knowledge.",
@@ -28,8 +28,8 @@ NODE_DETAILS = {
         "Normalized events without alerts", "Statistics and stream evidence",
     ),
     "full": (
-        "Context", "Correlate detections, retrieval, and exact source lookups.",
-        "Triggered alerts and identifiers", "Correlated incident evidence",
+        "Context", "Combine stream, retrieval, and exact sources for composite requests.",
+        "Mixed request or triggered alerts", "Correlated evidence from selected resources",
     ),
     "generate": (
         "Reasoning", "Produce a schema-constrained evidence-based draft.",

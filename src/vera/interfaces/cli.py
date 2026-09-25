@@ -87,6 +87,8 @@ def evaluate_command(
             f"Passed: {report.passed}\n"
             f"Routing accuracy: {report.routing_accuracy:.1%}\n"
             f"Retrieval success: {report.retrieval_success_rate:.1%}\n"
+            f"Detector accuracy: {report.detector_accuracy:.1%}\n"
+            f"Grounding rate: {report.grounding_rate:.1%}\n"
             f"Average source coverage: {report.average_source_coverage:.1%}\n"
             f"Average latency: {report.average_latency_ms:.2f} ms\n"
             f"Model calls: {report.total_model_calls}\n"

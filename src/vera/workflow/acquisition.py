@@ -1,9 +1,8 @@
-import json
-
 from vera.domain.enums import EvidenceStatus
 from vera.domain.evidence import Evidence, make_evidence
 from vera.domain.state import GraphState
-from vera.retrieval.cve import extract_cve_ids
+from vera.stream.evidence import summarize_stream
+from vera.workflow.evidence import deduplicate_evidence
 from vera.workflow.runtime import Runtime
 
 
@@ -32,7 +31,7 @@ class ContextAcquirer:
             + self.runtime.corpus.search(query, self.runtime.settings.retrieval_k)
             + state["memory"]
         )
-        lookup = self.runtime.sources.lookup(extract_cve_ids(query))
+        lookup = self.runtime.sources.lookup(state["resource_plan"].cve_ids)
         return self._result(
             state,
             local + lookup.evidence,
@@ -51,12 +50,8 @@ class ContextAcquirer:
         return self._result(state, evidence, "stream")
 
     def full(self, state: GraphState) -> dict:
-        technique_ids = [
-            alert.technique_id for alert in state["alerts"] if alert.technique_id is not None
-        ]
-        alert_cves = [cve for alert in state["alerts"] for cve in alert.cve_ids]
-        query_cves = extract_cve_ids(state["request"].query)
-        cve_ids = sorted(set(alert_cves + query_cves))
+        technique_ids = state["resource_plan"].technique_ids
+        cve_ids = state["resource_plan"].cve_ids
         expanded = f"{state['request'].query} {' '.join(technique_ids + cve_ids)}"
         lookup = self.runtime.sources.lookup(cve_ids)
         evidence = (
@@ -78,16 +73,13 @@ class ContextAcquirer:
     def _stream_evidence(state: GraphState) -> Evidence:
         request = state["request"]
         simulated = request.simulated or any(event.simulated for event in request.events)
-        payload = {
-            "statistics": state["statistics"].model_dump(mode="json"),
-            "alerts": [alert.model_dump(mode="json") for alert in state["alerts"]],
-        }
+        content, metadata = summarize_stream(state["statistics"], state["alerts"])
         return make_evidence(
             source="stream",
             title="Normalized event-stream analysis",
-            content=json.dumps(payload, sort_keys=True),
+            content=content,
             status=EvidenceStatus.SIMULATED if simulated else EvidenceStatus.AVAILABLE,
-            metadata={"event_count": len(request.events)},
+            metadata=metadata,
         )
 
     @staticmethod
@@ -99,7 +91,7 @@ class ContextAcquirer:
         tool_calls: int = 0,
         warnings: list[str] | None = None,
     ) -> dict:
-        unique = list({item.id: item for item in evidence}.values())
+        unique = deduplicate_evidence(evidence)
         return {
             "evidence": unique,
             "tool_calls": state["tool_calls"] + tool_calls,

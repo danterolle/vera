@@ -28,6 +28,7 @@ class VeraOrchestrator:
         self.settings = settings or get_settings()
         selected_embedder = embedder or build_embedder(self.settings)
         selected_provider = provider or build_provider(self.settings)
+        knowledge = CuratedKnowledge()
         corpus_store = CorpusStore(
             self.settings.corpus_dir,
             self.settings.max_corpus_documents,
@@ -35,7 +36,7 @@ class VeraOrchestrator:
         self.runtime = Runtime(
             settings=self.settings,
             embedder=selected_embedder,
-            knowledge=CuratedKnowledge(),
+            knowledge=knowledge,
             corpus=LocalCorpus(
                 selected_embedder,
                 corpus_store,
@@ -43,7 +44,7 @@ class VeraOrchestrator:
             ),
             sources=sources or SourceHub(self.settings),
             provider=selected_provider,
-            router=Router(selected_provider),
+            router=Router(selected_provider, knowledge.supports),
             memory=MemoryStore(self.settings.db_path, selected_embedder),
         )
         self.graph = build_graph(self.runtime)

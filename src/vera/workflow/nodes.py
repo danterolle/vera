@@ -4,14 +4,14 @@ from uuid import uuid4
 from vera.domain.enums import ClaimStatus
 from vera.domain.reports import AnalysisResult, RunMetrics
 from vera.domain.state import GraphState
-from vera.errors import ProviderError
-from vera.providers.deterministic import DeterministicProvider
 from vera.providers.rendering import render_answer
 from vera.reasoning.reflection import reflect
 from vera.reasoning.validation import validate_and_repair
 from vera.stream.detectors import detect_events
 from vera.stream.incident import build_incident
+from vera.stream.policy import DetectionPolicy
 from vera.stream.statistics import calculate_statistics
+from vera.workflow.generation import generate_draft
 from vera.workflow.runtime import Runtime
 
 
@@ -21,7 +21,18 @@ class WorkflowNodes:
 
     def initialize(self, state: GraphState) -> dict:
         request = state["request"]
-        alerts = detect_events(request.events)
+        settings = self.runtime.settings
+        alerts = detect_events(
+            request.events,
+            DetectionPolicy(
+                port_scan_threshold=settings.port_scan_threshold,
+                port_scan_window_seconds=settings.port_scan_window_seconds,
+                auth_failure_threshold=settings.auth_failure_threshold,
+                auth_failure_window_seconds=settings.auth_failure_window_seconds,
+                syn_burst_threshold=settings.syn_burst_threshold,
+                syn_burst_window_seconds=settings.syn_burst_window_seconds,
+            ),
+        )
         statistics = calculate_statistics(request.events)
         memory = self.runtime.memory.recall(
             request.query,
@@ -53,78 +64,27 @@ class WorkflowNodes:
         decision = self.runtime.router.select(
             state["request"].query,
             bool(state["request"].events),
-            bool(state["alerts"]),
+            state["alerts"],
         )
         return {
             "route": decision.route,
             "route_reason": decision.reason,
+            "resource_plan": decision.plan,
             "model_calls": state["model_calls"] + decision.model_calls,
             "warnings": state["warnings"] + decision.warnings,
             "trace": state["trace"] + [f"route:{decision.route.value}:{decision.reason}"],
         }
 
     def generate(self, state: GraphState) -> dict:
-        attempts = state["generation_attempts"] + 1
-        calls = state["model_calls"]
-        warnings = list(state["warnings"])
-        fallback = state["provider_fallback"]
-        provider = self.runtime.provider
-        budget_exhausted = (
-            provider.external and calls >= self.runtime.settings.max_model_calls
-        )
-        if budget_exhausted:
-            warnings.append("The model-call limit was reached; deterministic output used.")
-            fallback = True
-            draft = DeterministicProvider().generate(
-                state["request"],
-                state["route"],
-                state["evidence"],
-                state["alerts"],
-                state["statistics"],
-                state["validation_errors"],
-            )
-        elif provider.external:
-            calls += 1
-            try:
-                draft = provider.generate(
-                    state["request"],
-                    state["route"],
-                    state["evidence"],
-                    state["alerts"],
-                    state["statistics"],
-                    state["validation_errors"],
-                )
-            except ProviderError as exc:
-                warnings.append(f"LLM generation failed; deterministic output used: {exc}")
-                fallback = True
-                draft = DeterministicProvider().generate(
-                    state["request"],
-                    state["route"],
-                    state["evidence"],
-                    state["alerts"],
-                    state["statistics"],
-                    state["validation_errors"],
-                )
-        else:
-            draft = provider.generate(
-                state["request"],
-                state["route"],
-                state["evidence"],
-                state["alerts"],
-                state["statistics"],
-                state["validation_errors"],
-            )
-        return {
-            "draft": draft,
-            "generation_attempts": attempts,
-            "model_calls": calls,
-            "provider_fallback": fallback,
-            "warnings": warnings,
-            "trace": state["trace"] + [f"generation:attempt={attempts}:provider={provider.name}"],
-        }
+        return generate_draft(self.runtime, state)
 
     def validate(self, state: GraphState) -> dict:
-        initial = validate_and_repair(state["draft"], state["evidence"], repair=False)
+        initial = validate_and_repair(
+            state["draft"],
+            state["evidence"],
+            repair=False,
+            minimum_coverage=self.runtime.settings.grounding_min_coverage,
+        )
         can_retry = (
             bool(initial.errors)
             and self.runtime.provider.external
@@ -137,7 +97,12 @@ class WorkflowNodes:
                 "retry_generation": True,
                 "trace": state["trace"] + [f"validation:retry={len(initial.errors)}"],
             }
-        final = validate_and_repair(initial.draft, state["evidence"], repair=True)
+        final = validate_and_repair(
+            initial.draft,
+            state["evidence"],
+            repair=True,
+            minimum_coverage=self.runtime.settings.grounding_min_coverage,
+        )
         return {
             "draft": final.draft,
             "validation_errors": initial.errors,
@@ -161,10 +126,21 @@ class WorkflowNodes:
         factual = [
             claim
             for claim in claims
+            if claim.status == ClaimStatus.SUPPORTED_FACT
+        ]
+        assessable = [
+            claim
+            for claim in claims
             if claim.status in {ClaimStatus.SUPPORTED_FACT, ClaimStatus.SYSTEM_INFERENCE}
         ]
-        covered = sum(bool(claim.evidence_ids) for claim in factual)
-        coverage = covered / len(factual) if factual else 1.0
+        hidden_failures = max(
+            0,
+            state["reflection"].grounding_failures
+            - sum(claim.status == ClaimStatus.SYSTEM_INFERENCE for claim in claims),
+        )
+        grounded = sum(bool(claim.citations) for claim in factual)
+        denominator = len(assessable) + hidden_failures
+        coverage = grounded / denominator if denominator else 1.0
         trace = state["trace"] + ["persistence:sqlite"]
         result = AnalysisResult(
             run_id=state["run_id"],
@@ -192,6 +168,7 @@ class WorkflowNodes:
                 "provider": self.runtime.provider.name,
                 "embedding_backend": self.runtime.embedder.name,
                 "route_reason": state["route_reason"],
+                "resource_plan": state["resource_plan"].model_dump(mode="json"),
             },
         )
         self.runtime.memory.save(state["request"], result)

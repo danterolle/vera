@@ -27,12 +27,19 @@ def render_answer(
             citations = " ".join(f"[{item}]" for item in claim.evidence_ids)
             lines.append(f"- **{claim.status.value}**: {claim.text} {citations}".rstrip())
     lines.extend(["", "## Sources"])
-    for item in evidence:
+    referenced = {item for claim in claims for item in claim.evidence_ids}
+    visible_evidence = [item for item in evidence if item.id in referenced]
+    for item in visible_evidence:
         location = item.url or "local evidence"
         label = item.status.value
         lines.append(f"- [{item.id}] {item.title} - {location} ({label})")
-    if not evidence:
-        lines.append("- No evidence was available.")
+    if not visible_evidence:
+        message = (
+            "No evidence was cited in the final claims."
+            if evidence
+            else "No evidence was available."
+        )
+        lines.append(f"- {message}")
     return "\n".join(lines)
 
 
