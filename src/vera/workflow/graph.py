@@ -1,0 +1,49 @@
+from langgraph.graph import END, START, StateGraph
+
+from vera.domain.enums import Route
+from vera.domain.state import GraphState
+from vera.workflow.acquisition import ContextAcquirer
+from vera.workflow.nodes import WorkflowNodes
+from vera.workflow.runtime import Runtime
+
+
+def build_graph(runtime: Runtime):
+    nodes = WorkflowNodes(runtime)
+    acquisition = ContextAcquirer(runtime)
+    graph = StateGraph(GraphState)
+    graph.add_node("initialize", nodes.initialize)
+    graph.add_node("route", nodes.route)
+    graph.add_node("cag", acquisition.cag)
+    graph.add_node("rag", acquisition.rag)
+    graph.add_node("tools", acquisition.tools)
+    graph.add_node("stream", acquisition.stream)
+    graph.add_node("full", acquisition.full)
+    graph.add_node("generate", nodes.generate)
+    graph.add_node("validate", nodes.validate)
+    graph.add_node("reflection", nodes.reflection)
+    graph.add_node("finalize", nodes.finalize)
+
+    graph.add_edge(START, "initialize")
+    graph.add_edge("initialize", "route")
+    graph.add_conditional_edges(
+        "route",
+        lambda state: state["route"],
+        {
+            Route.CAG_ONLY: "cag",
+            Route.CAG_RAG: "rag",
+            Route.CAG_RAG_TOOL: "tools",
+            Route.STREAM: "stream",
+            Route.FULL: "full",
+        },
+    )
+    for node in ("cag", "rag", "tools", "stream", "full"):
+        graph.add_edge(node, "generate")
+    graph.add_edge("generate", "validate")
+    graph.add_conditional_edges(
+        "validate",
+        lambda state: "retry" if state["retry_generation"] else "continue",
+        {"retry": "generate", "continue": "reflection"},
+    )
+    graph.add_edge("reflection", "finalize")
+    graph.add_edge("finalize", END)
+    return graph.compile()
