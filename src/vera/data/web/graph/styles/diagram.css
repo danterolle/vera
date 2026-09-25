@@ -1,0 +1,68 @@
+.graph-grid { opacity: .34; }
+.stage { fill: #0c121d; stroke: #162235; stroke-width: 1; }
+.stage-label { fill: #536177; font-size: 10px; font-weight: 800; letter-spacing: 1.6px; }
+.edge { fill: none; stroke: #2b394d; stroke-width: 1.6; marker-end: url(#arrow); opacity: .78; }
+.edge.active {
+  stroke: url(#active-edge);
+  stroke-width: 2.8;
+  opacity: 1;
+  stroke-dasharray: 7 7;
+  animation: flow 1.2s linear infinite;
+}
+.edge-label-bg { fill: #0c1420; stroke: #25364b; }
+.edge-label-bg.active { fill: #123128; stroke: #3d8c76; }
+.edge-label {
+  fill: #8d9db1;
+  font-size: 9px;
+  font-weight: 800;
+  text-anchor: middle;
+  letter-spacing: .4px;
+}
+.edge-label.active { fill: var(--green); }
+.node { --node: var(--slate); cursor: pointer; outline: none; }
+.node.input, .node.output { --node: var(--slate); }
+.node.control { --node: var(--blue); }
+.node.context { --node: var(--violet); }
+.node.reasoning { --node: var(--amber); }
+.node.guardrail { --node: var(--pink); }
+.node.persistence { --node: var(--green); }
+.node { transition: opacity .18s ease; }
+.node .surface {
+  fill: #101827;
+  stroke: #26364b;
+  stroke-width: 1.5;
+  filter: url(#shadow);
+  transition: fill .18s ease, stroke .18s ease;
+}
+.node .accent { fill: var(--node); opacity: .9; }
+.node .icon-box { fill: #182337; stroke: #2b3d55; }
+.node .icon, .node .title, .node .category { pointer-events: none; }
+.node .icon { fill: var(--node); font-size: 9px; font-weight: 900; text-anchor: middle; }
+.node .title { fill: #edf3fa; font-size: 13px; font-weight: 750; }
+.node .category { fill: #718198; font-size: 8.5px; font-weight: 800; letter-spacing: 1.1px; }
+.node .state-dot { fill: #3a485b; }
+.node.active .surface {
+  fill: #11221f;
+  stroke: var(--green);
+  stroke-width: 2.2;
+  filter: url(#active-shadow);
+}
+.node.active .state-dot { fill: var(--green); filter: url(#glow); }
+.node:hover .surface, .node.selected .surface {
+  stroke: #e7eef7;
+  transform: translateY(-1px);
+}
+.node .badge { fill: var(--green); }
+.node .badge-text {
+  fill: #04110d;
+  font-size: 9px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+.focus-path .node:not(.active), .focus-path .edge:not(.active) { opacity: .08; }
+.focus-path .edge-label-bg:not(.active), .focus-path .edge-label:not(.active) { opacity: .16; }
+.focus-path .node.active, .focus-path .edge.active { opacity: 1; }
+@keyframes flow { to { stroke-dashoffset: -28; } }
+@media (prefers-reduced-motion: reduce) {
+  .edge.active { animation: none; }
+}
