@@ -56,6 +56,7 @@ class CveOrgSource:
                         for item in cna.get("references", [])[:20]
                         if item.get("url")
                     ],
+                    "provenance": "live_api",
                 },
             )
         except (KeyError, TypeError, ValueError) as exc:

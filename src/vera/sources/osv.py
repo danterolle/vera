@@ -41,6 +41,7 @@ class OsvSource:
                     "aliases": payload.get("aliases", []),
                     "modified": payload.get("modified"),
                     "published": payload.get("published"),
+                    "provenance": "live_api",
                 },
             )
         except (KeyError, TypeError, ValueError) as exc:

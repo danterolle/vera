@@ -1,3 +1,5 @@
+from threading import Lock
+
 import httpx
 
 from vera.domain.enums import SourceType
@@ -13,11 +15,20 @@ class CisaKevSource:
     def __init__(self, client: httpx.Client) -> None:
         self.client = client
         self._payload: dict | None = None
+        self._fetch_error: str | None = None
+        self._lock = Lock()
 
     def lookup(self, cve_id: str) -> Evidence:
         try:
-            if self._payload is None:
-                self._payload = get_json(self.client.get(self.url), self.source)
+            with self._lock:
+                if self._fetch_error is not None:
+                    raise SourceError(self._fetch_error)
+                if self._payload is None:
+                    try:
+                        self._payload = get_json(self.client.get(self.url), self.source)
+                    except (httpx.HTTPError, ValueError) as exc:
+                        self._fetch_error = f"CISA KEV feed request failed: {exc}"
+                        raise SourceError(self._fetch_error) from exc
             payload = self._payload
             record = next(
                 (
@@ -51,6 +62,7 @@ class CisaKevSource:
                     "date_added": record.get("dateAdded"),
                     "due_date": record.get("dueDate"),
                     "ransomware_use": record.get("knownRansomwareCampaignUse"),
+                    "provenance": "live_api",
                 },
             )
         except (KeyError, TypeError, ValueError) as exc:

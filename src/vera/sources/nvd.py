@@ -61,6 +61,7 @@ class NvdSource:
                     "severity": severity,
                     "vector": vector,
                     "last_modified": record.get("lastModified"),
+                    "provenance": "live_api",
                 },
             )
         except (KeyError, TypeError, ValueError) as exc:

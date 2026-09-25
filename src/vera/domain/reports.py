@@ -17,6 +17,12 @@ class DetectionAlert(BaseModel):
     technique_id: str | None = None
     cve_ids: list[str] = Field(default_factory=list)
     event_indexes: list[int] = Field(default_factory=list)
+    observed_count: int = Field(default=1, ge=1)
+    threshold: int = Field(default=1, ge=1)
+    window_seconds: int = Field(default=0, ge=0)
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
 
 
 class StreamStatistics(BaseModel):
@@ -46,6 +52,9 @@ class ReflectionReport(BaseModel):
     context_used: list[str]
     missing_sources: list[str]
     unsupported_claims: int
+    validation_failures: int = 0
+    factual_validation_failures: int = 0
+    grounding_failures: int = 0
     gaps: list[str]
 
 

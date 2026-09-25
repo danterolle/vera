@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 
@@ -64,15 +65,19 @@ class SourceHub:
             ]
             evidence: list[Evidence] = []
             warnings: list[str] = []
-            calls = 0
-            for cve_id in cve_ids:
-                for adapter in adapters:
-                    if calls >= self.settings.max_tool_calls:
-                        warnings.append("The configured tool-call limit was reached.")
-                        return SourceLookup(evidence, calls, warnings)
-                    calls += 1
+            tasks = [(cve_id, adapter) for cve_id in cve_ids for adapter in adapters]
+            selected = tasks[: self.settings.max_tool_calls]
+            skipped = tasks[self.settings.max_tool_calls :]
+            with ThreadPoolExecutor(
+                max_workers=min(self.settings.source_workers, len(selected))
+            ) as executor:
+                futures = [
+                    (cve_id, adapter, executor.submit(adapter.lookup, cve_id))
+                    for cve_id, adapter in selected
+                ]
+                for cve_id, adapter, future in futures:
                     try:
-                        evidence.append(adapter.lookup(cve_id))
+                        evidence.append(future.result())
                     except (httpx.HTTPError, SourceError) as exc:
                         detail = f"{adapter.source.value} lookup failed: {exc}"
                         warnings.append(detail)
@@ -84,7 +89,21 @@ class SourceHub:
                                 SOURCE_URLS[adapter.source],
                             )
                         )
-            return SourceLookup(evidence, calls, warnings)
+            for cve_id, adapter in skipped:
+                item = unavailable_evidence(
+                    adapter.source,
+                    cve_id,
+                    "Lookup skipped because the configured tool-call limit was reached.",
+                    SOURCE_URLS[adapter.source],
+                )
+                evidence.append(
+                    item.model_copy(update={"metadata": {**item.metadata, "skipped": True}})
+                )
+            if skipped:
+                warnings.append(
+                    f"The tool-call limit was reached; {len(skipped)} lookup(s) were skipped."
+                )
+            return SourceLookup(evidence, len(selected), warnings)
         finally:
             client.close()
 

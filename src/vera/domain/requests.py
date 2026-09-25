@@ -26,6 +26,11 @@ class NetworkEvent(BaseModel):
     def validate_ip(cls, value: str) -> str:
         return str(ip_address(value))
 
+    @field_validator("timestamp")
+    @classmethod
+    def normalize_timestamp(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
     @field_validator("protocol")
     @classmethod
     def normalize_protocol(cls, value: str) -> str:

@@ -60,6 +60,7 @@ def normalize_attack(payload: dict[str, Any]) -> tuple[list[Evidence], str]:
                     "stix_id": item.get("id"),
                     "modified": item.get("modified"),
                     "attack_version": version,
+                    "provenance": "synchronized_feed",
                     "keywords": [value for value in keywords if value],
                 },
             )
@@ -100,6 +101,7 @@ def normalize_cisa_kev(payload: dict[str, Any]) -> tuple[list[Evidence], str]:
                     "date_added": item.get("dateAdded"),
                     "due_date": item.get("dueDate"),
                     "cwes": item.get("cwes", []),
+                    "provenance": "synchronized_feed",
                     "keywords": [
                         str(item.get("vendorProject") or ""),
                         str(item.get("product") or ""),

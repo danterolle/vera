@@ -2,6 +2,7 @@ from typing import TypedDict
 
 from vera.domain.enums import Route
 from vera.domain.evidence import Evidence
+from vera.domain.plans import ResourcePlan
 from vera.domain.reports import (
     AnalysisResult,
     DetectionAlert,
@@ -19,6 +20,7 @@ class GraphState(TypedDict, total=False):
     started_at: float
     route: Route
     route_reason: str
+    resource_plan: ResourcePlan
     evidence: list[Evidence]
     memory: list[Evidence]
     alerts: list[DetectionAlert]

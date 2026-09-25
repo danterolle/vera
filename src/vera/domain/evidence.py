@@ -20,12 +20,20 @@ class Evidence(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class Citation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_id: str = Field(min_length=8, max_length=64)
+    supporting_quote: str = Field(min_length=1, max_length=4000)
+
+
 class Claim(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     text: str = Field(min_length=1, max_length=4000)
     status: ClaimStatus
     evidence_ids: list[str] = Field(default_factory=list)
+    citations: list[Citation] = Field(default_factory=list)
 
 
 def make_evidence(

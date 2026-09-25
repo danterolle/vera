@@ -42,6 +42,7 @@ class EpssSource:
                     "probability": probability,
                     "percentile": percentile,
                     "date": record.get("date"),
+                    "provenance": "live_api",
                 },
             )
         except (KeyError, TypeError, ValueError) as exc:
