@@ -1,0 +1,64 @@
+from vera.config import Settings
+from vera.domain.enums import ClaimStatus, Route
+from vera.domain.evidence import Claim
+from vera.domain.reports import GeneratedAnswer
+from vera.domain.requests import AnalysisRequest
+from vera.workflow.orchestrator import VeraOrchestrator
+
+
+class RetryProvider:
+    name = "retry"
+    external = True
+
+    def __init__(self) -> None:
+        self.classify_calls = 0
+        self.generation_calls = 0
+
+    def classify(self, query: str) -> Route:
+        self.classify_calls += 1
+        return Route.CAG_ONLY
+
+    def generate(self, request, route, evidence, alerts, statistics, feedback):
+        self.generation_calls += 1
+        evidence_id = "missing" if self.generation_calls == 1 else evidence[0].id
+        return GeneratedAnswer(
+            summary="Generated",
+            claims=[
+                Claim(
+                    text="Claim",
+                    status=ClaimStatus.SUPPORTED_FACT,
+                    evidence_ids=[evidence_id],
+                )
+            ],
+        )
+
+
+def test_invalid_generation_uses_one_bounded_retry(tmp_path) -> None:
+    provider = RetryProvider()
+    settings = Settings(
+        db_path=tmp_path / "retry.db",
+        live_sources=False,
+        max_model_calls=2,
+    )
+    result = VeraOrchestrator(settings, provider=provider).analyze(
+        AnalysisRequest(query="What is defense in depth?")
+    )
+    assert provider.generation_calls == 2
+    assert result.metrics.model_calls == 2
+    assert result.claims[0].status == ClaimStatus.SUPPORTED_FACT
+
+
+def test_routing_call_consumes_global_model_budget(tmp_path) -> None:
+    provider = RetryProvider()
+    settings = Settings(
+        db_path=tmp_path / "budget.db",
+        live_sources=False,
+        max_model_calls=1,
+    )
+    result = VeraOrchestrator(settings, provider=provider).analyze(
+        AnalysisRequest(query="Assess this unusual security situation")
+    )
+    assert provider.classify_calls == 1
+    assert provider.generation_calls == 0
+    assert result.metrics.model_calls == 1
+    assert any("model-call limit" in warning for warning in result.warnings)
