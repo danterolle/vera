@@ -1,122 +1,132 @@
-from collections import defaultdict
+from collections import Counter, deque
 
 from vera.domain.enums import Severity
 from vera.domain.reports import DetectionAlert
 from vera.domain.requests import NetworkEvent
-
-SUSPICIOUS_PATHS = ("../", "/etc/passwd", "%2e%2e", "/proc/self")
-COMMAND_MARKERS = (";cat ", "|sh", "$(curl", "`id`")
-LOG4SHELL_MARKERS = ("${jndi:", "%24%7bjndi")
-
-
-def detect_events(events: list[NetworkEvent]) -> list[DetectionAlert]:
-    alerts: list[DetectionAlert] = []
-    alerts.extend(_detect_port_scan(events))
-    alerts.extend(_detect_auth_failures(events))
-    alerts.extend(_detect_syn_flood(events))
-    alerts.extend(_detect_http_payloads(events))
-    return alerts
+from vera.stream.http_detection import detect_http_payloads
+from vera.stream.policy import DetectionPolicy
+from vera.stream.windowing import (
+    IndexedEvent,
+    first_window,
+    group_events,
+    trim_window,
+    window_alert,
+)
 
 
-def _detect_port_scan(events: list[NetworkEvent]) -> list[DetectionAlert]:
-    groups: dict[tuple[str, str], list[tuple[int, int]]] = defaultdict(list)
-    for index, event in enumerate(events):
-        if event.dst_port is not None:
-            groups[(event.src_ip, event.dst_ip)].append((index, event.dst_port))
+def detect_events(
+    events: list[NetworkEvent],
+    policy: DetectionPolicy | None = None,
+) -> list[DetectionAlert]:
+    selected = policy or DetectionPolicy()
+    return [
+        *_detect_port_scan(events, selected),
+        *_detect_auth_failures(events, selected),
+        *_detect_syn_flood(events, selected),
+        *detect_http_payloads(events),
+    ]
+
+
+def _detect_port_scan(
+    events: list[NetworkEvent],
+    policy: DetectionPolicy,
+) -> list[DetectionAlert]:
+    groups = group_events(events, lambda event: event.dst_port is not None)
     alerts = []
     for (source, destination), samples in groups.items():
-        ports = {port for _, port in samples}
-        if len(ports) >= 10:
+        window: deque[IndexedEvent] = deque()
+        ports: Counter[int] = Counter()
+        for sample in samples:
+            trim_window(window, sample[1], policy.port_scan_window_seconds, ports)
+            window.append(sample)
+            ports[sample[1].dst_port] += 1
+            if len(ports) < policy.port_scan_threshold:
+                continue
+            selected = list(window)
             alerts.append(
-                DetectionAlert(
+                window_alert(
+                    selected,
                     rule_id="NET-PORT-SCAN",
                     title="Probable network service discovery",
                     description=(
-                        f"{source} contacted {len(ports)} distinct ports on {destination}."
+                        f"{source} contacted {len(ports)} distinct ports on {destination} "
+                        f"within {policy.port_scan_window_seconds} seconds."
                     ),
                     severity=Severity.MEDIUM,
                     technique_id="T1046",
-                    event_indexes=[index for index, _ in samples],
+                    observed_count=len(ports),
+                    threshold=policy.port_scan_threshold,
+                    window_seconds=policy.port_scan_window_seconds,
+                    confidence=0.8,
                 )
             )
+            break
     return alerts
 
 
-def _detect_auth_failures(events: list[NetworkEvent]) -> list[DetectionAlert]:
-    groups: dict[tuple[str, str], list[int]] = defaultdict(list)
-    for index, event in enumerate(events):
-        if event.http_status in {401, 403}:
-            groups[(event.src_ip, event.dst_ip)].append(index)
+def _detect_auth_failures(
+    events: list[NetworkEvent],
+    policy: DetectionPolicy,
+) -> list[DetectionAlert]:
+    groups = group_events(events, lambda event: event.http_status in {401, 403})
     return [
-        DetectionAlert(
+        window_alert(
+            selected,
             rule_id="HTTP-AUTH-FAILURES",
             title="Repeated HTTP authentication failures",
-            description=f"{source} generated {len(indexes)} denied requests to {destination}.",
+            description=(
+                f"{source} generated {len(selected)} denied requests to {destination} "
+                f"within {policy.auth_failure_window_seconds} seconds."
+            ),
             severity=Severity.MEDIUM,
             technique_id="T1110",
-            event_indexes=indexes,
+            observed_count=len(selected),
+            threshold=policy.auth_failure_threshold,
+            window_seconds=policy.auth_failure_window_seconds,
+            confidence=0.75,
         )
-        for (source, destination), indexes in groups.items()
-        if len(indexes) >= 5
+        for (source, destination), samples in groups.items()
+        if (
+            selected := first_window(
+                samples,
+                policy.auth_failure_threshold,
+                policy.auth_failure_window_seconds,
+            )
+        )
     ]
 
 
-def _detect_syn_flood(events: list[NetworkEvent]) -> list[DetectionAlert]:
-    groups: dict[tuple[str, str], list[int]] = defaultdict(list)
-    for index, event in enumerate(events):
-        flags = (event.tcp_flags or "").upper()
-        if "S" in flags and "A" not in flags:
-            groups[(event.src_ip, event.dst_ip)].append(index)
+def _detect_syn_flood(
+    events: list[NetworkEvent],
+    policy: DetectionPolicy,
+) -> list[DetectionAlert]:
+    groups = group_events(
+        events,
+        lambda event: "S" in (event.tcp_flags or "").upper()
+        and "A" not in (event.tcp_flags or "").upper(),
+    )
     return [
-        DetectionAlert(
+        window_alert(
+            selected,
             rule_id="TCP-SYN-BURST",
             title="High-volume TCP SYN activity",
-            description=f"{source} sent {len(indexes)} SYN packets to {destination}.",
+            description=(
+                f"{source} sent {len(selected)} SYN packets to {destination} "
+                f"within {policy.syn_burst_window_seconds} seconds."
+            ),
             severity=Severity.HIGH,
             technique_id="T1498",
-            event_indexes=indexes,
+            observed_count=len(selected),
+            threshold=policy.syn_burst_threshold,
+            window_seconds=policy.syn_burst_window_seconds,
+            confidence=0.85,
         )
-        for (source, destination), indexes in groups.items()
-        if len(indexes) >= 20
+        for (source, destination), samples in groups.items()
+        if (
+            selected := first_window(
+                samples,
+                policy.syn_burst_threshold,
+                policy.syn_burst_window_seconds,
+            )
+        )
     ]
-
-
-def _detect_http_payloads(events: list[NetworkEvent]) -> list[DetectionAlert]:
-    alerts: list[DetectionAlert] = []
-    for index, event in enumerate(events):
-        uri = (event.http_uri or "").lower()
-        if any(marker in uri for marker in LOG4SHELL_MARKERS):
-            alerts.append(
-                DetectionAlert(
-                    rule_id="HTTP-LOG4SHELL-PATTERN",
-                    title="Log4Shell-style JNDI lookup pattern",
-                    description=f"Event {index} contains a JNDI lookup marker in the HTTP URI.",
-                    severity=Severity.CRITICAL,
-                    technique_id="T1190",
-                    cve_ids=["CVE-2021-44228"],
-                    event_indexes=[index],
-                )
-            )
-        if any(marker in uri for marker in SUSPICIOUS_PATHS):
-            alerts.append(
-                DetectionAlert(
-                    rule_id="HTTP-PATH-TRAVERSAL",
-                    title="Path traversal pattern",
-                    description=f"Event {index} contains a path traversal marker.",
-                    severity=Severity.HIGH,
-                    technique_id="T1190",
-                    event_indexes=[index],
-                )
-            )
-        if any(marker in uri for marker in COMMAND_MARKERS):
-            alerts.append(
-                DetectionAlert(
-                    rule_id="HTTP-COMMAND-INJECTION",
-                    title="Command injection pattern",
-                    description=f"Event {index} contains a command execution marker.",
-                    severity=Severity.HIGH,
-                    technique_id="T1059",
-                    event_indexes=[index],
-                )
-            )
-    return alerts
