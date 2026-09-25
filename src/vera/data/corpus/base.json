@@ -1,0 +1,51 @@
+[
+  {
+    "source": "mitre_attack",
+    "title": "T1190 - Exploit Public-Facing Application",
+    "url": "https://attack.mitre.org/techniques/T1190/",
+    "content": "Adversaries may exploit a weakness in an Internet-facing computer or program to gain initial access to a network. The weakness may be a software bug, temporary glitch, or misconfiguration.",
+    "metadata": {"technique_id": "T1190", "keywords": ["exploit", "public-facing", "web application", "initial access"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1046 - Network Service Discovery",
+    "url": "https://attack.mitre.org/techniques/T1046/",
+    "content": "Adversaries may attempt to get a listing of services running on remote hosts and local network infrastructure devices, including by scanning ports.",
+    "metadata": {"technique_id": "T1046", "keywords": ["port scan", "network service", "discovery"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1110 - Brute Force",
+    "url": "https://attack.mitre.org/techniques/T1110/",
+    "content": "Adversaries may use brute-force techniques to gain access to accounts when passwords are unknown or password hashes are obtained.",
+    "metadata": {"technique_id": "T1110", "keywords": ["brute force", "login", "password", "authentication"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1059 - Command and Scripting Interpreter",
+    "url": "https://attack.mitre.org/techniques/T1059/",
+    "content": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries.",
+    "metadata": {"technique_id": "T1059", "keywords": ["command injection", "shell", "script", "execution"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1071.001 - Web Protocols",
+    "url": "https://attack.mitre.org/techniques/T1071/001/",
+    "content": "Adversaries may communicate using application-layer web protocols to avoid detection by blending with existing traffic.",
+    "metadata": {"technique_id": "T1071.001", "keywords": ["http", "https", "web protocol", "command and control"]}
+  },
+  {
+    "source": "nvd",
+    "title": "CVE-2021-44228 - NVD snapshot",
+    "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228",
+    "content": "Apache Log4j2 message lookup substitution could allow attacker-controlled JNDI endpoints to cause remote code execution in affected log4j-core versions. NVD assigns CVSS 3.1 base score 10.0.",
+    "metadata": {"cve_id": "CVE-2021-44228", "snapshot_date": "2026-08-30", "snapshot": true}
+  },
+  {
+    "source": "nvd",
+    "title": "CVE-2024-3094 - NVD snapshot",
+    "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-3094",
+    "content": "Malicious code found in XZ Utils versions 5.6.0 and 5.6.1 could interfere with sshd authentication through liblzma in affected environments.",
+    "metadata": {"cve_id": "CVE-2024-3094", "snapshot_date": "2026-08-30", "snapshot": true}
+  }
+]
