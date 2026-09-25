@@ -5,8 +5,13 @@ from vera.retrieval.knowledge import CuratedKnowledge
 
 
 def test_curated_knowledge_finds_concept() -> None:
-    results = CuratedKnowledge().search("What is defense in depth?")
+    knowledge = CuratedKnowledge()
+    results = knowledge.search("What is defense in depth?")
     assert results[0].title == "Defense in depth"
+    assert knowledge.supports("Why is defense in depth useful?")
+    assert not knowledge.supports("How does zero trust work?")
+    assert not knowledge.supports("What is defense evasion?")
+    assert not knowledge.supports("What is risk?")
 
 
 def test_corpus_finds_exact_cve() -> None:

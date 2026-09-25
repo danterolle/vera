@@ -1,9 +1,11 @@
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from vera.data import resource
+from vera.domain.requests import NetworkEvent
 from vera.errors import StreamError
 from vera.stream.detectors import detect_events
 from vera.stream.parsers import load_events, parse_tshark_output
@@ -49,6 +51,40 @@ def test_sample_streams_trigger_expected_rules(
     assert calculate_statistics(events).total_events == len(events)
     if filename == "syn-flood.jsonl":
         assert alerts[0].technique_id == "T1498"
+    for alert in alerts:
+        assert alert.first_seen is not None
+        assert alert.last_seen is not None
+        assert alert.observed_count >= alert.threshold
+        assert alert.confidence >= 0.5
+
+
+def test_detection_thresholds_require_temporal_proximity() -> None:
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    scan = [
+        NetworkEvent(
+            timestamp=start + timedelta(days=index),
+            src_ip="203.0.113.1",
+            dst_ip="10.0.0.1",
+            src_port=40000 + index,
+            dst_port=20 + index,
+            protocol="TCP",
+            tcp_flags="S",
+        )
+        for index in range(10)
+    ]
+    auth = [
+        NetworkEvent(
+            timestamp=start + timedelta(days=index),
+            src_ip="198.51.100.1",
+            dst_ip="10.0.0.2",
+            dst_port=443,
+            protocol="HTTP",
+            http_status=401,
+        )
+        for index in range(5)
+    ]
+    assert detect_events(scan) == []
+    assert detect_events(auth) == []
 
 
 def test_tshark_output_is_normalized() -> None:

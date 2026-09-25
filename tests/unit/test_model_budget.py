@@ -1,6 +1,6 @@
 from vera.config import Settings
 from vera.domain.enums import ClaimStatus, Route
-from vera.domain.evidence import Claim
+from vera.domain.evidence import Citation, Claim
 from vera.domain.reports import GeneratedAnswer
 from vera.domain.requests import AnalysisRequest
 from vera.workflow.orchestrator import VeraOrchestrator
@@ -20,14 +20,22 @@ class RetryProvider:
 
     def generate(self, request, route, evidence, alerts, statistics, feedback):
         self.generation_calls += 1
-        evidence_id = "missing" if self.generation_calls == 1 else evidence[0].id
+        evidence_id = "ev-missing" if self.generation_calls == 1 else evidence[0].id
+        quote = "missing quote" if self.generation_calls == 1 else evidence[0].content
+        claim_text = "Unsupported claim" if self.generation_calls == 1 else quote
         return GeneratedAnswer(
             summary="Generated",
             claims=[
                 Claim(
-                    text="Claim",
+                    text=claim_text,
                     status=ClaimStatus.SUPPORTED_FACT,
                     evidence_ids=[evidence_id],
+                    citations=[
+                        Citation(
+                            evidence_id=evidence_id,
+                            supporting_quote=quote,
+                        )
+                    ],
                 )
             ],
         )

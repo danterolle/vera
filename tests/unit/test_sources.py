@@ -1,3 +1,6 @@
+from threading import Lock
+from time import sleep
+
 import httpx
 
 from vera.config import Settings
@@ -117,3 +120,46 @@ def test_offline_sources_are_explicitly_unavailable(settings) -> None:
     assert result.tool_calls == 0
     assert len(result.evidence) == 5
     assert all(item.status == EvidenceStatus.UNAVAILABLE for item in result.evidence)
+
+
+def test_tool_budget_creates_explicit_skipped_evidence(tmp_path) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404)
+
+    settings = Settings(
+        db_path=tmp_path / "db.sqlite",
+        live_sources=True,
+        max_tool_calls=3,
+    )
+    transport = httpx.MockTransport(handler)
+    hub = SourceHub(settings, lambda: httpx.Client(transport=transport))
+    result = hub.lookup(["CVE-2021-44228", "CVE-2024-3094"])
+    skipped = [item for item in result.evidence if item.metadata.get("skipped")]
+    assert result.tool_calls == 3
+    assert len(result.evidence) == 10
+    assert len(skipped) == 7
+    assert any("7 lookup(s) were skipped" in warning for warning in result.warnings)
+
+
+def test_failed_cisa_feed_fetch_is_shared_across_cves(tmp_path) -> None:
+    calls = 0
+    lock = Lock()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        if request.url.host == "www.cisa.gov":
+            with lock:
+                calls += 1
+            sleep(0.02)
+            return httpx.Response(503)
+        return httpx.Response(404)
+
+    settings = Settings(
+        db_path=tmp_path / "db.sqlite",
+        live_sources=True,
+        max_tool_calls=15,
+    )
+    transport = httpx.MockTransport(handler)
+    hub = SourceHub(settings, lambda: httpx.Client(transport=transport))
+    hub.lookup(["CVE-2021-44228", "CVE-2024-3094", "CVE-2026-9999"])
+    assert calls == 1

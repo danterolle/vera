@@ -6,5 +6,8 @@ def test_controlled_evaluation_passes(settings) -> None:
     assert report.passed
     assert report.routing_accuracy == 1.0
     assert report.retrieval_success_rate == 1.0
+    assert report.detector_accuracy == 1.0
+    assert report.grounding_rate == 1.0
+    assert report.unsupported_claims == 0
     assert report.total_model_calls == 0
     assert report.total_tool_calls == 0
