@@ -64,11 +64,11 @@ tests/
 
 ## Routing contract
 
-Events are normalized before routing. Triggered deterministic rules select `FULL`; otherwise
-event input selects `STREAM`. Exact CVE identifiers select `CAG_RAG_TOOL`. ATT&CK requests
-select `CAG_RAG`, and stable definition requests select `CAG_ONLY`. Only requests not covered
-by these rules reach the configured LLM classifier. A failed classifier selects the safer
-retrieval route and records a warning.
+Events are normalized before routing. The meta-controller produces a typed `ResourcePlan`
+containing independent CAG, RAG, tool, and stream flags plus extracted CVE and ATT&CK IDs.
+`Route` remains a derived label for compatibility. Mixed requests can activate stream,
+retrieval, and exact APIs together. Conceptual requests use CAG-only only when curated
+knowledge actually covers the topic.
 
 ## Safety boundaries
 
@@ -78,6 +78,8 @@ retrieval route and records a warning.
 - Input count, PCAP size, model calls, tool calls, and HTTP timeouts are bounded.
 - Evidence content is marked as untrusted data in model prompts.
 - Unknown citation IDs cannot support a factual claim.
+- Supported facts require a verbatim quotation from available non-memory evidence.
+- Grounding checks meaningful term coverage, identifiers, numbers, and negation.
 - Memory can support context but cannot establish an authoritative fact.
 - Missing live information is represented as unavailable evidence.
 
@@ -99,6 +101,25 @@ Hash embeddings provide a deterministic baseline; Sentence Transformers remain o
 Corpus synchronization is explicit. The synchronizer downloads only allowlisted official
 ATT&CK STIX and CISA KEV URLs, validates payload shape, normalizes source metadata, enforces
 byte and document limits, and stages replacements before publishing local feed files.
+Exact live sources execute concurrently. Provenance-aware deduplication preserves retrieval
+order while preferring live API records over synchronized feeds and bundled snapshots.
+
+## Claim grounding
+
+Claims retain evidence IDs and add structured citations containing verbatim supporting
+quotations. Validation checks registry integrity, quotation presence, meaningful term coverage,
+identifiers, numeric values, and negation. Invalid claims receive one bounded retry when
+available; otherwise they become explicit system inferences. Reflection and source coverage
+are calculated from the grounded result rather than citation presence alone.
+
+This deterministic layer rejects unrelated citations and simple contradictions. It remains a
+conservative lexical check, not a complete natural-language inference model.
+
+## Detection windows
+
+Port scanning, authentication failures, and SYN bursts use configurable sliding windows.
+Alerts expose observed count, threshold, first and last timestamps, duration, and confidence.
+HTTP payload signatures remain event-local.
 
 ## Persistence
 

@@ -13,10 +13,12 @@ platform and does not establish that a compromise occurred.
 | `CAG_RAG` | Curated knowledge and local authoritative corpus |
 | `CAG_RAG_TOOL` | Local context and exact CVE.org, NVD, CISA KEV, EPSS, and OSV lookups |
 | `STREAM` | Deterministic analysis of normalized events without triggered attack rules |
-| `FULL` | Event detections, CAG, RAG, and exact lookups for correlated CVEs |
+| `FULL` | Composite stream, retrieval, and API analysis or detected attack signals |
 
 Deterministic rules select clear requests. An enabled LLM only resolves ambiguous requests
 and generates from already assembled evidence. LangGraph bounds generation to two attempts.
+Internally, a compositional `ResourcePlan` selects CAG, RAG, APIs, and stream independently;
+the route name remains a derived compatibility label.
 
 ## Requirements
 
@@ -145,18 +147,22 @@ export VERA_GEMINI_API_KEY=your-key
 
 If generation fails, the result contains a warning and uses deterministic rendering. Failed
 source requests become explicit unavailable evidence rather than fabricated values.
+Live CVE sources execute concurrently within the configured tool budget, and skipped lookups
+are emitted as unavailable evidence.
 
 ## Evidence status
 
 | Status | Meaning |
 | --- | --- |
-| `supported_fact` | Cited by available, non-memory evidence |
+| `supported_fact` | Grounded by a verbatim quote from available non-memory evidence |
 | `system_inference` | Derived by routing, detection, memory, or model reasoning |
 | `unavailable` | Required data was disabled, absent, or failed |
 | `simulated` | Derived from an explicitly simulated event stream |
 
 Bundled CVE records are marked as snapshots. Persistent semantic and episodic memories can
 inform later runs, but the validator never accepts memory as authoritative support.
+Every supported fact must also include a verbatim quotation that passes conservative grounding
+checks for meaningful terms, identifiers, numbers, and negation.
 
 ## Quality commands
 

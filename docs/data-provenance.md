@@ -17,6 +17,8 @@
 Local documents carry source URLs. Bundled NVD examples contain a `snapshot_date` and must not
 be interpreted as current. Set `VERA_LIVE_SOURCES=true` for current exact lookups. Synchronized
 feed manifests retain source URL, upstream version, document count, and retrieval timestamp.
+Evidence metadata distinguishes live APIs, synchronized feeds, and bundled snapshots so only
+logical duplicates from the same source and CVE are replaced.
 
 ## Interpretation rules
 
@@ -33,10 +35,12 @@ prove exploitation in the analyzed environment.
 
 The prototype detects:
 
-- network service discovery across at least ten destination ports;
-- at least five HTTP authentication failures;
-- at least twenty SYN packets without ACK;
+- network service discovery across ten ports within sixty seconds;
+- five HTTP authentication failures within five minutes;
+- twenty SYN packets without ACK within ten seconds;
 - selected path traversal, command injection, and JNDI lookup markers.
+
+Thresholds and time windows are configurable through `VERA_*` settings.
 
 These rules are transparent teaching examples. They can produce false positives and false
 negatives. Analysts must validate findings against complete packet, endpoint, identity, and
@@ -50,5 +54,6 @@ asset telemetry.
 - Live API availability, quotas, and upstream schemas are outside VERA's control.
 - The deterministic provider summarizes evidence but does not provide open-ended reasoning.
 - External model quality depends on the selected model and endpoint.
+- Quotation grounding is lexical and conservative; it does not provide complete NLI.
 - PCAP analysis only uses fields exported by the installed `tshark`.
 - The SQLite design targets a local prototype, not concurrent SOC-scale ingestion.
