@@ -75,8 +75,7 @@ def _vulnerability_answer(
     identifiers = ", ".join(cve_ids)
     if live_count:
         summary = (
-            f"Analyzed {identifiers} using {live_count} available current "
-            f"authoritative source(s)."
+            f"Analyzed {identifiers} using {live_count} available current authoritative source(s)."
         )
     else:
         summary = (
@@ -116,7 +115,7 @@ def _relevant_available(evidence: list[Evidence], limit: int) -> list[Evidence]:
     selected.sort(
         key=lambda item: (
             0 if item.source in LIVE_SOURCES else 1,
-            -float(item.metadata.get("retrieval_score", 0)),
+            -float(item.metadata.get("selection_score", item.metadata.get("retrieval_score", 0))),
             SOURCE_PRIORITY.get(item.source, 99),
             1 if item.source == SourceType.CAG else 0,
         )
@@ -145,10 +144,10 @@ def _unavailable_claim(evidence: list[Evidence]) -> Claim:
         status=ClaimStatus.UNAVAILABLE,
         evidence_ids=[item.id for item in evidence],
         citations=[
-            Citation(evidence_id=item.id, supporting_quote=item.content[:4000])
-            for item in evidence
+            Citation(evidence_id=item.id, supporting_quote=item.content[:4000]) for item in evidence
         ],
     )
+
 
 def _empty_claim() -> Claim:
     return Claim(text="No relevant evidence is available.", status=ClaimStatus.UNAVAILABLE)

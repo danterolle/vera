@@ -80,6 +80,10 @@ LangGraph then cycles through `react_decide` and `react_execute` until the model
 search and exact CVE lookups for identifiers already in the resource plan. Tool observations
 join the evidence registry before the existing generation, validation, reflection, and
 persistence nodes. Decision and execution counts are visible in the workflow explorer.
+Each model decision requires a short operational reason, including `finish`. Reasons
+appear in the persisted trace; executed action inputs, reasons, outcomes, and new
+evidence IDs appear in `metadata.react_observations`. This is not private model reasoning.
+No general web search is configured.
 
 ReAct does not reveal private model reasoning or accept arbitrary URLs or commands.
 Model calls include action decisions, routing, answer generation, and correction. Leave
@@ -129,6 +133,12 @@ Bundled JSON documents and optional synchronized JSONL feeds share the same evid
 The ranker combines normalized BM25 (`0.7`) with normalized embedding similarity (`0.3`).
 Exact identifiers such as CVE, CWE, CAPEC, and ATT&CK IDs remain searchable as single tokens.
 Hash embeddings provide a deterministic baseline; Sentence Transformers remain optional.
+Above the relevance threshold, a bounded candidate set is reranked by provenance
+(synchronized feed versus dated snapshot), document date when available, and token
+novelty. Nearly identical documents are suppressed. Each result retains its original
+hybrid `retrieval_score` and exposes `quality_score`, `freshness_score`,
+`novelty_score`, and `selection_score`. Undated stable guidance receives a neutral
+freshness score; these heuristics do not independently verify source accuracy.
 
 Corpus synchronization is explicit. The synchronizer downloads only allowlisted official
 ATT&CK STIX and CISA KEV URLs, validates payload shape, normalizes source metadata, enforces

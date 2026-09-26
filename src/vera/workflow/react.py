@@ -21,12 +21,16 @@ class ReActEvidenceNodes:
         warnings = list(state["warnings"])
         if steps >= settings.max_react_steps:
             warnings.append("The ReAct step limit was reached; generating an answer.")
-            action = ReActAction(action="finish")
+            action = ReActAction(
+                action="finish", reason="The configured ReAct step limit was reached."
+            )
         elif calls >= settings.model_call_limit - settings.generation_attempt_limit:
             warnings.append(
                 "ReAct stopped to reserve model calls for the answer and one correction."
             )
-            action = ReActAction(action="finish")
+            action = ReActAction(
+                action="finish", reason="The remaining model calls are reserved for generation."
+            )
         else:
             provider = self.runtime.provider
             if not isinstance(provider, ReActProvider):
@@ -42,17 +46,20 @@ class ReActEvidenceNodes:
                         state["evidence"],
                         state["resource_plan"].cve_ids,
                         state["react_observations"],
+                        state["react_searches"],
                     )
                 )
             except (ProviderError, ValidationError) as exc:
                 warnings.append(f"ReAct decision failed; generating an answer: {exc}")
-                action = ReActAction(action="finish")
+                action = ReActAction(
+                    action="finish", reason="The model did not provide a valid evidence action."
+                )
         return {
             "react_action": action,
             "react_steps": steps,
             "model_calls": calls,
             "warnings": warnings,
-            "trace": state["trace"] + [f"react:decision={action.action}"],
+            "trace": state["trace"] + [f"react:decision={action.action}:reason={action.reason}"],
         }
 
     def execute(self, state: GraphState) -> dict:
@@ -67,7 +74,7 @@ class ReActEvidenceNodes:
             query = action.query
             if query is None:
                 raise ProviderError("ReAct corpus search is missing a query")
-            if query in searches:
+            if query.casefold().strip() in {item.casefold().strip() for item in searches}:
                 outcome = "skipped"
                 warnings.append("ReAct skipped a repeated corpus search.")
             else:

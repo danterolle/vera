@@ -49,9 +49,11 @@ class HttpModelProvider:
         evidence: list[Evidence],
         cve_ids: list[str],
         observations: list[ReActObservation],
+        searched_queries: list[str],
     ) -> ReActAction:
         content = self._complete(
-            action_prompt(query, evidence, cve_ids, observations), ACTION_SYSTEM_PROMPT
+            action_prompt(query, evidence, cve_ids, observations, searched_queries),
+            ACTION_SYSTEM_PROMPT,
         )
         try:
             return ReActAction.model_validate(_json_object(content))

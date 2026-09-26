@@ -5,6 +5,7 @@ from vera.retrieval.embeddings import Embedder, cosine_similarity
 from vera.retrieval.models import CorpusStatus
 from vera.retrieval.ranking import Bm25Ranker, normalize
 from vera.retrieval.resources import load_evidence_directory
+from vera.retrieval.selection import ScoredDocument, select_documents
 from vera.retrieval.store import CorpusStore
 
 
@@ -36,25 +37,19 @@ class LocalCorpus:
         lexical_scores = self._lexical.scores(query)
         vectors = vector_scores
         lexical = normalize(lexical_scores)
-        ranked = sorted(
-            (
-                (0.7 * lexical[index] + 0.3 * vectors[index], index, document)
+        return select_documents(
+            [
+                ScoredDocument(
+                    evidence=document,
+                    relevance=0.7 * lexical[index] + 0.3 * vectors[index],
+                    lexical=lexical[index],
+                    vector=vectors[index],
+                )
                 for index, document in enumerate(self.documents)
-            ),
-            key=lambda item: (-item[0], item[2].title),
+            ],
+            limit,
+            self.min_score,
         )
-        results: list[Evidence] = []
-        for score, index, document in ranked:
-            if score < self.min_score or len(results) >= limit:
-                break
-            metadata = {
-                **document.metadata,
-                "retrieval_score": round(score, 4),
-                "lexical_score": round(lexical[index], 4),
-                "vector_score": round(vectors[index], 4),
-            }
-            results.append(document.model_copy(update={"metadata": metadata}))
-        return results
 
     def status(self) -> CorpusStatus:
         counts = Counter(item.source.value for item in self.documents)

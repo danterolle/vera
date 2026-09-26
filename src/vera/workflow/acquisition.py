@@ -22,7 +22,7 @@ class ContextAcquirer:
             + self.runtime.corpus.search(query, self.runtime.settings.retrieval_k)
             + state["memory"]
         )
-        return self._result(state, evidence, "cag+rag")
+        return self._result(state, evidence, "cag+rag", searched_query=query)
 
     def tools(self, state: GraphState) -> dict:
         query = state["request"].query
@@ -32,7 +32,7 @@ class ContextAcquirer:
             + state["memory"]
         )
         if self.runtime.settings.react_enabled:
-            return self._result(state, local, "cag+rag")
+            return self._result(state, local, "cag+rag", searched_query=query)
         lookup = self.runtime.sources.lookup(state["resource_plan"].cve_ids)
         return self._result(
             state,
@@ -40,6 +40,7 @@ class ContextAcquirer:
             "cag+rag+tools",
             tool_calls=lookup.tool_calls,
             warnings=lookup.warnings,
+            searched_query=query,
         )
 
     def stream(self, state: GraphState) -> dict:
@@ -71,6 +72,7 @@ class ContextAcquirer:
             "full",
             tool_calls=lookup.tool_calls if lookup else 0,
             warnings=lookup.warnings if lookup else [],
+            searched_query=expanded,
         )
 
     @staticmethod
@@ -94,11 +96,15 @@ class ContextAcquirer:
         *,
         tool_calls: int = 0,
         warnings: list[str] | None = None,
+        searched_query: str | None = None,
     ) -> dict:
         unique = deduplicate_evidence(evidence)
         return {
             "evidence": unique,
             "tool_calls": state["tool_calls"] + tool_calls,
+            "react_searches": state["react_searches"] + (
+                [searched_query] if searched_query is not None else []
+            ),
             "warnings": state["warnings"] + (warnings or []),
             "trace": state["trace"] + [f"context:{label}:evidence={len(unique)}"],
         }
