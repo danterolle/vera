@@ -53,6 +53,10 @@ class WorkflowNodes:
             "provider_fallback": False,
             "model_calls": 0,
             "tool_calls": 0,
+            "react_steps": 0,
+            "react_searches": [],
+            "react_lookups": [],
+            "react_observations": [],
             "trace": [
                 f"initialized:events={len(request.events)}:alerts={len(alerts)}",
                 f"memory:recalled={len(memory)}",
@@ -89,7 +93,8 @@ class WorkflowNodes:
             bool(initial.errors)
             and self.runtime.provider.external
             and not state["provider_fallback"]
-            and state["model_calls"] < self.runtime.settings.max_model_calls
+            and state["generation_attempts"] < self.runtime.settings.generation_attempt_limit
+            and state["model_calls"] < self.runtime.settings.model_call_limit
         )
         if can_retry:
             return {
@@ -142,6 +147,20 @@ class WorkflowNodes:
         denominator = len(assessable) + hidden_failures
         coverage = grounded / denominator if denominator else 1.0
         trace = state["trace"] + ["persistence:sqlite"]
+        metadata = {
+            "provider": self.runtime.provider.name,
+            "embedding_backend": self.runtime.embedder.name,
+            "route_reason": state["route_reason"],
+            "resource_plan": state["resource_plan"].model_dump(mode="json"),
+        }
+        if self.runtime.settings.react_enabled:
+            metadata["react_enabled"] = True
+            metadata["model_call_limit"] = self.runtime.settings.model_call_limit
+            metadata["react_steps"] = state["react_steps"]
+            metadata["generation_attempts"] = state["generation_attempts"]
+            metadata["react_observations"] = [
+                item.model_dump(mode="json") for item in state["react_observations"]
+            ]
         result = AnalysisResult(
             run_id=state["run_id"],
             route=state["route"],
@@ -164,12 +183,7 @@ class WorkflowNodes:
             ),
             trace=trace,
             warnings=state["warnings"],
-            metadata={
-                "provider": self.runtime.provider.name,
-                "embedding_backend": self.runtime.embedder.name,
-                "route_reason": state["route_reason"],
-                "resource_plan": state["resource_plan"].model_dump(mode="json"),
-            },
+            metadata=metadata,
         )
         self.runtime.memory.save(state["request"], result)
         return {"result": result, "trace": trace}

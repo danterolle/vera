@@ -31,6 +31,8 @@ class ContextAcquirer:
             + self.runtime.corpus.search(query, self.runtime.settings.retrieval_k)
             + state["memory"]
         )
+        if self.runtime.settings.react_enabled:
+            return self._result(state, local, "cag+rag")
         lookup = self.runtime.sources.lookup(state["resource_plan"].cve_ids)
         return self._result(
             state,
@@ -53,20 +55,22 @@ class ContextAcquirer:
         technique_ids = state["resource_plan"].technique_ids
         cve_ids = state["resource_plan"].cve_ids
         expanded = f"{state['request'].query} {' '.join(technique_ids + cve_ids)}"
-        lookup = self.runtime.sources.lookup(cve_ids)
+        lookup = (
+            None if self.runtime.settings.react_enabled else self.runtime.sources.lookup(cve_ids)
+        )
         evidence = (
             self.runtime.knowledge.search(expanded)
             + self.runtime.corpus.search(expanded, self.runtime.settings.retrieval_k)
             + [self._stream_evidence(state)]
-            + lookup.evidence
+            + (lookup.evidence if lookup else [])
             + state["memory"]
         )
         return self._result(
             state,
             evidence,
             "full",
-            tool_calls=lookup.tool_calls,
-            warnings=lookup.warnings,
+            tool_calls=lookup.tool_calls if lookup else 0,
+            warnings=lookup.warnings if lookup else [],
         )
 
     @staticmethod

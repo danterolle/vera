@@ -10,7 +10,7 @@ def generate_draft(runtime: Runtime, state: GraphState) -> dict:
     warnings = list(state["warnings"])
     fallback = state["provider_fallback"]
     provider = runtime.provider
-    budget_exhausted = provider.external and calls >= runtime.settings.max_model_calls
+    budget_exhausted = provider.external and calls >= runtime.settings.model_call_limit
     if budget_exhausted:
         warnings.append("The model-call limit was reached; deterministic output used.")
         fallback = True

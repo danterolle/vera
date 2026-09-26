@@ -106,7 +106,17 @@ def _execution_state(result: AnalysisResult | None) -> tuple[set[str], Counter[s
         "finalize",
         "__end__",
     }
+    if result.metadata.get("react_enabled"):
+        active.add("react_decide")
+        if any(item.startswith("react:execute=") for item in result.trace):
+            active.add("react_execute")
     executions = Counter({node: 1 for node in active})
+    executions["react_decide"] = sum(
+        item.startswith("react:decision=") for item in result.trace
+    )
+    executions["react_execute"] = sum(
+        item.startswith("react:execute=") for item in result.trace
+    )
     executions["generate"] = sum(item.startswith("generation:") for item in result.trace)
     executions["validate"] = sum(item.startswith("validation:") for item in result.trace)
     return active, executions
@@ -120,8 +130,14 @@ def _edge_active(
 ) -> bool:
     if source == "route":
         return target in active
-    if target == "generate" and source in ROUTE_NODE.values():
+    if source == "react_decide" and target == "react_execute":
+        return executions["react_execute"] > 0
+    if source == "react_execute" and target == "react_decide":
+        return executions["react_execute"] > 0
+    if target == "react_decide" and source in ROUTE_NODE.values():
         return source in active
+    if target == "generate" and source in ROUTE_NODE.values():
+        return source in active and "react_decide" not in active
     if source == "validate" and target == "generate":
         return executions["generate"] > 1
     return source in active and target in active

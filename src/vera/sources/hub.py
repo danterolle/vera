@@ -32,7 +32,7 @@ class SourceHub:
         self.settings = settings
         self._client_factory = client_factory
 
-    def lookup(self, cve_ids: list[str]) -> SourceLookup:
+    def lookup(self, cve_ids: list[str], *, limit: int | None = None) -> SourceLookup:
         if not cve_ids:
             return SourceLookup([], 0)
         if not self.settings.live_sources:
@@ -66,29 +66,33 @@ class SourceHub:
             evidence: list[Evidence] = []
             warnings: list[str] = []
             tasks = [(cve_id, adapter) for cve_id in cve_ids for adapter in adapters]
-            selected = tasks[: self.settings.max_tool_calls]
-            skipped = tasks[self.settings.max_tool_calls :]
-            with ThreadPoolExecutor(
-                max_workers=min(self.settings.source_workers, len(selected))
-            ) as executor:
-                futures = [
-                    (cve_id, adapter, executor.submit(adapter.lookup, cve_id))
-                    for cve_id, adapter in selected
-                ]
-                for cve_id, adapter, future in futures:
-                    try:
-                        evidence.append(future.result())
-                    except (httpx.HTTPError, SourceError) as exc:
-                        detail = f"{adapter.source.value} lookup failed: {exc}"
-                        warnings.append(detail)
-                        evidence.append(
-                            unavailable_evidence(
-                                adapter.source,
-                                cve_id,
-                                detail,
-                                SOURCE_URLS[adapter.source],
+            call_limit = self.settings.max_tool_calls
+            if limit is not None:
+                call_limit = min(call_limit, max(0, limit))
+            selected = tasks[:call_limit]
+            skipped = tasks[call_limit:]
+            if selected:
+                with ThreadPoolExecutor(
+                    max_workers=min(self.settings.source_workers, len(selected))
+                ) as executor:
+                    futures = [
+                        (cve_id, adapter, executor.submit(adapter.lookup, cve_id))
+                        for cve_id, adapter in selected
+                    ]
+                    for cve_id, adapter, future in futures:
+                        try:
+                            evidence.append(future.result())
+                        except (httpx.HTTPError, SourceError) as exc:
+                            detail = f"{adapter.source.value} lookup failed: {exc}"
+                            warnings.append(detail)
+                            evidence.append(
+                                unavailable_evidence(
+                                    adapter.source,
+                                    cve_id,
+                                    detail,
+                                    SOURCE_URLS[adapter.source],
+                                )
                             )
-                        )
             for cve_id, adapter in skipped:
                 item = unavailable_evidence(
                     adapter.source,

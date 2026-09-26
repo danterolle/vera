@@ -1,10 +1,14 @@
+from dataclasses import replace
+
 from vera.config import Settings, get_settings
 from vera.domain.graph import GraphTopology
 from vera.domain.reports import AnalysisResult
 from vera.domain.requests import AnalysisRequest
+from vera.errors import ConfigurationError
 from vera.memory.store import MemoryStore
 from vera.providers.base import ModelProvider
 from vera.providers.factory import build_provider
+from vera.providers.react import ReActProvider
 from vera.retrieval.corpus import LocalCorpus
 from vera.retrieval.embeddings import Embedder, build_embedder
 from vera.retrieval.knowledge import CuratedKnowledge
@@ -28,6 +32,10 @@ class VeraOrchestrator:
         self.settings = settings or get_settings()
         selected_embedder = embedder or build_embedder(self.settings)
         selected_provider = provider or build_provider(self.settings)
+        if self.settings.react_enabled and (
+            not selected_provider.external or not isinstance(selected_provider, ReActProvider)
+        ):
+            raise ConfigurationError("ReAct requires an external provider with action decisions")
         knowledge = CuratedKnowledge()
         corpus_store = CorpusStore(
             self.settings.corpus_dir,
@@ -57,7 +65,12 @@ class VeraOrchestrator:
         )
         if len(normalized.events) > self.settings.max_events:
             raise ValueError(f"Request exceeds the {self.settings.max_events} event limit")
-        state = self.graph.invoke({"request": normalized})
+        config = (
+            {"recursion_limit": 2 * self.settings.max_react_steps + 20}
+            if self.settings.react_enabled
+            else None
+        )
+        state = self.graph.invoke({"request": normalized}, config=config)
         return state["result"]
 
     def get_run(self, run_id: str) -> AnalysisResult | None:
@@ -70,4 +83,10 @@ class VeraOrchestrator:
         selected = self.get_run(run_id) if run_id else None
         if run_id and selected is None:
             return None
-        return build_topology(self.graph, selected, self.list_runs(20))
+        graph = self.graph
+        if selected and bool(selected.metadata.get("react_enabled")) != self.settings.react_enabled:
+            historical_settings = self.settings.model_copy(
+                update={"react_enabled": bool(selected.metadata.get("react_enabled"))}
+            )
+            graph = build_graph(replace(self.runtime, settings=historical_settings))
+        return build_topology(graph, selected, self.list_runs(20))

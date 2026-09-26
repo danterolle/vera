@@ -31,6 +31,14 @@ NODE_DETAILS = {
         "Context", "Combine stream, retrieval, and exact sources for composite requests.",
         "Mixed request or triggered alerts", "Correlated evidence from selected resources",
     ),
+    "react_decide": (
+        "Reasoning", "Choose a bounded evidence action or finish.",
+        "Request, available evidence, and allowed CVE IDs", "Validated action decision",
+    ),
+    "react_execute": (
+        "Context", "Execute an authorized local search or exact CVE lookup.",
+        "Validated action and remaining tool budget", "Updated evidence and observations",
+    ),
     "generate": (
         "Reasoning", "Produce a schema-constrained evidence-based draft.",
         "Selected evidence and validation feedback", "GeneratedAnswer with typed claims",
@@ -62,6 +70,8 @@ POSITIONS = {
     "tools": (600, 354),
     "stream": (840, 354),
     "full": (1080, 354),
+    "react_decide": (340, 488),
+    "react_execute": (860, 488),
     "generate": (600, 488),
     "validate": (600, 572),
     "reflection": (600, 656),
@@ -78,6 +88,8 @@ NODE_LABELS = {
     "tools": "Live CVE APIs",
     "stream": "Event analysis",
     "full": "Full analysis",
+    "react_decide": "Choose action",
+    "react_execute": "Observe result",
     "generate": "Generate answer",
     "validate": "Validate claims",
     "reflection": "Reflect",

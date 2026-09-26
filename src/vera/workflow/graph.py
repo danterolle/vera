@@ -4,6 +4,7 @@ from vera.domain.enums import Route
 from vera.domain.state import GraphState
 from vera.workflow.acquisition import ContextAcquirer
 from vera.workflow.nodes import WorkflowNodes
+from vera.workflow.react import ReActEvidenceNodes
 from vera.workflow.runtime import Runtime
 
 
@@ -22,6 +23,10 @@ def build_graph(runtime: Runtime):
     graph.add_node("validate", nodes.validate)
     graph.add_node("reflection", nodes.reflection)
     graph.add_node("finalize", nodes.finalize)
+    if runtime.settings.react_enabled:
+        react_nodes = ReActEvidenceNodes(runtime)
+        graph.add_node("react_decide", react_nodes.decide)
+        graph.add_node("react_execute", react_nodes.execute)
 
     graph.add_edge(START, "initialize")
     graph.add_edge("initialize", "route")
@@ -37,7 +42,14 @@ def build_graph(runtime: Runtime):
         },
     )
     for node in ("cag", "rag", "tools", "stream", "full"):
-        graph.add_edge(node, "generate")
+        graph.add_edge(node, "react_decide" if runtime.settings.react_enabled else "generate")
+    if runtime.settings.react_enabled:
+        graph.add_conditional_edges(
+            "react_decide",
+            lambda state: "finish" if state["react_action"].action == "finish" else "execute",
+            {"finish": "generate", "execute": "react_execute"},
+        )
+        graph.add_edge("react_execute", "react_decide")
     graph.add_edge("generate", "validate")
     graph.add_conditional_edges(
         "validate",

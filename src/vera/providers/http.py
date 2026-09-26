@@ -3,12 +3,14 @@ import json
 import httpx
 from pydantic import ValidationError
 
+from vera.domain.actions import ReActAction, ReActObservation
 from vera.domain.enums import Route
 from vera.domain.evidence import Evidence
 from vera.domain.reports import DetectionAlert, GeneratedAnswer, StreamStatistics
 from vera.domain.requests import AnalysisRequest
 from vera.errors import ProviderError
 from vera.providers.prompts import SYSTEM_PROMPT, generation_prompt, routing_prompt
+from vera.providers.react import ACTION_SYSTEM_PROMPT, action_prompt
 
 
 class HttpModelProvider:
@@ -40,6 +42,21 @@ class HttpModelProvider:
             return GeneratedAnswer.model_validate(_json_object(content))
         except (ValidationError, json.JSONDecodeError) as exc:
             raise ProviderError(f"{self.name} returned an invalid analysis payload") from exc
+
+    def decide_action(
+        self,
+        query: str,
+        evidence: list[Evidence],
+        cve_ids: list[str],
+        observations: list[ReActObservation],
+    ) -> ReActAction:
+        content = self._complete(
+            action_prompt(query, evidence, cve_ids, observations), ACTION_SYSTEM_PROMPT
+        )
+        try:
+            return ReActAction.model_validate(_json_object(content))
+        except (ValidationError, json.JSONDecodeError) as exc:
+            raise ProviderError(f"{self.name} returned an invalid ReAct action") from exc
 
     def _complete(self, prompt: str, system: str) -> str:
         raise NotImplementedError

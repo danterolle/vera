@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+from vera.domain.actions import ReActAction, ReActObservation
 from vera.domain.enums import Route
 from vera.domain.evidence import Evidence
 from vera.domain.plans import ResourcePlan
@@ -35,5 +36,10 @@ class GraphState(TypedDict, total=False):
     provider_fallback: bool
     model_calls: int
     tool_calls: int
+    react_action: ReActAction
+    react_steps: int
+    react_searches: list[str]
+    react_lookups: list[str]
+    react_observations: list[ReActObservation]
     trace: list[str]
     warnings: list[str]

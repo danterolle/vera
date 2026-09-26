@@ -1,7 +1,8 @@
 # Architecture
 
 VERA is one stateful LangGraph workflow with specialized deterministic layers. It is not a
-collection of autonomous agents.
+collection of autonomous agents. An optional bounded ReAct branch allows an external model
+to choose evidence actions; the default deterministic route remains unchanged.
 
 ```mermaid
 flowchart LR
@@ -69,6 +70,37 @@ containing independent CAG, RAG, tool, and stream flags plus extracted CVE and A
 `Route` remains a derived label for compatibility. Mixed requests can activate stream,
 retrieval, and exact APIs together. Conceptual requests use CAG-only only when curated
 knowledge actually covers the topic.
+
+## Optional ReAct execution
+
+When `VERA_REACT_ENABLED=true`, each acquisition branch first assembles local context;
+the `tools` and `full` branches defer live lookups instead of running them automatically.
+LangGraph then cycles through `react_decide` and `react_execute` until the model chooses
+`finish` or a configured budget stops the loop. Typed decisions permit only local corpus
+search and exact CVE lookups for identifiers already in the resource plan. Tool observations
+join the evidence registry before the existing generation, validation, reflection, and
+persistence nodes. Decision and execution counts are visible in the workflow explorer.
+
+ReAct does not reveal private model reasoning or accept arbitrary URLs or commands.
+Model calls include action decisions, routing, answer generation, and correction. Leave
+`VERA_MAX_MODEL_CALLS` unset for an automatic budget: two calls in the default workflow,
+or `VERA_MAX_REACT_STEPS + 3` with ReAct enabled. The additional three calls cover at most
+one routing decision, one answer, and one correction. Three ReAct steps therefore permit
+up to six model calls; all ten supported steps fit within the maximum of thirteen calls.
+Each ReAct step counts one attempted model decision, including `finish` or an invalid
+response. Finishing early does not consume the remaining allowance.
+
+An explicit `VERA_MAX_MODEL_CALLS` remains a hard ceiling. With ReAct enabled it must cover
+all configured steps and the three reserved calls; incompatible settings fail validation
+rather than silently disabling the loop. Without ReAct, explicit limits remain between
+one and four calls. Existing configurations that set `VERA_MAX_MODEL_CALLS=2` must remove
+that override or raise it before enabling ReAct.
+
+The ReAct loop cannot consume the two calls reserved for generation and correction.
+Validation permits at most one model correction in ReAct mode, even if unused calls remain.
+Persisted ReAct metadata records the resolved call limit, attempted decisions, and generation
+attempts. CVE source requests share the global tool budget; exhausted or disabled lookups
+remain explicit unavailable evidence.
 
 ## Safety boundaries
 

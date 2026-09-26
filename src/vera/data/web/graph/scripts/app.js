@@ -27,10 +27,12 @@ function pathPreview(data, route) {
     };
   }
   const branch = ROUTE_NODES[route];
+  const react = data.nodes.some(node => node.id === "react_decide");
   const active = new Set([
     "__start__", "initialize", "route", branch, "generate",
     "validate", "reflection", "finalize", "__end__"
   ]);
+  if (react) active.add("react_decide");
   return {
     ...data,
     nodes: data.nodes.map(node => ({
@@ -42,7 +44,9 @@ function pathPreview(data, route) {
         ? false
         : active.has(edge.source) && active.has(edge.target) &&
           (edge.source !== "route" || edge.target === branch) &&
-          (edge.target !== "generate" || edge.source === branch || edge.source === "validate")
+          (edge.target !== "generate" ||
+            edge.source === (react ? "react_decide" : branch) ||
+            edge.source === "validate")
     })),
     execution: null
   };
