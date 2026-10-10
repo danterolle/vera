@@ -1,0 +1,91 @@
+[
+  {
+    "name": "stable concept",
+    "query": "What is defense in depth?",
+    "expected_route": "CAG_ONLY",
+    "minimum_available_sources": 1
+  },
+  {
+    "name": "exact vulnerability",
+    "query": "Analyze CVE-2021-44228 and explain its exploitability.",
+    "expected_route": "CAG_RAG_TOOL",
+    "minimum_available_sources": 2
+  },
+  {
+    "name": "attack technique",
+    "query": "Explain MITRE ATT&CK technique T1190.",
+    "expected_route": "CAG_RAG",
+    "minimum_available_sources": 2
+  },
+  {
+    "name": "simulated incident",
+    "query": "Analyze this controlled network replay.",
+    "expected_route": "FULL",
+    "minimum_available_sources": 2,
+    "events_file": "network-events.jsonl",
+    "simulated": true,
+    "expected_rules": [
+      "HTTP-LOG4SHELL-PATTERN",
+      "HTTP-PATH-TRAVERSAL",
+      "NET-PORT-SCAN"
+    ]
+  },
+  {
+    "name": "benign web traffic",
+    "query": "Review this controlled benign web stream.",
+    "expected_route": "STREAM",
+    "minimum_available_sources": 1,
+    "events_file": "benign-web.jsonl",
+    "simulated": true,
+    "expected_rules": []
+  },
+  {
+    "name": "mixed vulnerability and traffic",
+    "query": "Analyze CVE-2021-44228 in this controlled traffic.",
+    "expected_route": "FULL",
+    "minimum_available_sources": 2,
+    "events_file": "benign-web.jsonl",
+    "simulated": true,
+    "expected_rules": []
+  },
+  {
+    "name": "network service discovery",
+    "query": "Analyze this controlled port scan.",
+    "expected_route": "FULL",
+    "minimum_available_sources": 2,
+    "events_file": "port-scan.jsonl",
+    "simulated": true,
+    "expected_rules": ["NET-PORT-SCAN"]
+  },
+  {
+    "name": "authentication attack",
+    "query": "Analyze these controlled login failures.",
+    "expected_route": "FULL",
+    "minimum_available_sources": 2,
+    "events_file": "http-brute-force.jsonl",
+    "simulated": true,
+    "expected_rules": ["HTTP-AUTH-FAILURES"]
+  },
+  {
+    "name": "syn burst",
+    "query": "Analyze this controlled TCP burst.",
+    "expected_route": "FULL",
+    "minimum_available_sources": 2,
+    "events_file": "syn-flood.jsonl",
+    "simulated": true,
+    "expected_rules": ["TCP-SYN-BURST"]
+  },
+  {
+    "name": "web exploitation patterns",
+    "query": "Analyze these controlled web requests.",
+    "expected_route": "FULL",
+    "minimum_available_sources": 2,
+    "events_file": "web-exploitation.jsonl",
+    "simulated": true,
+    "expected_rules": [
+      "HTTP-COMMAND-INJECTION",
+      "HTTP-LOG4SHELL-PATTERN",
+      "HTTP-PATH-TRAVERSAL"
+    ]
+  }
+]

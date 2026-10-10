@@ -1,0 +1,149 @@
+[
+  {
+    "source": "mitre_attack",
+    "title": "T1566 - Phishing",
+    "url": "https://attack.mitre.org/techniques/T1566/",
+    "content": "Adversaries may send phishing messages to gain access to victim systems. Common sub-techniques use malicious attachments, links, or third-party services.",
+    "metadata": {"external_id": "T1566", "keywords": ["phishing", "attachment", "spearphishing", "initial access"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1078 - Valid Accounts",
+    "url": "https://attack.mitre.org/techniques/T1078/",
+    "content": "Adversaries may obtain and abuse existing accounts to establish persistence, escalate privileges, evade defenses, or access remote resources.",
+    "metadata": {"external_id": "T1078", "keywords": ["valid accounts", "credentials", "identity", "persistence"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1003 - OS Credential Dumping",
+    "url": "https://attack.mitre.org/techniques/T1003/",
+    "content": "Adversaries may attempt to extract account login and credential material from operating systems and software.",
+    "metadata": {"external_id": "T1003", "keywords": ["credential dumping", "password hash", "lsass", "secrets"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1055 - Process Injection",
+    "url": "https://attack.mitre.org/techniques/T1055/",
+    "content": "Adversaries may inject code into processes to evade process-based defenses or execute in another process context.",
+    "metadata": {"external_id": "T1055", "keywords": ["process injection", "dll", "memory", "defense evasion"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1021 - Remote Services",
+    "url": "https://attack.mitre.org/techniques/T1021/",
+    "content": "Adversaries may use valid accounts with remote services such as RDP, SMB, SSH, or VNC to move through an environment.",
+    "metadata": {"external_id": "T1021", "keywords": ["remote service", "rdp", "ssh", "smb", "lateral movement"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1105 - Ingress Tool Transfer",
+    "url": "https://attack.mitre.org/techniques/T1105/",
+    "content": "Adversaries may transfer tools or other files from an external system into a compromised environment.",
+    "metadata": {"external_id": "T1105", "keywords": ["download", "tool transfer", "payload", "command and control"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1027 - Obfuscated Files or Information",
+    "url": "https://attack.mitre.org/techniques/T1027/",
+    "content": "Adversaries may encode, encrypt, or otherwise obfuscate content to make detection and analysis more difficult.",
+    "metadata": {"external_id": "T1027", "keywords": ["obfuscation", "encoding", "packing", "defense evasion"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1486 - Data Encrypted for Impact",
+    "url": "https://attack.mitre.org/techniques/T1486/",
+    "content": "Adversaries may encrypt data on target systems or networks to interrupt availability, commonly in ransomware operations.",
+    "metadata": {"external_id": "T1486", "keywords": ["ransomware", "encryption", "impact", "availability"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1053.005 - Scheduled Task or Job: Scheduled Task",
+    "url": "https://attack.mitre.org/techniques/T1053/005/",
+    "content": "Adversaries may abuse Windows Task Scheduler to execute programs at startup or on a recurring schedule.",
+    "metadata": {"external_id": "T1053.005", "keywords": ["scheduled task", "task scheduler", "persistence"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1059.001 - Command and Scripting Interpreter: PowerShell",
+    "url": "https://attack.mitre.org/techniques/T1059/001/",
+    "content": "Adversaries may abuse PowerShell commands and scripts for execution, discovery, credential access, or defense evasion.",
+    "metadata": {"external_id": "T1059.001", "keywords": ["powershell", "script", "execution", "command"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1567 - Exfiltration Over Web Service",
+    "url": "https://attack.mitre.org/techniques/T1567/",
+    "content": "Adversaries may exfiltrate data through an existing legitimate external web service to blend with normal traffic.",
+    "metadata": {"external_id": "T1567", "keywords": ["exfiltration", "cloud storage", "web service", "data loss"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1070 - Indicator Removal",
+    "url": "https://attack.mitre.org/techniques/T1070/",
+    "content": "Adversaries may delete or alter artifacts such as files, logs, timestamps, and accounts to reduce evidence of their activity.",
+    "metadata": {"external_id": "T1070", "keywords": ["log deletion", "indicator removal", "anti-forensics"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1547.001 - Registry Run Keys and Startup Folder",
+    "url": "https://attack.mitre.org/techniques/T1547/001/",
+    "content": "Adversaries may add entries to Registry run keys or startup folders so programs execute when a user logs in.",
+    "metadata": {"external_id": "T1547.001", "keywords": ["registry run key", "startup", "persistence"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1210 - Exploitation of Remote Services",
+    "url": "https://attack.mitre.org/techniques/T1210/",
+    "content": "Adversaries may exploit software vulnerabilities in remote services to gain unauthorized access to internal systems.",
+    "metadata": {"external_id": "T1210", "keywords": ["remote service exploit", "lateral movement", "vulnerability"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1082 - System Information Discovery",
+    "url": "https://attack.mitre.org/techniques/T1082/",
+    "content": "Adversaries may collect operating-system, version, hostname, and hardware details from a host.",
+    "metadata": {"external_id": "T1082", "keywords": ["system information", "hostname", "operating system", "discovery"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1087 - Account Discovery",
+    "url": "https://attack.mitre.org/techniques/T1087/",
+    "content": "Adversaries may enumerate local, domain, cloud, or application accounts to identify targets and privileges.",
+    "metadata": {"external_id": "T1087", "keywords": ["account discovery", "user enumeration", "identity"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1018 - Remote System Discovery",
+    "url": "https://attack.mitre.org/techniques/T1018/",
+    "content": "Adversaries may identify remote hosts and systems connected to the same network.",
+    "metadata": {"external_id": "T1018", "keywords": ["remote system", "host discovery", "network discovery"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1071.004 - Application Layer Protocol: DNS",
+    "url": "https://attack.mitre.org/techniques/T1071/004/",
+    "content": "Adversaries may communicate using DNS traffic to blend command-and-control activity with expected network protocols.",
+    "metadata": {"external_id": "T1071.004", "keywords": ["dns tunneling", "dns", "command and control"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1041 - Exfiltration Over C2 Channel",
+    "url": "https://attack.mitre.org/techniques/T1041/",
+    "content": "Adversaries may steal data over an established command-and-control channel.",
+    "metadata": {"external_id": "T1041", "keywords": ["exfiltration", "c2 channel", "data transfer"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1074 - Data Staged",
+    "url": "https://attack.mitre.org/techniques/T1074/",
+    "content": "Adversaries may collect and stage data in a central location before exfiltration.",
+    "metadata": {"external_id": "T1074", "keywords": ["data staging", "archive", "collection", "exfiltration"]}
+  },
+  {
+    "source": "mitre_attack",
+    "title": "T1498 - Network Denial of Service",
+    "url": "https://attack.mitre.org/techniques/T1498/",
+    "content": "Adversaries may perform network denial-of-service attacks to degrade or block the availability of targeted resources.",
+    "metadata": {"external_id": "T1498", "keywords": ["network denial of service", "syn flood", "availability", "impact"]}
+  }
+]

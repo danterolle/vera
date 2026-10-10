@@ -1,0 +1,142 @@
+[
+  {
+    "source": "cwe",
+    "title": "CWE-20 - Improper Input Validation",
+    "url": "https://cwe.mitre.org/data/definitions/20.html",
+    "content": "The product receives input but does not validate, or incorrectly validates, properties required for safe processing.",
+    "metadata": {"cwe_id": "CWE-20", "keywords": ["input validation", "untrusted input"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-22 - Path Traversal",
+    "url": "https://cwe.mitre.org/data/definitions/22.html",
+    "content": "Improper limitation of pathnames to a restricted directory can let an attacker access files outside the intended location.",
+    "metadata": {"cwe_id": "CWE-22", "keywords": ["path traversal", "directory traversal", "../"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-78 - OS Command Injection",
+    "url": "https://cwe.mitre.org/data/definitions/78.html",
+    "content": "Improper neutralization of special elements in operating-system commands can allow attacker-controlled command execution.",
+    "metadata": {"cwe_id": "CWE-78", "keywords": ["command injection", "shell injection", "rce"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-79 - Cross-site Scripting",
+    "url": "https://cwe.mitre.org/data/definitions/79.html",
+    "content": "Improper neutralization of input during web-page generation can cause attacker-controlled script execution in a browser.",
+    "metadata": {"cwe_id": "CWE-79", "keywords": ["xss", "cross-site scripting", "browser"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-89 - SQL Injection",
+    "url": "https://cwe.mitre.org/data/definitions/89.html",
+    "content": "Improper neutralization of special elements in SQL commands can alter the intended database query.",
+    "metadata": {"cwe_id": "CWE-89", "keywords": ["sql injection", "database", "query"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-287 - Improper Authentication",
+    "url": "https://cwe.mitre.org/data/definitions/287.html",
+    "content": "The product does not sufficiently prove that a claimed identity is correct.",
+    "metadata": {"cwe_id": "CWE-287", "keywords": ["authentication", "identity verification", "login"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-306 - Missing Authentication for Critical Function",
+    "url": "https://cwe.mitre.org/data/definitions/306.html",
+    "content": "A critical function is exposed without requiring authentication.",
+    "metadata": {"cwe_id": "CWE-306", "keywords": ["missing authentication", "critical function"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-352 - Cross-Site Request Forgery",
+    "url": "https://cwe.mitre.org/data/definitions/352.html",
+    "content": "A web application does not adequately verify that a state-changing request was intentionally sent by the authenticated user.",
+    "metadata": {"cwe_id": "CWE-352", "keywords": ["csrf", "request forgery", "state change"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-434 - Unrestricted Upload of Dangerous File Type",
+    "url": "https://cwe.mitre.org/data/definitions/434.html",
+    "content": "Insufficient validation of uploaded file types can allow dangerous content to be processed or executed.",
+    "metadata": {"cwe_id": "CWE-434", "keywords": ["file upload", "web shell", "dangerous file"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-502 - Deserialization of Untrusted Data",
+    "url": "https://cwe.mitre.org/data/definitions/502.html",
+    "content": "Deserializing attacker-controlled data without sufficient verification can alter application logic or trigger code execution.",
+    "metadata": {"cwe_id": "CWE-502", "keywords": ["deserialization", "untrusted data", "code execution"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-787 - Out-of-bounds Write",
+    "url": "https://cwe.mitre.org/data/definitions/787.html",
+    "content": "Writing data beyond the intended memory buffer can corrupt memory and may enable code execution.",
+    "metadata": {"cwe_id": "CWE-787", "keywords": ["out-of-bounds write", "memory corruption", "buffer overflow"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-798 - Hard-coded Credentials",
+    "url": "https://cwe.mitre.org/data/definitions/798.html",
+    "content": "Credentials embedded directly in software can be recovered and reused by unauthorized parties.",
+    "metadata": {"cwe_id": "CWE-798", "keywords": ["hard-coded password", "embedded secret", "credentials"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-862 - Missing Authorization",
+    "url": "https://cwe.mitre.org/data/definitions/862.html",
+    "content": "The product does not perform an authorization check when a user attempts to access a resource or action.",
+    "metadata": {"cwe_id": "CWE-862", "keywords": ["missing authorization", "access control", "privilege"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-918 - Server-Side Request Forgery",
+    "url": "https://cwe.mitre.org/data/definitions/918.html",
+    "content": "A server fetches a remote resource using attacker-influenced input without adequately validating the destination.",
+    "metadata": {"cwe_id": "CWE-918", "keywords": ["ssrf", "server-side request forgery", "metadata service"]}
+  },
+  {
+    "source": "cwe",
+    "title": "CWE-400 - Uncontrolled Resource Consumption",
+    "url": "https://cwe.mitre.org/data/definitions/400.html",
+    "content": "The product does not adequately control allocation or use of a limited resource, which can reduce availability.",
+    "metadata": {"cwe_id": "CWE-400", "keywords": ["resource exhaustion", "denial of service", "availability"]}
+  },
+  {
+    "source": "capec",
+    "title": "CAPEC-66 - SQL Injection",
+    "url": "https://capec.mitre.org/data/definitions/66.html",
+    "content": "An attacker injects SQL syntax through an application input to alter database commands and their execution.",
+    "metadata": {"external_id": "CAPEC-66", "keywords": ["sql injection", "database attack"]}
+  },
+  {
+    "source": "capec",
+    "title": "CAPEC-88 - OS Command Injection",
+    "url": "https://capec.mitre.org/data/definitions/88.html",
+    "content": "An attacker supplies command syntax that a vulnerable application passes to an operating-system command processor.",
+    "metadata": {"external_id": "CAPEC-88", "keywords": ["command injection", "shell", "rce"]}
+  },
+  {
+    "source": "capec",
+    "title": "CAPEC-100 - Overflow Buffers",
+    "url": "https://capec.mitre.org/data/definitions/100.html",
+    "content": "An attacker provides more data than a buffer can hold to corrupt adjacent memory and affect execution.",
+    "metadata": {"external_id": "CAPEC-100", "keywords": ["buffer overflow", "memory corruption"]}
+  },
+  {
+    "source": "capec",
+    "title": "CAPEC-115 - Authentication Bypass",
+    "url": "https://capec.mitre.org/data/definitions/115.html",
+    "content": "An attacker exploits weaknesses in an authentication mechanism to access protected functionality without valid proof of identity.",
+    "metadata": {"external_id": "CAPEC-115", "keywords": ["authentication bypass", "access control"]}
+  },
+  {
+    "source": "capec",
+    "title": "CAPEC-126 - Path Traversal",
+    "url": "https://capec.mitre.org/data/definitions/126.html",
+    "content": "An attacker manipulates path input to access files and directories outside the intended application boundary.",
+    "metadata": {"external_id": "CAPEC-126", "keywords": ["path traversal", "directory traversal", "file access"]}
+  }
+]

