@@ -1,13 +1,11 @@
-.env
-.coverage
-.DS_Store
-.pytest_cache/
-.ruff_cache/
-.vera/
-.venv/
+# Local configuration and Python environment
+/.env
+/.venv/
+
+# Existing VERA runtime data: databases, models, backups and reports
+/.vera/
+
+# Existing Python and tool caches
 __pycache__/
-*.egg-info/
-*.py[cod]
-coverage.xml
-dist/
-htmlcov/
+/.pytest_cache/
+/.ruff_cache/
