@@ -1,0 +1,30 @@
+[
+  {
+    "source": "owasp",
+    "title": "A01:2021 - Official mapped weaknesses",
+    "url": "https://top10.owasp.org/2021/A01_2021-Broken_Access_Control/",
+    "content": "CWE-862 Missing Authorization\nCWE-352 Cross-Site Request Forgery (CSRF)",
+    "metadata": {"provenance": "bundled_official_snapshot", "owasp_version": "2021", "graph_relations": [{"subject": "guidance:owasp:a01-2021", "subject_name": "OWASP A01:2021 - Broken Access Control", "object": "CWE-862", "predicate": "includes_weakness", "field_path": "OWASP2021.List_of_Mapped_CWEs", "supporting_quote": "CWE-862 Missing Authorization"}, {"subject": "guidance:owasp:a01-2021", "subject_name": "OWASP A01:2021 - Broken Access Control", "object": "CWE-352", "predicate": "includes_weakness", "field_path": "OWASP2021.List_of_Mapped_CWEs", "supporting_quote": "CWE-352 Cross-Site Request Forgery (CSRF)"}]}
+  },
+  {
+    "source": "owasp",
+    "title": "A03:2021 - Official mapped weaknesses",
+    "url": "https://top10.owasp.org/2021/A03_2021-Injection/",
+    "content": "CWE-89 Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')\nCWE-78 Improper Neutralization of Special Elements used in an OS Command\n('OS Command Injection')\nCWE-79 Improper Neutralization of Input During Web Page Generation\n('Cross-site Scripting')",
+    "metadata": {"provenance": "bundled_official_snapshot", "owasp_version": "2021", "graph_relations": [{"subject": "guidance:owasp:a03-2021", "subject_name": "OWASP A03:2021 - Injection", "object": "CWE-89", "predicate": "includes_weakness", "field_path": "OWASP2021.List_of_Mapped_CWEs", "supporting_quote": "CWE-89 Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"}, {"subject": "guidance:owasp:a03-2021", "subject_name": "OWASP A03:2021 - Injection", "object": "CWE-78", "predicate": "includes_weakness", "field_path": "OWASP2021.List_of_Mapped_CWEs", "supporting_quote": "CWE-78 Improper Neutralization of Special Elements used in an OS Command\n('OS Command Injection')"}, {"subject": "guidance:owasp:a03-2021", "subject_name": "OWASP A03:2021 - Injection", "object": "CWE-79", "predicate": "includes_weakness", "field_path": "OWASP2021.List_of_Mapped_CWEs", "supporting_quote": "CWE-79 Improper Neutralization of Input During Web Page Generation\n('Cross-site Scripting')"}]}
+  },
+  {
+    "source": "owasp",
+    "title": "A07:2021 - Official mapped weaknesses",
+    "url": "https://top10.owasp.org/2021/A07_2021-Identification_and_Authentication_Failures/",
+    "content": "CWE-287 Improper Authentication\nCWE-306 Missing Authentication for Critical Function",
+    "metadata": {"provenance": "bundled_official_snapshot", "owasp_version": "2021", "graph_relations": [{"subject": "guidance:owasp:a07-2021", "subject_name": "OWASP A07:2021 - Identification and Authentication Failures", "object": "CWE-287", "predicate": "includes_weakness", "field_path": "OWASP2021.List_of_Mapped_CWEs", "supporting_quote": "CWE-287 Improper Authentication"}, {"subject": "guidance:owasp:a07-2021", "subject_name": "OWASP A07:2021 - Identification and Authentication Failures", "object": "CWE-306", "predicate": "includes_weakness", "field_path": "OWASP2021.List_of_Mapped_CWEs", "supporting_quote": "CWE-306 Missing Authentication for Critical Function"}]}
+  },
+  {
+    "source": "owasp",
+    "title": "A10:2021 - Official mapped weaknesses",
+    "url": "https://top10.owasp.org/2021/A10_2021-Server-Side_Request_Forgery_(SSRF)/",
+    "content": "CWE-918 Server-Side Request Forgery (SSRF)",
+    "metadata": {"provenance": "bundled_official_snapshot", "owasp_version": "2021", "graph_relations": [{"subject": "guidance:owasp:a10-2021", "subject_name": "OWASP A10:2021 - Server-Side Request Forgery", "object": "CWE-918", "predicate": "includes_weakness", "field_path": "OWASP2021.List_of_Mapped_CWEs", "supporting_quote": "CWE-918 Server-Side Request Forgery (SSRF)"}]}
+  }
+]

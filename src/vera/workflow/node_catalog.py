@@ -85,7 +85,7 @@ NODE_LABELS = {
     "route": "Meta-controller",
     "cag": "CAG knowledge",
     "rag": "RAG retrieval",
-    "tools": "Live CVE APIs",
+    "tools": "RAG + CVE APIs",
     "stream": "Event analysis",
     "full": "Full analysis",
     "react_decide": "Choose action",

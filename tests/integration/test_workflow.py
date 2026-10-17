@@ -19,9 +19,7 @@ def test_conceptual_workflow_is_persisted(settings) -> None:
 
 
 def test_uncovered_concept_uses_retrieval(settings) -> None:
-    result = VeraOrchestrator(settings).analyze(
-        AnalysisRequest(query="How does zero trust work?")
-    )
+    result = VeraOrchestrator(settings).analyze(AnalysisRequest(query="How does zero trust work?"))
     assert result.route == Route.CAG_RAG
     assert any("Zero Trust Architecture" in item.title for item in result.evidence)
     cited_titles = {
@@ -52,18 +50,12 @@ def test_requested_evidence_policy_is_not_treated_as_fallback(settings) -> None:
         AnalysisRequest(query="Explain evidence and inference policy.")
     )
     assert result.claims[0].status == ClaimStatus.SUPPORTED_FACT
-    cited = {
-        item.title
-        for item in result.evidence
-        if item.id in result.claims[0].evidence_ids
-    }
+    cited = {item.title for item in result.evidence if item.id in result.claims[0].evidence_ids}
     assert cited == {"Evidence and inference policy"}
 
 
 def test_cve_workflow_marks_disabled_sources(settings) -> None:
-    result = VeraOrchestrator(settings).analyze(
-        AnalysisRequest(query="Analyze CVE-2021-44228")
-    )
+    result = VeraOrchestrator(settings).analyze(AnalysisRequest(query="Analyze CVE-2021-44228"))
     assert result.route == Route.CAG_RAG_TOOL
     assert result.metrics.tool_calls == 0
     assert result.warnings
@@ -125,9 +117,7 @@ def test_event_level_simulation_flag_is_preserved(settings) -> None:
 
 
 def test_offline_cve_report_omits_unrelated_retrieval_claims(settings) -> None:
-    result = VeraOrchestrator(settings).analyze(
-        AnalysisRequest(query="Analyze CVE-2021-44228.")
-    )
+    result = VeraOrchestrator(settings).analyze(AnalysisRequest(query="Analyze CVE-2021-44228."))
     supported_titles = {
         item.title
         for claim in result.claims
@@ -135,7 +125,15 @@ def test_offline_cve_report_omits_unrelated_retrieval_claims(settings) -> None:
         for item in result.evidence
         if item.id in claim.evidence_ids
     }
-    assert supported_titles == {"CVE-2021-44228 - NVD snapshot"}
+    assert supported_titles == {
+        "CVE-2021-44228 - NVD snapshot",
+        "CVE-2021-44228 - Apache Log4j2 Remote Code Execution Vulnerability",
+    }
+    assert all(
+        item.metadata.get("cve_id") == "CVE-2021-44228"
+        for item in result.evidence
+        if item.title in supported_titles
+    )
     assert len([claim for claim in result.claims if claim.status == ClaimStatus.UNAVAILABLE]) == 1
     assert "without current live data" in result.answer
 
@@ -165,7 +163,5 @@ def test_large_alert_batch_is_summarized_safely(settings) -> None:
     assert len(result.incident.alerts) == 35
     assert len(stream.content) < 12_000
     assert stream.metadata["rule_counts"] == {"HTTP-PATH-TRAVERSAL": 35}
-    simulated_claims = [
-        claim for claim in result.claims if claim.status == ClaimStatus.SIMULATED
-    ]
+    simulated_claims = [claim for claim in result.claims if claim.status == ClaimStatus.SIMULATED]
     assert len(simulated_claims) == 1

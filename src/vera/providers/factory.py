@@ -14,7 +14,7 @@ def build_provider(settings: Settings) -> ModelProvider:
         return GeminiProvider(
             settings.llm_model,
             settings.gemini_api_key.get_secret_value(),
-            settings.request_timeout_seconds,
+            settings.llm_timeout_seconds,
         )
     api_key = (
         settings.llm_api_key.get_secret_value() if settings.llm_api_key is not None else None
@@ -24,5 +24,8 @@ def build_provider(settings: Settings) -> ModelProvider:
         settings.llm_model,
         settings.llm_base_url,
         api_key,
-        settings.request_timeout_seconds,
+        settings.llm_timeout_seconds,
+        settings.llm_response_format,
+        settings.llm_reasoning_effort,
+        settings.llm_max_output_tokens,
     )

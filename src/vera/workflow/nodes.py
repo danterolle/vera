@@ -12,6 +12,7 @@ from vera.stream.incident import build_incident
 from vera.stream.policy import DetectionPolicy
 from vera.stream.statistics import calculate_statistics
 from vera.workflow.generation import generate_draft
+from vera.workflow.knowledge_graph import graph_metadata, persist_result
 from vera.workflow.runtime import Runtime
 
 
@@ -149,9 +150,13 @@ class WorkflowNodes:
         trace = state["trace"] + ["persistence:sqlite"]
         metadata = {
             "provider": self.runtime.provider.name,
+            "model": self.runtime.settings.llm_model if self.runtime.provider.external else None,
+            "provider_fallback": state["provider_fallback"],
+            "out_of_scope": state["draft"].out_of_scope,
             "embedding_backend": self.runtime.embedder.name,
             "route_reason": state["route_reason"],
             "resource_plan": state["resource_plan"].model_dump(mode="json"),
+            "knowledge_graph": graph_metadata(state),
         }
         if self.runtime.settings.react_enabled:
             metadata["react_enabled"] = True
@@ -185,5 +190,5 @@ class WorkflowNodes:
             warnings=state["warnings"],
             metadata=metadata,
         )
-        self.runtime.memory.save(state["request"], result)
+        persist_result(self.runtime, state, result)
         return {"result": result, "trace": trace}

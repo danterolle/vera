@@ -3,6 +3,7 @@ from vera.domain.enums import ClaimStatus, Route
 from vera.domain.evidence import Citation, Claim
 from vera.domain.reports import GeneratedAnswer
 from vera.domain.requests import AnalysisRequest
+from vera.errors import ProviderError
 from vera.workflow.orchestrator import VeraOrchestrator
 
 
@@ -70,3 +71,15 @@ def test_routing_call_consumes_global_model_budget(tmp_path) -> None:
     assert provider.generation_calls == 0
     assert result.metrics.model_calls == 1
     assert any("model-call limit" in warning for warning in result.warnings)
+
+
+def test_provider_failure_is_visible_in_saved_result(settings) -> None:
+    class FailedProvider(RetryProvider):
+        def generate(self, *args, **kwargs):
+            raise ProviderError("Local model is unavailable")
+
+    result = VeraOrchestrator(settings, provider=FailedProvider()).analyze(
+        AnalysisRequest(query="What is defense in depth?")
+    )
+    assert result.metadata["provider_fallback"] is True
+    assert any("Local model is unavailable" in warning for warning in result.warnings)

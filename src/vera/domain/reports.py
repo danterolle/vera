@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from vera.domain.enums import Route, Severity
 from vera.domain.evidence import Claim, Evidence
@@ -45,6 +45,14 @@ class IncidentReport(BaseModel):
 class GeneratedAnswer(BaseModel):
     summary: str = Field(min_length=1, max_length=12_000)
     claims: list[Claim] = Field(default_factory=list)
+    out_of_scope: bool = False
+
+    @model_validator(mode="after")
+    def enforce_scope(self) -> "GeneratedAnswer":
+        if self.out_of_scope:
+            self.summary = "VERA answers only cybersecurity questions."
+            self.claims = []
+        return self
 
 
 class ReflectionReport(BaseModel):

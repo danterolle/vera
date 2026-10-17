@@ -2,6 +2,7 @@ from typing import Any
 
 from vera.domain.enums import SourceType
 from vera.domain.evidence import Evidence, make_evidence
+from vera.retrieval.graph_feed import attack_relations
 
 ATTACK_TYPES = {
     "attack-pattern": "technique",
@@ -61,10 +62,12 @@ def normalize_attack(payload: dict[str, Any]) -> tuple[list[Evidence], str]:
                     "modified": item.get("modified"),
                     "attack_version": version,
                     "provenance": "synchronized_feed",
+                    "aliases": [name, *item.get("aliases", [])][:30],
                     "keywords": [value for value in keywords if value],
                 },
             )
         )
+    documents.extend(attack_relations(objects, documents, version))
     return documents, version
 
 

@@ -7,6 +7,7 @@
   border-bottom: 1px solid var(--border);
   background: #090e16;
 }
+.view-help { margin: 7px 0 0; color: var(--muted); font-size: .7rem; }
 .route-section { min-width: 0; }
 .control-label {
   display: block;

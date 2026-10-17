@@ -80,7 +80,7 @@ def _vulnerability_answer(
     else:
         summary = (
             f"Analyzed {identifiers} without current live data; any available "
-            "bundled record is an explicitly dated snapshot."
+            "bundled record is an explicitly dated snapshot and graph records are cached evidence."
         )
     return GeneratedAnswer(summary=summary, claims=claims)
 
@@ -124,7 +124,12 @@ def _relevant_available(evidence: list[Evidence], limit: int) -> list[Evidence]:
 
 
 def _is_current_live(evidence: Evidence) -> bool:
-    return evidence.source in LIVE_SOURCES and not evidence.metadata.get("snapshot", False)
+    return (
+        evidence.source in LIVE_SOURCES
+        and evidence.metadata.get("provenance") == "live_api"
+        and not evidence.metadata.get("snapshot", False)
+        and not evidence.metadata.get("kg_record_key")
+    )
 
 
 def _evidence_claim(evidence: Evidence) -> Claim:

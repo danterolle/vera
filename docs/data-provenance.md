@@ -57,3 +57,11 @@ asset telemetry.
 - Quotation grounding is lexical and conservative; it does not provide complete NLI.
 - PCAP analysis only uses fields exported by the installed `tshark`.
 - The SQLite design targets a local prototype, not concurrent SOC-scale ingestion.
+
+## Graph provenance
+
+The [Kuzu graph](knowledge-graph.md) retains source text and version/date metadata.
+Traversal supplies candidate evidence; existing grounding rules still apply. Structured
+ATT&CK and CVE/CWE mappings remain inferences. Cached API records are not new live lookups.
+Detector correlations stay inferred or simulated, and missing edges do not establish
+negative facts. Asset inventory and affected-version matching are not implemented.

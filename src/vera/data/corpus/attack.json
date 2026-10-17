@@ -4,146 +4,146 @@
     "title": "T1566 - Phishing",
     "url": "https://attack.mitre.org/techniques/T1566/",
     "content": "Adversaries may send phishing messages to gain access to victim systems. Common sub-techniques use malicious attachments, links, or third-party services.",
-    "metadata": {"external_id": "T1566", "keywords": ["phishing", "attachment", "spearphishing", "initial access"]}
+    "metadata": {"external_id": "T1566", "keywords": ["phishing", "attachment", "spearphishing", "initial access"], "graph_relations": [{"subject": "T1566", "object": "TA0001", "subject_name": "T1566 - Phishing", "object_name": "TA0001 - Initial Access", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Phishing"], "attack_version": "17.1", "stix_id": "attack-pattern--a62a8db3-f23a-4d8f-afd6-9dbc77e7813b", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1078 - Valid Accounts",
     "url": "https://attack.mitre.org/techniques/T1078/",
     "content": "Adversaries may obtain and abuse existing accounts to establish persistence, escalate privileges, evade defenses, or access remote resources.",
-    "metadata": {"external_id": "T1078", "keywords": ["valid accounts", "credentials", "identity", "persistence"]}
+    "metadata": {"external_id": "T1078", "keywords": ["valid accounts", "credentials", "identity", "persistence"], "graph_relations": [{"subject": "T1078", "object": "TA0005", "subject_name": "T1078 - Valid Accounts", "object_name": "TA0005 - Defense Evasion", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}, {"subject": "T1078", "object": "TA0003", "subject_name": "T1078 - Valid Accounts", "object_name": "TA0003 - Persistence", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}, {"subject": "T1078", "object": "TA0004", "subject_name": "T1078 - Valid Accounts", "object_name": "TA0004 - Privilege Escalation", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}, {"subject": "T1078", "object": "TA0001", "subject_name": "T1078 - Valid Accounts", "object_name": "TA0001 - Initial Access", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Valid Accounts"], "attack_version": "17.1", "stix_id": "attack-pattern--b17a1a56-e99c-403c-8948-561df0cffe81", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1003 - OS Credential Dumping",
     "url": "https://attack.mitre.org/techniques/T1003/",
     "content": "Adversaries may attempt to extract account login and credential material from operating systems and software.",
-    "metadata": {"external_id": "T1003", "keywords": ["credential dumping", "password hash", "lsass", "secrets"]}
+    "metadata": {"external_id": "T1003", "keywords": ["credential dumping", "password hash", "lsass", "secrets"], "graph_relations": [{"subject": "T1003", "object": "TA0006", "subject_name": "T1003 - OS Credential Dumping", "object_name": "TA0006 - Credential Access", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["OS Credential Dumping"], "attack_version": "17.1", "stix_id": "attack-pattern--0a3ead4e-6d47-4ccb-854c-a6a4f9d96b22", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1055 - Process Injection",
     "url": "https://attack.mitre.org/techniques/T1055/",
     "content": "Adversaries may inject code into processes to evade process-based defenses or execute in another process context.",
-    "metadata": {"external_id": "T1055", "keywords": ["process injection", "dll", "memory", "defense evasion"]}
+    "metadata": {"external_id": "T1055", "keywords": ["process injection", "dll", "memory", "defense evasion"], "graph_relations": [{"subject": "T1055", "object": "TA0005", "subject_name": "T1055 - Process Injection", "object_name": "TA0005 - Defense Evasion", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}, {"subject": "T1055", "object": "TA0004", "subject_name": "T1055 - Process Injection", "object_name": "TA0004 - Privilege Escalation", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Process Injection"], "attack_version": "17.1", "stix_id": "attack-pattern--43e7dc91-05b2-474c-b9ac-2ed4fe101f4d", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1021 - Remote Services",
     "url": "https://attack.mitre.org/techniques/T1021/",
     "content": "Adversaries may use valid accounts with remote services such as RDP, SMB, SSH, or VNC to move through an environment.",
-    "metadata": {"external_id": "T1021", "keywords": ["remote service", "rdp", "ssh", "smb", "lateral movement"]}
+    "metadata": {"external_id": "T1021", "keywords": ["remote service", "rdp", "ssh", "smb", "lateral movement"], "graph_relations": [{"subject": "T1021", "object": "TA0008", "subject_name": "T1021 - Remote Services", "object_name": "TA0008 - Lateral Movement", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Remote Services"], "attack_version": "17.1", "stix_id": "attack-pattern--54a649ff-439a-41a4-9856-8d144a2551ba", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1105 - Ingress Tool Transfer",
     "url": "https://attack.mitre.org/techniques/T1105/",
     "content": "Adversaries may transfer tools or other files from an external system into a compromised environment.",
-    "metadata": {"external_id": "T1105", "keywords": ["download", "tool transfer", "payload", "command and control"]}
+    "metadata": {"external_id": "T1105", "keywords": ["download", "tool transfer", "payload", "command and control"], "graph_relations": [{"subject": "T1105", "object": "TA0011", "subject_name": "T1105 - Ingress Tool Transfer", "object_name": "TA0011 - Command and Control", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Ingress Tool Transfer"], "attack_version": "17.1", "stix_id": "attack-pattern--e6919abc-99f9-4c6c-95a5-14761e7b2add", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1027 - Obfuscated Files or Information",
     "url": "https://attack.mitre.org/techniques/T1027/",
     "content": "Adversaries may encode, encrypt, or otherwise obfuscate content to make detection and analysis more difficult.",
-    "metadata": {"external_id": "T1027", "keywords": ["obfuscation", "encoding", "packing", "defense evasion"]}
+    "metadata": {"external_id": "T1027", "keywords": ["obfuscation", "encoding", "packing", "defense evasion"], "graph_relations": [{"subject": "T1027", "object": "TA0005", "subject_name": "T1027 - Obfuscated Files or Information", "object_name": "TA0005 - Defense Evasion", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Obfuscated Files or Information"], "attack_version": "17.1", "stix_id": "attack-pattern--b3d682b6-98f2-4fb0-aa3b-b4df007ca70a", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1486 - Data Encrypted for Impact",
     "url": "https://attack.mitre.org/techniques/T1486/",
     "content": "Adversaries may encrypt data on target systems or networks to interrupt availability, commonly in ransomware operations.",
-    "metadata": {"external_id": "T1486", "keywords": ["ransomware", "encryption", "impact", "availability"]}
+    "metadata": {"external_id": "T1486", "keywords": ["ransomware", "encryption", "impact", "availability"], "graph_relations": [{"subject": "T1486", "object": "TA0040", "subject_name": "T1486 - Data Encrypted for Impact", "object_name": "TA0040 - Impact", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Data Encrypted for Impact"], "attack_version": "17.1", "stix_id": "attack-pattern--b80d107d-fa0d-4b60-9684-b0433e8bdba0", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1053.005 - Scheduled Task or Job: Scheduled Task",
     "url": "https://attack.mitre.org/techniques/T1053/005/",
     "content": "Adversaries may abuse Windows Task Scheduler to execute programs at startup or on a recurring schedule.",
-    "metadata": {"external_id": "T1053.005", "keywords": ["scheduled task", "task scheduler", "persistence"]}
+    "metadata": {"external_id": "T1053.005", "keywords": ["scheduled task", "task scheduler", "persistence"], "graph_relations": [{"subject": "T1053.005", "object": "TA0002", "subject_name": "T1053.005 - Scheduled Task", "object_name": "TA0002 - Execution", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}, {"subject": "T1053.005", "object": "TA0003", "subject_name": "T1053.005 - Scheduled Task", "object_name": "TA0003 - Persistence", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}, {"subject": "T1053.005", "object": "TA0004", "subject_name": "T1053.005 - Scheduled Task", "object_name": "TA0004 - Privilege Escalation", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Scheduled Task"], "attack_version": "17.1", "stix_id": "attack-pattern--005a06c6-14bf-4118-afa0-ebcd8aebb0c9", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1059.001 - Command and Scripting Interpreter: PowerShell",
     "url": "https://attack.mitre.org/techniques/T1059/001/",
     "content": "Adversaries may abuse PowerShell commands and scripts for execution, discovery, credential access, or defense evasion.",
-    "metadata": {"external_id": "T1059.001", "keywords": ["powershell", "script", "execution", "command"]}
+    "metadata": {"external_id": "T1059.001", "keywords": ["powershell", "script", "execution", "command"], "graph_relations": [{"subject": "T1059.001", "object": "TA0002", "subject_name": "T1059.001 - PowerShell", "object_name": "TA0002 - Execution", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["PowerShell"], "attack_version": "17.1", "stix_id": "attack-pattern--970a3432-3237-47ad-bcca-7d8cbb217736", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1567 - Exfiltration Over Web Service",
     "url": "https://attack.mitre.org/techniques/T1567/",
     "content": "Adversaries may exfiltrate data through an existing legitimate external web service to blend with normal traffic.",
-    "metadata": {"external_id": "T1567", "keywords": ["exfiltration", "cloud storage", "web service", "data loss"]}
+    "metadata": {"external_id": "T1567", "keywords": ["exfiltration", "cloud storage", "web service", "data loss"], "graph_relations": [{"subject": "T1567", "object": "TA0010", "subject_name": "T1567 - Exfiltration Over Web Service", "object_name": "TA0010 - Exfiltration", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Exfiltration Over Web Service"], "attack_version": "17.1", "stix_id": "attack-pattern--40597f16-0963-4249-bf4c-ac93b7fb9807", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1070 - Indicator Removal",
     "url": "https://attack.mitre.org/techniques/T1070/",
     "content": "Adversaries may delete or alter artifacts such as files, logs, timestamps, and accounts to reduce evidence of their activity.",
-    "metadata": {"external_id": "T1070", "keywords": ["log deletion", "indicator removal", "anti-forensics"]}
+    "metadata": {"external_id": "T1070", "keywords": ["log deletion", "indicator removal", "anti-forensics"], "graph_relations": [{"subject": "T1070", "object": "TA0005", "subject_name": "T1070 - Indicator Removal", "object_name": "TA0005 - Defense Evasion", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Indicator Removal"], "attack_version": "17.1", "stix_id": "attack-pattern--799ace7f-e227-4411-baa0-8868704f2a69", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1547.001 - Registry Run Keys and Startup Folder",
     "url": "https://attack.mitre.org/techniques/T1547/001/",
     "content": "Adversaries may add entries to Registry run keys or startup folders so programs execute when a user logs in.",
-    "metadata": {"external_id": "T1547.001", "keywords": ["registry run key", "startup", "persistence"]}
+    "metadata": {"external_id": "T1547.001", "keywords": ["registry run key", "startup", "persistence"], "graph_relations": [{"subject": "T1547.001", "object": "TA0003", "subject_name": "T1547.001 - Registry Run Keys / Startup Folder", "object_name": "TA0003 - Persistence", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}, {"subject": "T1547.001", "object": "TA0004", "subject_name": "T1547.001 - Registry Run Keys / Startup Folder", "object_name": "TA0004 - Privilege Escalation", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Registry Run Keys / Startup Folder"], "attack_version": "17.1", "stix_id": "attack-pattern--9efb1ea7-c37b-4595-9640-b7680cd84279", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1210 - Exploitation of Remote Services",
     "url": "https://attack.mitre.org/techniques/T1210/",
     "content": "Adversaries may exploit software vulnerabilities in remote services to gain unauthorized access to internal systems.",
-    "metadata": {"external_id": "T1210", "keywords": ["remote service exploit", "lateral movement", "vulnerability"]}
+    "metadata": {"external_id": "T1210", "keywords": ["remote service exploit", "lateral movement", "vulnerability"], "graph_relations": [{"subject": "T1210", "object": "TA0008", "subject_name": "T1210 - Exploitation of Remote Services", "object_name": "TA0008 - Lateral Movement", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Exploitation of Remote Services"], "attack_version": "17.1", "stix_id": "attack-pattern--9db0cf3a-a3c9-4012-8268-123b9db6fd82", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1082 - System Information Discovery",
     "url": "https://attack.mitre.org/techniques/T1082/",
     "content": "Adversaries may collect operating-system, version, hostname, and hardware details from a host.",
-    "metadata": {"external_id": "T1082", "keywords": ["system information", "hostname", "operating system", "discovery"]}
+    "metadata": {"external_id": "T1082", "keywords": ["system information", "hostname", "operating system", "discovery"], "graph_relations": [{"subject": "T1082", "object": "TA0007", "subject_name": "T1082 - System Information Discovery", "object_name": "TA0007 - Discovery", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["System Information Discovery"], "attack_version": "17.1", "stix_id": "attack-pattern--354a7f88-63fb-41b5-a801-ce3b377b36f1", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1087 - Account Discovery",
     "url": "https://attack.mitre.org/techniques/T1087/",
     "content": "Adversaries may enumerate local, domain, cloud, or application accounts to identify targets and privileges.",
-    "metadata": {"external_id": "T1087", "keywords": ["account discovery", "user enumeration", "identity"]}
+    "metadata": {"external_id": "T1087", "keywords": ["account discovery", "user enumeration", "identity"], "graph_relations": [{"subject": "T1087", "object": "TA0007", "subject_name": "T1087 - Account Discovery", "object_name": "TA0007 - Discovery", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Account Discovery"], "attack_version": "17.1", "stix_id": "attack-pattern--72b74d71-8169-42aa-92e0-e7b04b9f5a08", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1018 - Remote System Discovery",
     "url": "https://attack.mitre.org/techniques/T1018/",
     "content": "Adversaries may identify remote hosts and systems connected to the same network.",
-    "metadata": {"external_id": "T1018", "keywords": ["remote system", "host discovery", "network discovery"]}
+    "metadata": {"external_id": "T1018", "keywords": ["remote system", "host discovery", "network discovery"], "graph_relations": [{"subject": "T1018", "object": "TA0007", "subject_name": "T1018 - Remote System Discovery", "object_name": "TA0007 - Discovery", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Remote System Discovery"], "attack_version": "17.1", "stix_id": "attack-pattern--e358d692-23c0-4a31-9eb6-ecc13a8d7735", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1071.004 - Application Layer Protocol: DNS",
     "url": "https://attack.mitre.org/techniques/T1071/004/",
     "content": "Adversaries may communicate using DNS traffic to blend command-and-control activity with expected network protocols.",
-    "metadata": {"external_id": "T1071.004", "keywords": ["dns tunneling", "dns", "command and control"]}
+    "metadata": {"external_id": "T1071.004", "keywords": ["dns tunneling", "dns", "command and control"], "graph_relations": [{"subject": "T1071.004", "object": "TA0011", "subject_name": "T1071.004 - DNS", "object_name": "TA0011 - Command and Control", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["DNS"], "attack_version": "17.1", "stix_id": "attack-pattern--1996eef1-ced3-4d7f-bf94-33298cabbf72", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1041 - Exfiltration Over C2 Channel",
     "url": "https://attack.mitre.org/techniques/T1041/",
     "content": "Adversaries may steal data over an established command-and-control channel.",
-    "metadata": {"external_id": "T1041", "keywords": ["exfiltration", "c2 channel", "data transfer"]}
+    "metadata": {"external_id": "T1041", "keywords": ["exfiltration", "c2 channel", "data transfer"], "graph_relations": [{"subject": "T1041", "object": "TA0010", "subject_name": "T1041 - Exfiltration Over C2 Channel", "object_name": "TA0010 - Exfiltration", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Exfiltration Over C2 Channel"], "attack_version": "17.1", "stix_id": "attack-pattern--92d7da27-2d91-488e-a00c-059dc162766d", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1074 - Data Staged",
     "url": "https://attack.mitre.org/techniques/T1074/",
     "content": "Adversaries may collect and stage data in a central location before exfiltration.",
-    "metadata": {"external_id": "T1074", "keywords": ["data staging", "archive", "collection", "exfiltration"]}
+    "metadata": {"external_id": "T1074", "keywords": ["data staging", "archive", "collection", "exfiltration"], "graph_relations": [{"subject": "T1074", "object": "TA0009", "subject_name": "T1074 - Data Staged", "object_name": "TA0009 - Collection", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Data Staged"], "attack_version": "17.1", "stix_id": "attack-pattern--7dd95ff6-712e-4056-9626-312ea4ab4c5e", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1498 - Network Denial of Service",
     "url": "https://attack.mitre.org/techniques/T1498/",
     "content": "Adversaries may perform network denial-of-service attacks to degrade or block the availability of targeted resources.",
-    "metadata": {"external_id": "T1498", "keywords": ["network denial of service", "syn flood", "availability", "impact"]}
+    "metadata": {"external_id": "T1498", "keywords": ["network denial of service", "syn flood", "availability", "impact"], "graph_relations": [{"subject": "T1498", "object": "TA0040", "subject_name": "T1498 - Network Denial of Service", "object_name": "TA0040 - Impact", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Network Denial of Service"], "attack_version": "17.1", "stix_id": "attack-pattern--d74c4a7e-ffbf-432f-9365-7ebf1f787cab", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   }
 ]

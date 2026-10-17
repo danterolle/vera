@@ -12,6 +12,7 @@ from vera.domain.requests import AnalysisRequest
 from vera.errors import VeraError
 from vera.evaluation.runner import run_evaluation
 from vera.interfaces.api import create_app
+from vera.interfaces.knowledge_graph import register_commands
 from vera.retrieval.corpus import LocalCorpus
 from vera.retrieval.embeddings import build_embedder
 from vera.retrieval.models import CorpusFeed
@@ -26,6 +27,7 @@ app = typer.Typer(
     help="Vulnerability Evidence and Reasoning Agent.",
     no_args_is_help=True,
 )
+register_commands(app)
 
 
 @app.command()

@@ -26,7 +26,8 @@ function addDefinitions(svg) {
     <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
       <path d="M28 0H0V28" fill="none" stroke="#172234" stroke-width=".7"/>
     </pattern>
-    <linearGradient id="active-edge" x1="0" x2="1">
+    <linearGradient id="active-edge" gradientUnits="userSpaceOnUse"
+      x1="0" y1="0" x2="1200" y2="880">
       <stop offset="0" stop-color="#5aaeff"/><stop offset="1" stop-color="#43e0ae"/>
     </linearGradient>
     <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
@@ -129,7 +130,10 @@ function drawNode(scene, node, onSelect) {
     onSelect(node, group);
   });
   group.addEventListener("keydown", event => {
-    if (event.key === "Enter" || event.key === " ") onSelect(node, group);
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(node, group);
+    }
   });
   scene.append(group);
   return group;

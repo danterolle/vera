@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VERA · Knowledge graph</title>
+  <link rel="stylesheet" href="/assets/knowledge.css">
+</head>
+<body>
+  <header>
+    <div><p class="eyebrow">VERA · Connected cybersecurity knowledge</p><h1>Knowledge graph</h1>
+      <p>Explore concepts, their relationships, and the sources that support them.</p></div>
+    <a href="/graph">Workflow explorer →</a>
+  </header>
+  <form id="filters">
+    <div class="search-box">
+      <label for="entity">Find a concept by name or identifier</label>
+      <input id="entity" value="PowerShell" placeholder="PowerShell, Log4Shell, SQL injection…"
+        autocomplete="off" aria-controls="suggestions">
+      <div id="suggestions" aria-label="Matching concepts"></div>
+    </div>
+    <label>Relationship limit
+      <select id="limit"><option selected>20</option><option>50</option><option>100</option></select>
+    </label>
+    <button type="submit">Explore</button>
+    <button type="button" id="overview" class="secondary">Overview</button>
+    <label class="toggle"><input type="checkbox" id="provenance"> Show sources in graph</label>
+  </form>
+  <p id="status" role="status">Loading local graph…</p>
+  <main>
+    <section class="canvas">
+      <div class="canvas-heading">
+        <div class="legend"><span>Technique / tactic</span><span>Mitigation / group / software</span>
+          <span>Vulnerability / weakness</span><span>Guidance / concept</span><span>Source</span></div>
+        <div class="controls"><button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+          <output id="zoom-level">100%</output><button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+          <button type="button" id="fit-graph">Fit</button></div>
+      </div>
+      <div class="viewport"><svg id="graph" tabindex="0" role="img"
+        aria-label="Cybersecurity concepts and supported relationships"></svg></div>
+      <p id="empty" hidden>No matching concepts. Try a suggestion or run vera kg-build.</p>
+      <p class="hint">Click nodes and connections to read their sources · Drag to pan · Scroll to zoom</p>
+    </section>
+    <aside><h2 id="title">Explore a concept</h2><div id="details"></div></aside>
+  </main>
+  <footer>Connections represent supported mappings or explicit topic classifications.
+    They do not establish compromise. Source snapshots retain their catalog versions.</footer>
+  <script type="module" src="/assets/knowledge.js"></script>
+</body>
+</html>

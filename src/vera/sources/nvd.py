@@ -61,6 +61,11 @@ class NvdSource:
                     "severity": severity,
                     "vector": vector,
                     "last_modified": record.get("lastModified"),
+                    "cwes": sorted({
+                        item["value"] for weakness in record.get("weaknesses", [])
+                        for item in weakness.get("description", [])
+                        if str(item.get("value", "")).startswith("CWE-")
+                    }),
                     "provenance": "live_api",
                 },
             )

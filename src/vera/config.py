@@ -20,11 +20,20 @@ class Settings(BaseSettings):
     source_workers: int = Field(default=5, ge=1, le=10)
     max_feed_bytes: int = Field(default=80 * 1024 * 1024, ge=1024, le=150 * 1024 * 1024)
     max_corpus_documents: int = Field(default=20_000, ge=100, le=100_000)
+    kg_enabled: bool = False
+    kg_path: Path = Path(".vera/knowledge.kuzu")
+    kg_hops: int = Field(default=1, ge=1, le=2)
+    kg_max_results: int = Field(default=12, ge=1, le=50)
+    kg_query_timeout_ms: int = Field(default=3000, ge=100, le=30_000)
     nvd_api_key: SecretStr | None = None
 
     llm_provider: Literal["deterministic", "ollama", "openai", "gemini"] = "deterministic"
     llm_model: str = "llama3.1:8b"
     llm_base_url: str = "http://localhost:11434"
+    llm_timeout_seconds: float = Field(default=120.0, ge=1.0, le=600.0)
+    llm_response_format: Literal["json_object", "json_schema"] = "json_object"
+    llm_reasoning_effort: Literal["none", "low", "medium", "high"] | None = None
+    llm_max_output_tokens: int = Field(default=1024, ge=128, le=8192)
     llm_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
     max_model_calls: int | None = Field(default=None, ge=1, le=13)

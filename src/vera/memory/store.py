@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS memories (
     FOREIGN KEY (source_run_id) REFERENCES runs(id)
 );
 CREATE INDEX IF NOT EXISTS idx_memories_created ON memories(created_at DESC);
+CREATE TABLE IF NOT EXISTS graph_jobs (
+    run_id TEXT PRIMARY KEY, request_json TEXT NOT NULL, projected INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (run_id) REFERENCES runs(id)
+);
 """
 
 
@@ -43,7 +47,9 @@ class MemoryStore:
         with self._connect() as connection:
             connection.executescript(SCHEMA)
 
-    def save(self, request: AnalysisRequest, result: AnalysisResult) -> None:
+    def save(
+        self, request: AnalysisRequest, result: AnalysisResult, *, graph_projection: bool = False,
+    ) -> None:
         created_at = result.created_at.isoformat()
         memories = self._memory_texts(request, result)
         vectors = self.embedder.embed([text for _, text in memories])
@@ -74,6 +80,11 @@ class MemoryStore:
                     for item in result.evidence
                 ],
             )
+            if graph_projection:
+                connection.execute(
+                    "INSERT INTO graph_jobs(run_id, request_json) VALUES (?, ?)",
+                    (result.run_id, request.model_dump_json()),
+                )
             connection.execute(
                 "INSERT INTO reflections VALUES (?, ?)",
                 (result.run_id, result.reflection.model_dump_json()),

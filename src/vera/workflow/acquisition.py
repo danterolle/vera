@@ -1,6 +1,8 @@
 from vera.domain.enums import EvidenceStatus
 from vera.domain.evidence import Evidence, make_evidence
 from vera.domain.state import GraphState
+from vera.knowledge_graph.retrieval import search_graph
+from vera.knowledge_graph.selection import combine_evidence
 from vera.stream.evidence import summarize_stream
 from vera.workflow.evidence import deduplicate_evidence
 from vera.workflow.runtime import Runtime
@@ -88,8 +90,8 @@ class ContextAcquirer:
             metadata=metadata,
         )
 
-    @staticmethod
     def _result(
+        self,
         state: GraphState,
         evidence: list[Evidence],
         label: str,
@@ -98,13 +100,32 @@ class ContextAcquirer:
         warnings: list[str] | None = None,
         searched_query: str | None = None,
     ) -> dict:
+        graph = None
+        if self.runtime.knowledge_graph and searched_query is not None:
+            graph = search_graph(self.runtime.knowledge_graph, searched_query)
+            evidence = combine_evidence(graph.evidence, evidence)
+            if graph.error:
+                warnings = [*(warnings or []), graph.error]
         unique = deduplicate_evidence(evidence)
+        graph_metadata = graph.model_dump() if graph else {
+            "enabled": self.runtime.knowledge_graph is not None, "attempted": False,
+        }
+        graph_metadata["retained_evidence_ids"] = [
+            item.id for item in unique if item.metadata.get("kg_record_key")
+        ]
+        trace = [f"context:{label}:evidence={len(unique)}"]
+        if graph:
+            trace.append(
+                f"knowledge_graph:attempted={graph.attempted}:"
+                f"available={graph.available}:evidence={len(graph_metadata['retained_evidence_ids'])}"
+            )
         return {
             "evidence": unique,
+            "knowledge_graph": graph_metadata,
             "tool_calls": state["tool_calls"] + tool_calls,
             "react_searches": state["react_searches"] + (
                 [searched_query] if searched_query is not None else []
             ),
             "warnings": state["warnings"] + (warnings or []),
-            "trace": state["trace"] + [f"context:{label}:evidence={len(unique)}"],
+            "trace": state["trace"] + trace,
         }

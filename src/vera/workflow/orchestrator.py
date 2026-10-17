@@ -5,6 +5,7 @@ from vera.domain.graph import GraphTopology
 from vera.domain.reports import AnalysisResult
 from vera.domain.requests import AnalysisRequest
 from vera.errors import ConfigurationError
+from vera.knowledge_graph.store import KnowledgeGraphStore
 from vera.memory.store import MemoryStore
 from vera.providers.base import ModelProvider
 from vera.providers.factory import build_provider
@@ -54,6 +55,9 @@ class VeraOrchestrator:
             provider=selected_provider,
             router=Router(selected_provider, knowledge.supports),
             memory=MemoryStore(self.settings.db_path, selected_embedder),
+            knowledge_graph=(
+                KnowledgeGraphStore(self.settings) if self.settings.kg_enabled else None
+            ),
         )
         self.graph = build_graph(self.runtime)
 

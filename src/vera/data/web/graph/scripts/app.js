@@ -54,7 +54,14 @@ function pathPreview(data, route) {
 
 function draw(data, mode) {
   panels.reset();
-  rendered = renderGraph(svg, data, (node, group) => panels.inspect(node, group, mode));
+  rendered = renderGraph(svg, data, (node, group) => {
+    const route = Object.keys(ROUTE_NODES).find(key => ROUTE_NODES[key] === node.id);
+    if (route && mode !== "run") selectRoute(route);
+    else panels.inspect(node, group, mode);
+    if (window.innerWidth <= 1120) {
+      document.querySelector(".inspector").scrollIntoView({behavior: "smooth", block: "nearest"});
+    }
+  });
   const branch = data.nodes.find(node => node.active && Object.values(ROUTE_NODES).includes(node.id));
   if (branch) panels.inspect(branch, rendered.groups.get(branch.id), mode);
   const hasPath = data.nodes.some(node => node.active);
@@ -113,12 +120,12 @@ function showError(error) {
   state.querySelector("button").hidden = false;
 }
 
-routeButtons.forEach(button => button.addEventListener("click", () => {
+function selectRoute(route) {
   if (!topology) return;
   runSelect.value = "";
-  const route = button.dataset.route;
   draw(pathPreview(topology, route), route ? "preview" : "overview");
-}));
+}
+routeButtons.forEach(button => button.addEventListener("click", () => selectRoute(button.dataset.route)));
 runSelect.addEventListener("change", () => load(runSelect.value).catch(showError));
 focusButton.addEventListener("click", toggleFocus);
 document.querySelector("#zoom-in").addEventListener("click", () => viewport.zoom(1.2));
@@ -130,6 +137,4 @@ svg.addEventListener("click", event => {
 });
 document.querySelector("#retry-load").addEventListener("click", () => load().catch(showError));
 
-load().then(() => {
-  if (runSelect.options.length > 1) return load(runSelect.options[1].value);
-}).catch(showError);
+load().catch(showError);

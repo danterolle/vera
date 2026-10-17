@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import RedirectResponse
 
 from vera import __version__
 from vera.config import Settings
@@ -7,6 +8,10 @@ from vera.domain.reports import AnalysisResult
 from vera.domain.requests import AnalysisRequest
 from vera.errors import VeraError
 from vera.interfaces.assets import load_asset, load_graph_page
+from vera.knowledge_graph.models import GraphStatus, GraphView
+from vera.knowledge_graph.search import search_entities
+from vera.knowledge_graph.store import KnowledgeGraphError, KnowledgeGraphStore
+from vera.knowledge_graph.view import graph_view
 from vera.retrieval.models import CorpusStatus
 from vera.workflow.orchestrator import VeraOrchestrator
 
@@ -22,6 +27,41 @@ def create_app(
         description="Vulnerability Evidence and Reasoning Agent",
     )
     application.state.orchestrator = engine
+    knowledge_store = engine.runtime.knowledge_graph or KnowledgeGraphStore(engine.settings)
+
+    @application.get("/", include_in_schema=False)
+    def home() -> RedirectResponse:
+        return RedirectResponse(url="/graph")
+
+    @application.get("/knowledge-graph", include_in_schema=False)
+    def knowledge_page():
+        return load_graph_page(knowledge=True)
+
+    @application.get("/v1/knowledge-graph/status", response_model=GraphStatus)
+    def knowledge_status() -> GraphStatus:
+        return knowledge_store.status()
+
+    @application.get("/v1/knowledge-graph/search")
+    def knowledge_search(
+        q: str = Query(min_length=2, max_length=200),
+        limit: int = Query(default=12, ge=1, le=30),
+    ) -> list[dict]:
+        try:
+            with knowledge_store.connection() as conn:
+                return search_entities(conn, q, limit)
+        except KnowledgeGraphError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    @application.get("/v1/knowledge-graph", response_model=GraphView)
+    def knowledge_view(
+        id: str | None = Query(default=None, max_length=200),
+        limit: int = Query(default=50, ge=1, le=100),
+        provenance: bool = False,
+    ) -> GraphView:
+        try:
+            return graph_view(knowledge_store, id, limit, provenance=provenance)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     @application.get("/health")
     def health() -> dict:
@@ -30,6 +70,8 @@ def create_app(
             "status": "ok",
             "version": __version__,
             "provider": engine.runtime.provider.name,
+            "model": engine.settings.llm_model if engine.runtime.provider.external else None,
+            "knowledge_graph_enabled": engine.settings.kg_enabled,
             "embedding_backend": engine.runtime.embedder.name,
             "live_sources": engine.settings.live_sources,
             "corpus_documents": corpus.total_documents,

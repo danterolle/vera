@@ -51,6 +51,10 @@ class CveOrgSource:
                     "date_updated": metadata.get("dateUpdated"),
                     "products": products,
                     "weaknesses": weaknesses,
+                    "cwes": sorted({
+                        str(item["cweId"]) for group in cna.get("problemTypes", [])
+                        for item in group.get("descriptions", []) if item.get("cweId")
+                    }),
                     "references": [
                         item.get("url")
                         for item in cna.get("references", [])[:20]

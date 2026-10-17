@@ -42,6 +42,8 @@ def _cve_key(evidence: Evidence) -> tuple[str, str] | None:
 
 def _priority(evidence: Evidence) -> tuple[int, float]:
     provenance = evidence.metadata.get("provenance")
+    if evidence.metadata.get("kg_record_key") and provenance == "live_api":
+        provenance = "cached_api"
     if evidence.metadata.get("snapshot", False):
         provenance = "bundled_snapshot"
     return (

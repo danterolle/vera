@@ -48,10 +48,11 @@
   filter: url(#active-shadow);
 }
 .node.active .state-dot { fill: var(--green); filter: url(#glow); }
-.node:hover .surface, .node.selected .surface {
+.node:hover .surface, .node.selected .surface, .node:focus-visible .surface {
   stroke: #e7eef7;
   transform: translateY(-1px);
 }
+.node.selected .surface { stroke-width: 3; }
 .node .badge { fill: var(--green); }
 .node .badge-text {
   fill: #04110d;

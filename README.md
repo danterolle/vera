@@ -1,176 +1,200 @@
 # VERA
 
-VERA is a reproducible teaching prototype for evidence-based cybersecurity analysis. It
-uses deterministic routing, curated knowledge, local retrieval, restricted live lookups,
-event-stream rules, claim validation, reflection, and persistent memory. It is not a SOC
-platform and does not establish that a compromise occurred.
+VERA is a teaching prototype for evidence-based cybersecurity analysis. It combines curated
+knowledge, local retrieval, a Kuzu Knowledge Graph, restricted live lookups, event-stream
+rules, claim validation, reflection, and persistent memory. LangGraph runs the workflow.
+An alert is a signal to investigate; it does not establish that a compromise occurred.
 
-## Routes
+## 1. Install
 
-| Route | Activated context |
+Requirements: Python 3.11+, [uv](https://docs.astral.sh/uv/), and a terminal in the cloned
+project directory. For model-generated answers, install LM Studio/Bionic or another
+supported local model server. `tshark` is additionally required only for PCAP input.
+
+```bash
+uv sync --extra dev --extra knowledge-graph
+cp -n .env.example .env
+```
+
+The copy preserves an existing `.env`. Edit its values in step 3. The default provider in
+`.env.example` is `deterministic`: selecting Qwen requires the configuration below.
+The default hash embedding backend needs no additional model download.
+
+Git includes the graph schema, import code, and bundled source documents. `.env`, `.venv/`,
+and `.vera/` are local and ignored: each colleague must obtain the model and build the graph.
+Requests, memory, downloaded corpus updates, and generated database files are not shared by Git.
+
+## 2. Start Qwen 3.5
+
+The suggested local profile is **Qwen3.5-4B, GGUF Q4_K_M** from
+[lmstudio-community/Qwen3.5-4B-GGUF](https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF).
+This is the profile tested with VERA on an NVIDIA GPU with about 6 GB VRAM. Prefer this
+small profile to a 27B model on that hardware; performance depends on the machine.
+
+Choose **one** model-server option. Both use port **1234**; VERA uses port **8000**.
+
+### Option A: Bionic / LM Studio
+
+1. Download `Qwen3.5-4B-Q4_K_M.gguf` through Bionic's model search, or select it in your
+   existing library. A fresh clone does not contain the model.
+2. Load Qwen3.5-4B. For the tested NVIDIA profile, use GPU offload, an 8,192-token context,
+   and disable thinking if the runtime exposes that setting.
+3. In **Developer**, start the local API server on `127.0.0.1:1234`.
+4. List the [models visible to the server](https://lmstudio.ai/docs/developer/openai-compat/models):
+
+```bash
+curl -fsS http://127.0.0.1:1234/v1/models
+```
+
+Copy Qwen's exact `data[].id` into `VERA_LLM_MODEL` in step 3. The displayed model name,
+file name, and API identifier may differ. The server must remain running while using VERA.
+See the official [local API server instructions](https://lmstudio.ai/docs/developer/core/server).
+
+### Option B: existing Linux/NVIDIA script
+
+```bash
+bash scripts/start-local-model.sh
+```
+
+This uses LM Studio's installed CUDA runtime directly, without its GUI, and serves the
+model as **`vera-qwen3.5-4b`**. It requires Linux/systemd, the GGUF at
+`.vera/models/Qwen3.5-4B-Q4_K_M.gguf`, and the installed runtime paths used by the script.
+If the model is only in Bionic's library, set `VERA_LOCAL_MODEL_FILE` to its absolute path.
+Other machines may also need `VERA_LOCAL_BACKEND` and `VERA_LOCAL_CUDA_VENDOR` overrides.
+The script limits CPU to two logical cores, RAM to 8 GiB, and swap to 1 GiB; it requests all
+model layers on CUDA0. See [runtime paths, measurements, and checks](docs/local-model.md).
+
+## 3. Connect VERA to the model
+
+Update these values in `.env`, replacing the model ID with the one from step 2:
+
+```dotenv
+VERA_LLM_PROVIDER=openai
+VERA_LLM_MODEL=REPLACE_WITH_QWEN_ID_FROM_V1_MODELS
+VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
+VERA_LLM_RESPONSE_FORMAT=json_schema
+VERA_LLM_TIMEOUT_SECONDS=120
+VERA_LLM_MAX_OUTPUT_TOKENS=1024
+VERA_KG_ENABLED=true
+VERA_KG_PATH=.vera/knowledge.kuzu
+VERA_KG_MAX_RESULTS=6
+VERA_RETRIEVAL_K=3
+VERA_MEMORY_K=1
+VERA_REACT_ENABLED=false
+VERA_LIVE_SOURCES=false
+```
+
+For **option B**, the model ID is `vera-qwen3.5-4b`. `openai` selects the compatible API
+protocol; requests go to the local endpoint above. If Bionic requires authentication, set
+`VERA_LLM_API_KEY` as well. Restart VERA whenever you change `.env`.
+Live sources are disabled here for repeatable local tests; local Qwen and Kuzu still work.
+Set `VERA_LIVE_SOURCES=true` separately when you want authoritative online CVE lookups.
+
+## 4. Build the graph and start VERA
+
+In another terminal, from the project directory:
+
+```bash
+uv run --extra knowledge-graph vera kg-build
+uv run --extra knowledge-graph vera kg-status
+uv run --extra knowledge-graph vera serve --open-browser
+```
+
+`kg-build` reconstructs the initial graph from the bundled corpus; no Kuzu server or Qwen
+inference is needed for this step. Repeating the import does not duplicate unchanged records.
+The model server and VERA are separate processes; `vera serve` does not start Qwen.
+
+| Address | Purpose |
 | --- | --- |
-| `CAG_ONLY` | Stable curated cybersecurity knowledge |
-| `CAG_RAG` | Curated knowledge and local authoritative corpus |
-| `CAG_RAG_TOOL` | Local context and exact CVE.org, NVD, CISA KEV, EPSS, and OSV lookups |
-| `STREAM` | Deterministic analysis of normalized events without triggered attack rules |
-| `FULL` | Composite stream, retrieval, and API analysis or detected attack signals |
+| <http://127.0.0.1:8000/docs> | Submit requests with POST `/v1/analyze`, **Try it out**, **Execute** |
+| <http://127.0.0.1:8000/graph> | Workflow Explorer: preview routes or inspect saved executions |
+| <http://127.0.0.1:8000/knowledge-graph> | Explore domain entities, relationships, and sources |
+| <http://127.0.0.1:8000/health> | Inspect configured provider, model, and graph enablement |
 
-Deterministic rules select clear requests. An enabled LLM only resolves ambiguous requests
-and generates from already assembled evidence. LangGraph bounds generation to two attempts.
-Internally, a compositional `ResourcePlan` selects CAG, RAG, APIs, and stream independently;
-the route name remains a derived compatibility label.
+The root `/` redirects to `/graph`. Clicking a route preview does not execute an analysis.
+No chat page is implemented: answers are returned by the API/CLI and saved in run history.
 
-## Requirements
-
-- Python 3.11 or newer
-- `uv`
-- Optional: `tshark` for PCAP replay
-- Optional: Ollama, an OpenAI-compatible endpoint, or Gemini
-
-## Install
+## 5. Ask questions and verify the connection
 
 ```bash
-uv sync --extra dev
-cp .env.example .env
+curl -fsS http://127.0.0.1:8000/v1/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"Explain PowerShell. Give a brief answer with one sourced claim."}'
 ```
 
-The default hash embedding backend is deterministic and requires no model download. To use
-local Sentence Transformers:
+In Swagger, the same request body is:
+
+```json
+{"query":"Explain PowerShell. Give a brief answer with one sourced claim."}
+```
+
+Check `metadata.model` against your Qwen ID and `metadata.provider_fallback=false` to verify
+the model answered. Nonempty `metadata.knowledge_graph.cited_evidence_ids` shows graph
+evidence was cited. `/health` alone confirms configuration, not successful model inference.
+Refresh `/graph` and select the saved run to inspect its route. Read the complete answer in
+`answer`, or retrieve it later through GET `/v1/runs/<run_id>` or `vera history`.
+
+The CLI also uses `.env` and the running model server; it does not require `vera serve`:
 
 ```bash
-uv sync --extra dev --extra embeddings
-VERA_EMBEDDING_BACKEND=sentence-transformers uv run vera evaluate
+uv run --extra knowledge-graph vera analyze "Explain PowerShell" --offline --json
+uv run --extra knowledge-graph vera analyze "Analyze this traffic" \
+  --events src/vera/data/samples/benign-web.jsonl --simulated --offline --json
+uv run --extra knowledge-graph vera analyze "Analyze this traffic" \
+  --events src/vera/data/samples/port-scan.jsonl --simulated --offline --json
 ```
 
-## CLI
+The event examples select `STREAM` without alerts and `FULL` with `NET-PORT-SCAN`, respectively.
+Use structured `events` in API requests, `--events` for JSON/JSONL, or `--pcap capture.pcap`
+with `tshark` installed. Pasting raw log text into `query` does not invoke stream detectors.
+`--simulated` labels synthetic data; omit it for real events. `--offline` disables live source
+lookups, while local model calls and graph retrieval remain available where selected.
+
+For option B's exact `vera-qwen3.5-4b` alias, run the four sequential model/graph/scope checks:
 
 ```bash
-uv run vera analyze "What is defense in depth?" --offline
-uv run vera analyze "Analyze CVE-2021-44228" --json
-uv run vera analyze "Analyze this controlled replay" \
-  --events src/vera/data/samples/network-events.jsonl --simulated --offline
-uv run vera evaluate
-uv run vera history
-uv run vera corpus-status
+uv run --extra knowledge-graph python scripts/check-local-model.py
 ```
 
-### Synthetic event samples
+## Stop and troubleshoot
 
-The bundled JSONL streams isolate both negative and positive detector paths:
+- Stop VERA with **Ctrl+C** in its terminal. For option A, stop/unload the model in Bionic.
+- For option B, stop Qwen with `systemctl --user stop vera-qwen.scope`.
+- If port 1234 is occupied, stop the other model server before switching options.
+- On model fallback, inspect `warnings`, verify `/v1/models`, and check the ID/base URL.
+- If Kuzu is locked, disconnect Kuzu Explorer before running imports or analyses.
+- To run without an LLM, set `VERA_LLM_PROVIDER=deterministic` and restart VERA.
 
-| File | Expected outcome |
+## Routes and evidence
+
+| Route | Context selected automatically by the resource plan |
 | --- | --- |
-| `benign-web.jsonl` | `STREAM`, no alerts |
-| `port-scan.jsonl` | Network service discovery |
-| `http-brute-force.jsonl` | Repeated authentication failures |
-| `syn-flood.jsonl` | High-volume TCP SYN activity |
-| `web-exploitation.jsonl` | JNDI, traversal, and command-injection patterns |
-| `network-events.jsonl` | Combined incident replay |
+| `CAG_ONLY` | Stable curated knowledge |
+| `CAG_RAG` | Curated knowledge, local corpus, and optional Kuzu retrieval |
+| `CAG_RAG_TOOL` | Local retrieval and exact authoritative CVE lookups |
+| `STREAM` | Normalized events without alerts or requested retrieval |
+| `FULL` | Events combined with retrieval and, when needed, CVE lookups |
 
-All records use private or documentation-only addresses and are marked as simulated.
+Rules handle clear requests; the configured LLM resolves ambiguous ones. Generation has at
+most two attempts by default. Claims distinguish `supported_fact` (quoted available evidence),
+`system_inference`, `unavailable`, and `simulated`; memory is not authoritative factual support.
 
-For PCAP input, VERA executes `tshark` directly with a fixed field allowlist, a packet limit,
-a timeout, and no shell:
-
-```bash
-uv run vera analyze "Analyze this capture" --pcap capture.pcap --offline
-```
-
-## HTTP API
+## Development and documentation
 
 ```bash
-uv run vera serve
-curl -s http://127.0.0.1:8000/health
-curl -s http://127.0.0.1:8000/v1/analyze \
-  -H 'content-type: application/json' \
-  -d '{"query":"Explain MITRE ATT&CK T1190"}'
+uv run --extra dev --extra knowledge-graph ruff check .
+uv run --extra dev --extra knowledge-graph pytest
+VERA_LLM_PROVIDER=deterministic uv run --extra knowledge-graph vera evaluate --json
+uv run --extra knowledge-graph vera corpus-sync
+uv run --extra knowledge-graph vera kg-build
 ```
 
-OpenAPI documentation is available at `http://127.0.0.1:8000/docs`.
+Corpus synchronization is explicit and downloads official ATT&CK/CISA data; it is not
+required for the bundled graph. Rebuild after synchronization to import the updated sources.
+Other provider adapters are Ollama and Gemini; settings are defined in `.env.example` and
+[`Settings`](src/vera/config.py). Optional Sentence Transformers use the `embeddings` extra
+and `VERA_EMBEDDING_BACKEND=sentence-transformers` instead of the default hash backend.
 
-### LangGraph browser
-
-Start the API and open the dependency-free local workflow viewer:
-
-```bash
-uv run vera serve --open-browser
-```
-
-The page at `http://127.0.0.1:8000/graph` reads the compiled topology from
-`graph.get_graph()`. It shows every node and conditional edge, exposes LangGraph's Mermaid
-source, and highlights the path and retry count of a selected persisted run. The machine
-readable representation is available from `/v1/graph`.
-
-## Corpus
-
-The bundled offline corpus contains more than 60 focused documents from MITRE ATT&CK, CWE,
-CAPEC, OWASP, NIST, and selected NVD snapshots. Retrieval combines normalized BM25 and local
-vector similarity, retaining both component scores in evidence metadata.
-
-Synchronize the complete current Enterprise ATT&CK STIX collection and CISA KEV catalog:
-
-```bash
-uv run vera corpus-sync
-uv run vera corpus-sync --feed mitre-attack
-uv run vera corpus-sync --feed cisa-kev
-uv run vera corpus-status
-```
-
-Synchronization uses fixed official URLs, response-size and document-count limits, schema
-validation, and atomic local replacement under `.vera/corpus`. It never runs implicitly.
-
-## LLM providers
-
-The deterministic provider is the reliable default and produces fully structured answers
-without network access. External providers receive only normalized context and must return
-schema-valid JSON.
-
-### Ollama or Unsloth
-
-```bash
-export VERA_LLM_PROVIDER=ollama
-export VERA_LLM_MODEL=llama3.1:8b
-export VERA_LLM_BASE_URL=http://localhost:11434
-uv run vera analyze "Assess the available security context"
-```
-
-Any OpenAI-compatible endpoint can use `VERA_LLM_PROVIDER=openai` and
-`VERA_LLM_API_KEY` when required.
-
-### Gemini
-
-```bash
-export VERA_LLM_PROVIDER=gemini
-export VERA_LLM_MODEL=gemini-2.5-flash
-export VERA_GEMINI_API_KEY=your-key
-```
-
-If generation fails, the result contains a warning and uses deterministic rendering. Failed
-source requests become explicit unavailable evidence rather than fabricated values.
-Live CVE sources execute concurrently within the configured tool budget, and skipped lookups
-are emitted as unavailable evidence.
-
-## Evidence status
-
-| Status | Meaning |
-| --- | --- |
-| `supported_fact` | Grounded by a verbatim quote from available non-memory evidence |
-| `system_inference` | Derived by routing, detection, memory, or model reasoning |
-| `unavailable` | Required data was disabled, absent, or failed |
-| `simulated` | Derived from an explicitly simulated event stream |
-
-Bundled CVE records are marked as snapshots. Persistent semantic and episodic memories can
-inform later runs, but the validator never accepts memory as authoritative support.
-Every supported fact must also include a verbatim quotation that passes conservative grounding
-checks for meaningful terms, identifiers, numbers, and negation.
-
-## Quality commands
-
-```bash
-uv run ruff check .
-uv run pytest
-uv run vera evaluate --json
-```
-
-See [architecture](docs/architecture.md) and [data provenance](docs/data-provenance.md) for
-the workflow contract, source boundaries, and known limitations.
+See [Knowledge Graph](docs/knowledge-graph.md), [Workflow Explorer](docs/workflow-explorer.md),
+[local model](docs/local-model.md), [architecture](docs/architecture.md), and
+[data provenance](docs/data-provenance.md) for details and limits.

@@ -43,3 +43,4 @@ class GraphState(TypedDict, total=False):
     react_observations: list[ReActObservation]
     trace: list[str]
     warnings: list[str]
+    knowledge_graph: dict

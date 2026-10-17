@@ -41,7 +41,8 @@ export class GraphPanels {
       node.active && mode === "preview" ? "Included in preview" :
         node.active ? "Executed" : "Outside selected path";
     document.querySelector("#node-state").textContent = state;
-    document.querySelector("#node-executions").textContent = String(node.executions);
+    document.querySelector("#node-executions").textContent = mode === "run"
+      ? String(node.executions) : "—";
   }
 
   reset() {

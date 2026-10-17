@@ -4,41 +4,41 @@
     "title": "Defense in depth",
     "url": "https://csrc.nist.gov/glossary/term/defense_in_depth",
     "content": "Defense in depth is an information-security strategy that integrates people, technology, and operations capabilities to establish layered protections across multiple organizational levels.",
-    "metadata": {"keywords": ["defense in depth", "layered security", "security controls"]}
+    "metadata": {"keywords": ["defense in depth", "layered security", "security controls"], "graph_entities": [{"id": "concept:defense-in-depth", "name": "Defense in depth", "aliases": ["difesa in profondità", "layered security"]}, {"id": "concept:security-controls", "name": "Security controls", "aliases": ["controlli di sicurezza"]}]}
   },
   {
     "source": "cag",
     "title": "Principle of least privilege",
     "url": "https://csrc.nist.gov/glossary/term/least_privilege",
     "content": "Least privilege restricts each entity to the minimum authorizations and resources required to perform its assigned function.",
-    "metadata": {"keywords": ["least privilege", "authorization", "access control"]}
+    "metadata": {"keywords": ["least privilege", "authorization", "access control"], "graph_entities": [{"id": "concept:least-privilege", "name": "Least privilege", "aliases": ["minimo privilegio"]}, {"id": "concept:access-control", "name": "Access control", "aliases": ["controllo accessi", "authorization"]}]}
   },
   {
     "source": "cag",
     "title": "Common Vulnerabilities and Exposures",
     "url": "https://www.cve.org/ResourcesSupport/AllResources/CveServices",
     "content": "A CVE identifier is a stable identifier for one publicly disclosed cybersecurity vulnerability. A CVE record does not by itself express current exploitation probability or asset-specific risk.",
-    "metadata": {"keywords": ["cve", "vulnerability", "identifier"]}
+    "metadata": {"keywords": ["cve", "vulnerability", "identifier"], "graph_entities": [{"id": "concept:vulnerability-identifiers", "name": "Vulnerability identifiers", "aliases": ["CVE identifiers"]}, {"id": "concept:vulnerability-management", "name": "Vulnerability management", "aliases": ["gestione vulnerabilità"]}]}
   },
   {
     "source": "cag",
     "title": "Common Vulnerability Scoring System",
     "url": "https://www.first.org/cvss/",
     "content": "CVSS communicates the intrinsic severity characteristics of a vulnerability. Severity should be combined with threat intelligence, exposure, asset criticality, and compensating controls when prioritizing remediation.",
-    "metadata": {"keywords": ["cvss", "severity", "risk", "score"]}
+    "metadata": {"keywords": ["cvss", "severity", "risk", "score"], "graph_entities": [{"id": "concept:severity", "name": "Vulnerability severity", "aliases": ["CVSS", "Common Vulnerability Scoring System"]}, {"id": "concept:cyber-risk", "name": "Cybersecurity risk assessment", "aliases": ["risk assessment", "valutazione rischio"]}]}
   },
   {
     "source": "cag",
     "title": "Incident response lifecycle",
     "url": "https://csrc.nist.gov/pubs/sp/800/61/r3/final",
     "content": "Incident response integrates preparation with detection, response, and recovery. Evidence preservation, scoping, containment, eradication, recovery, and lessons learned must follow organizational procedures.",
-    "metadata": {"keywords": ["incident response", "triage", "containment", "recovery"]}
+    "metadata": {"keywords": ["incident response", "triage", "containment", "recovery"], "graph_entities": [{"id": "concept:incident-response", "name": "Incident response", "aliases": ["risposta agli incidenti"]}]}
   },
   {
     "source": "cag",
     "title": "Evidence and inference policy",
     "url": "https://csrc.nist.gov/pubs/ai/100/1/final",
     "content": "VERA treats retrieved records and observed events as evidence, while correlations, intent attribution, and impact estimates remain system inferences unless an authoritative source directly supports them.",
-    "metadata": {"keywords": ["evidence", "inference", "hallucination", "source"]}
+    "metadata": {"keywords": ["evidence", "inference", "hallucination", "source"], "graph_entities": [{"id": "concept:evidence-grounding", "name": "Evidence and inference", "aliases": ["evidence grounding", "evidenze e inferenze"]}]}
   }
 ]

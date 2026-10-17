@@ -126,6 +126,7 @@ compiled LangGraph object. `/v1/graph` exposes that typed representation. `/grap
 with local HTML, CSS, and JavaScript under a restrictive content security policy; no diagram
 or execution data is sent to an external rendering service. A persisted run activates only
 its selected acquisition branch and records repeated generation and validation nodes.
+See [Workflow Explorer](workflow-explorer.md) for modes, interactions, and interpretation.
 
 ## Retrieval
 
@@ -168,3 +169,13 @@ HTTP payload signatures remain event-local.
 SQLite stores runs, evidence, reflection reports, and two memories per completed execution.
 Semantic memory contains supported findings; episodic memory contains the request, route, and
 outcome. Retrieval uses the configured local embedder and can be scoped by `session_id`.
+
+## Domain knowledge graph
+
+The optional [Kuzu integration](knowledge-graph.md) acquires evidence through bounded,
+parameterized graph traversal in RAG/tools/full branches before generation. Entity and
+assertion nodes preserve original source records. Structured mappings remain inferences;
+factual claims still require quotations accepted by the existing validator. Runtime
+metadata distinguishes attempted retrieval, retained evidence, and final citations.
+SQLite commits run projection jobs atomically with history; idempotent Kuzu projection
+retries failures. `/knowledge-graph` inspects domain data separately from `/graph`.

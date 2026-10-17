@@ -3,6 +3,11 @@ from fastapi.responses import Response
 from vera.data import resource
 
 ASSETS = {
+    "knowledge.css": ("web/knowledge/style.css", "text/css; charset=utf-8"),
+    "knowledge.js": ("web/knowledge/app.js", "text/javascript; charset=utf-8"),
+    "knowledge-layout.js": ("web/knowledge/layout.js", "text/javascript; charset=utf-8"),
+    "knowledge-renderer.js": ("web/knowledge/renderer.js", "text/javascript; charset=utf-8"),
+    "knowledge-inspector.js": ("web/knowledge/inspector.js", "text/javascript; charset=utf-8"),
     "graph.css": ("web/graph/styles/layout.css", "text/css; charset=utf-8"),
     "graph-ui.css": ("web/graph/styles/components.css", "text/css; charset=utf-8"),
     "graph-svg.css": ("web/graph/styles/diagram.css", "text/css; charset=utf-8"),
@@ -21,8 +26,9 @@ def load_asset(name: str) -> Response:
     return Response(content, media_type=media_type)
 
 
-def load_graph_page() -> Response:
-    content = resource("web/graph/index.html").read_text(encoding="utf-8")
+def load_graph_page(*, knowledge: bool = False) -> Response:
+    folder = "knowledge" if knowledge else "graph"
+    content = resource(f"web/{folder}/index.html").read_text(encoding="utf-8")
     headers = {
         "Content-Security-Policy": (
             "default-src 'self'; script-src 'self'; style-src 'self'; "

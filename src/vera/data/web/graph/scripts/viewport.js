@@ -1,10 +1,11 @@
 const BASE = { x: 0, y: 0, width: 1200, height: 880 };
 
 export class GraphViewport {
-  constructor(svg, onZoom) {
+  constructor(svg, onZoom, base = BASE) {
     this.svg = svg;
     this.onZoom = onZoom;
-    this.view = { ...BASE };
+    this.base = base;
+    this.view = { ...base };
     this.drag = null;
     this.bind();
     this.apply();
@@ -16,7 +17,7 @@ export class GraphViewport {
       this.zoom(event.deltaY < 0 ? 1.14 : 0.88, event.clientX, event.clientY);
     }, { passive: false });
     this.svg.addEventListener("pointerdown", event => {
-      if (event.target.closest(".node")) return;
+      if (event.target.closest(".node, .edge-group")) return;
       this.drag = { x: event.clientX, y: event.clientY, view: { ...this.view } };
       this.svg.setPointerCapture(event.pointerId);
       this.svg.parentElement.classList.add("dragging");
@@ -60,10 +61,10 @@ export class GraphViewport {
   }
 
   zoom(factor, clientX, clientY) {
-    const scale = BASE.width / this.view.width;
+    const scale = this.base.width / this.view.width;
     const nextScale = Math.min(3, Math.max(0.65, scale * factor));
-    const nextWidth = BASE.width / nextScale;
-    const nextHeight = BASE.height / nextScale;
+    const nextWidth = this.base.width / nextScale;
+    const nextHeight = this.base.height / nextScale;
     const bounds = this.svg.getBoundingClientRect();
     const ratioX = clientX === undefined ? 0.5 : (clientX - bounds.left) / bounds.width;
     const ratioY = clientY === undefined ? 0.5 : (clientY - bounds.top) / bounds.height;
@@ -77,13 +78,13 @@ export class GraphViewport {
   }
 
   fit() {
-    this.view = { ...BASE };
+    this.view = { ...this.base };
     this.apply();
   }
 
   apply() {
     const { x, y, width, height } = this.view;
     this.svg.setAttribute("viewBox", `${x} ${y} ${width} ${height}`);
-    this.onZoom?.(Math.round(BASE.width / width * 100));
+    this.onZoom?.(Math.round(this.base.width / width * 100));
   }
 }

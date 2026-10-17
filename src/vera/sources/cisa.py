@@ -62,6 +62,7 @@ class CisaKevSource:
                     "date_added": record.get("dateAdded"),
                     "due_date": record.get("dueDate"),
                     "ransomware_use": record.get("knownRansomwareCampaignUse"),
+                    "cwes": record.get("cwes", []),
                     "provenance": "live_api",
                 },
             )

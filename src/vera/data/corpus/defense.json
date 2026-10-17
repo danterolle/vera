@@ -4,125 +4,125 @@
     "title": "OWASP A01:2021 - Broken Access Control",
     "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
     "content": "Access-control failures can permit unauthorized disclosure, modification, destruction, or execution beyond a user's intended permissions.",
-    "metadata": {"external_id": "A01:2021", "keywords": ["broken access control", "authorization", "idor"]}
+    "metadata": {"external_id": "A01:2021", "keywords": ["broken access control", "authorization", "idor"], "graph_entities": [{"id": "guidance:owasp:a01-2021", "name": "OWASP A01:2021 - Broken Access Control", "aliases": ["A01:2021"]}, {"id": "concept:access-control", "name": "Access control", "aliases": ["controllo accessi", "authorization"]}], "graph_relations": [{"subject": "guidance:owasp:a01-2021", "subject_name": "OWASP A01:2021 - Broken Access Control", "object": "concept:access-control", "object_name": "Access control", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Access-control failures can permit unauthorized disclosure, modification, destruction, or execution beyond a user's intended permissions."}], "curated_topics": ["access-control"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A02:2021 - Cryptographic Failures",
     "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/",
     "content": "Missing or ineffective cryptographic protection can expose sensitive data at rest or in transit.",
-    "metadata": {"external_id": "A02:2021", "keywords": ["cryptographic failure", "encryption", "sensitive data"]}
+    "metadata": {"external_id": "A02:2021", "keywords": ["cryptographic failure", "encryption", "sensitive data"], "graph_entities": [{"id": "guidance:owasp:a02-2021", "name": "OWASP A02:2021 - Cryptographic Failures", "aliases": ["A02:2021"]}, {"id": "concept:cryptography", "name": "Cryptographic protection", "aliases": ["cryptography", "crittografia"]}], "graph_relations": [{"subject": "guidance:owasp:a02-2021", "subject_name": "OWASP A02:2021 - Cryptographic Failures", "object": "concept:cryptography", "object_name": "Cryptographic protection", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Missing or ineffective cryptographic protection can expose sensitive data at rest or in transit."}], "curated_topics": ["cryptography"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A03:2021 - Injection",
     "url": "https://owasp.org/Top10/A03_2021-Injection/",
     "content": "Untrusted data interpreted as commands or queries can cause SQL, command, LDAP, and cross-site scripting injection.",
-    "metadata": {"external_id": "A03:2021", "keywords": ["injection", "sql injection", "xss", "command injection"]}
+    "metadata": {"external_id": "A03:2021", "keywords": ["injection", "sql injection", "xss", "command injection"], "graph_entities": [{"id": "guidance:owasp:a03-2021", "name": "OWASP A03:2021 - Injection", "aliases": ["A03:2021"]}, {"id": "concept:injection", "name": "Injection", "aliases": ["iniezione"]}], "graph_relations": [{"subject": "guidance:owasp:a03-2021", "subject_name": "OWASP A03:2021 - Injection", "object": "concept:injection", "object_name": "Injection", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Untrusted data interpreted as commands or queries can cause SQL, command, LDAP, and cross-site scripting injection."}], "curated_topics": ["injection"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A04:2021 - Insecure Design",
     "url": "https://owasp.org/Top10/A04_2021-Insecure_Design/",
     "content": "Missing or ineffective security controls in system design cannot be fully corrected by implementation quality alone.",
-    "metadata": {"external_id": "A04:2021", "keywords": ["insecure design", "threat modeling", "secure design"]}
+    "metadata": {"external_id": "A04:2021", "keywords": ["insecure design", "threat modeling", "secure design"], "graph_entities": [{"id": "guidance:owasp:a04-2021", "name": "OWASP A04:2021 - Insecure Design", "aliases": ["A04:2021"]}, {"id": "concept:security-design", "name": "Secure system design", "aliases": ["secure design", "progettazione sicura"]}], "graph_relations": [{"subject": "guidance:owasp:a04-2021", "subject_name": "OWASP A04:2021 - Insecure Design", "object": "concept:security-design", "object_name": "Secure system design", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Missing or ineffective security controls in system design cannot be fully corrected by implementation quality alone."}], "curated_topics": ["security-design"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A05:2021 - Security Misconfiguration",
     "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
     "content": "Unsafe defaults, unnecessary features, incomplete hardening, and verbose errors can expose systems to attack.",
-    "metadata": {"external_id": "A05:2021", "keywords": ["security misconfiguration", "hardening", "default configuration"]}
+    "metadata": {"external_id": "A05:2021", "keywords": ["security misconfiguration", "hardening", "default configuration"], "graph_entities": [{"id": "guidance:owasp:a05-2021", "name": "OWASP A05:2021 - Security Misconfiguration", "aliases": ["A05:2021"]}, {"id": "concept:configuration", "name": "Security configuration", "aliases": ["hardening", "configurazione sicura"]}], "graph_relations": [{"subject": "guidance:owasp:a05-2021", "subject_name": "OWASP A05:2021 - Security Misconfiguration", "object": "concept:configuration", "object_name": "Security configuration", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Unsafe defaults, unnecessary features, incomplete hardening, and verbose errors can expose systems to attack."}], "curated_topics": ["configuration"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A06:2021 - Vulnerable and Outdated Components",
     "url": "https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/",
     "content": "Unknown, unsupported, or vulnerable component versions weaken the ability to assess and remediate application risk.",
-    "metadata": {"external_id": "A06:2021", "keywords": ["vulnerable component", "dependency", "patching", "sbom"]}
+    "metadata": {"external_id": "A06:2021", "keywords": ["vulnerable component", "dependency", "patching", "sbom"], "graph_entities": [{"id": "guidance:owasp:a06-2021", "name": "OWASP A06:2021 - Vulnerable and Outdated Components", "aliases": ["A06:2021"]}, {"id": "concept:vulnerability-management", "name": "Vulnerability management", "aliases": ["gestione vulnerabilità"]}], "graph_relations": [{"subject": "guidance:owasp:a06-2021", "subject_name": "OWASP A06:2021 - Vulnerable and Outdated Components", "object": "concept:vulnerability-management", "object_name": "Vulnerability management", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Unknown, unsupported, or vulnerable component versions weaken the ability to assess and remediate application risk."}], "curated_topics": ["vulnerability-management"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A07:2021 - Identification and Authentication Failures",
     "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/",
     "content": "Weak identity, authentication, and session-management controls can allow account compromise.",
-    "metadata": {"external_id": "A07:2021", "keywords": ["authentication failure", "identity", "session", "mfa"]}
+    "metadata": {"external_id": "A07:2021", "keywords": ["authentication failure", "identity", "session", "mfa"], "graph_entities": [{"id": "guidance:owasp:a07-2021", "name": "OWASP A07:2021 - Identification and Authentication Failures", "aliases": ["A07:2021"]}, {"id": "concept:authentication", "name": "Authentication", "aliases": ["autenticazione"]}], "graph_relations": [{"subject": "guidance:owasp:a07-2021", "subject_name": "OWASP A07:2021 - Identification and Authentication Failures", "object": "concept:authentication", "object_name": "Authentication", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Weak identity, authentication, and session-management controls can allow account compromise."}], "curated_topics": ["authentication"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A08:2021 - Software and Data Integrity Failures",
     "url": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/",
     "content": "Software updates, CI/CD pipelines, and serialized data require integrity verification and trusted provenance.",
-    "metadata": {"external_id": "A08:2021", "keywords": ["software integrity", "supply chain", "deserialization", "cicd"]}
+    "metadata": {"external_id": "A08:2021", "keywords": ["software integrity", "supply chain", "deserialization", "cicd"], "graph_entities": [{"id": "guidance:owasp:a08-2021", "name": "OWASP A08:2021 - Software and Data Integrity Failures", "aliases": ["A08:2021"]}, {"id": "concept:software-integrity", "name": "Software integrity", "aliases": ["supply chain security", "integrità software"]}], "graph_relations": [{"subject": "guidance:owasp:a08-2021", "subject_name": "OWASP A08:2021 - Software and Data Integrity Failures", "object": "concept:software-integrity", "object_name": "Software integrity", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Software updates, CI/CD pipelines, and serialized data require integrity verification and trusted provenance."}], "curated_topics": ["software-integrity"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A09:2021 - Security Logging and Monitoring Failures",
     "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/",
     "content": "Insufficient logging, monitoring, alerting, and incident integration can delay attack detection and response.",
-    "metadata": {"external_id": "A09:2021", "keywords": ["security logging", "monitoring", "alerting", "incident response"]}
+    "metadata": {"external_id": "A09:2021", "keywords": ["security logging", "monitoring", "alerting", "incident response"], "graph_entities": [{"id": "guidance:owasp:a09-2021", "name": "OWASP A09:2021 - Security Logging and Monitoring Failures", "aliases": ["A09:2021"]}, {"id": "concept:monitoring", "name": "Security logging and monitoring", "aliases": ["log management", "monitoraggio"]}, {"id": "concept:incident-response", "name": "Incident response", "aliases": ["risposta agli incidenti"]}], "graph_relations": [{"subject": "guidance:owasp:a09-2021", "subject_name": "OWASP A09:2021 - Security Logging and Monitoring Failures", "object": "concept:monitoring", "object_name": "Security logging and monitoring", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Insufficient logging, monitoring, alerting, and incident integration can delay attack detection and response."}, {"subject": "guidance:owasp:a09-2021", "subject_name": "OWASP A09:2021 - Security Logging and Monitoring Failures", "object": "concept:incident-response", "object_name": "Incident response", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Insufficient logging, monitoring, alerting, and incident integration can delay attack detection and response."}], "curated_topics": ["monitoring", "incident-response"]}
   },
   {
     "source": "owasp",
     "title": "OWASP A10:2021 - Server-Side Request Forgery",
     "url": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_%28SSRF%29/",
     "content": "Applications that fetch remote resources from unvalidated user input can be abused to reach unintended destinations.",
-    "metadata": {"external_id": "A10:2021", "keywords": ["ssrf", "remote resource", "metadata endpoint"]}
+    "metadata": {"external_id": "A10:2021", "keywords": ["ssrf", "remote resource", "metadata endpoint"], "graph_entities": [{"id": "guidance:owasp:a10-2021", "name": "OWASP A10:2021 - Server-Side Request Forgery", "aliases": ["A10:2021"]}, {"id": "concept:ssrf", "name": "Server-side request forgery", "aliases": ["SSRF"]}], "graph_relations": [{"subject": "guidance:owasp:a10-2021", "subject_name": "OWASP A10:2021 - Server-Side Request Forgery", "object": "concept:ssrf", "object_name": "Server-side request forgery", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Applications that fetch remote resources from unvalidated user input can be abused to reach unintended destinations."}], "curated_topics": ["ssrf"]}
   },
   {
     "source": "nist",
     "title": "NIST Cybersecurity Framework 2.0",
     "url": "https://www.nist.gov/cyberframework",
     "content": "CSF 2.0 organizes cybersecurity outcomes through Govern, Identify, Protect, Detect, Respond, and Recover functions.",
-    "metadata": {"external_id": "CSF 2.0", "keywords": ["cybersecurity framework", "govern", "identify", "protect", "detect", "respond", "recover"]}
+    "metadata": {"external_id": "CSF 2.0", "keywords": ["cybersecurity framework", "govern", "identify", "protect", "detect", "respond", "recover"], "graph_entities": [{"id": "guidance:nist:csf-2.0", "name": "NIST Cybersecurity Framework 2.0", "aliases": ["CSF 2.0"]}, {"id": "concept:cyber-risk", "name": "Cybersecurity risk assessment", "aliases": ["risk assessment", "valutazione rischio"]}, {"id": "concept:incident-response", "name": "Incident response", "aliases": ["risposta agli incidenti"]}], "graph_relations": [{"subject": "guidance:nist:csf-2.0", "subject_name": "NIST Cybersecurity Framework 2.0", "object": "concept:cyber-risk", "object_name": "Cybersecurity risk assessment", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "CSF 2.0 organizes cybersecurity outcomes through Govern, Identify, Protect, Detect, Respond, and Recover functions."}, {"subject": "guidance:nist:csf-2.0", "subject_name": "NIST Cybersecurity Framework 2.0", "object": "concept:incident-response", "object_name": "Incident response", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "CSF 2.0 organizes cybersecurity outcomes through Govern, Identify, Protect, Detect, Respond, and Recover functions."}], "curated_topics": ["cyber-risk", "incident-response"]}
   },
   {
     "source": "nist",
     "title": "NIST SP 800-61 Rev. 3 - Incident Response",
     "url": "https://csrc.nist.gov/pubs/sp/800/61/r3/final",
     "content": "Incident response should be integrated across organizational risk management, with preparation and continuous improvement supporting detection, response, and recovery.",
-    "metadata": {"external_id": "SP 800-61r3", "keywords": ["incident response", "containment", "recovery", "forensics"]}
+    "metadata": {"external_id": "SP 800-61r3", "keywords": ["incident response", "containment", "recovery", "forensics"], "graph_entities": [{"id": "guidance:nist:sp-800-61r3", "name": "NIST SP 800-61 Rev. 3 - Incident Response", "aliases": ["SP 800-61r3"]}, {"id": "concept:incident-response", "name": "Incident response", "aliases": ["risposta agli incidenti"]}], "graph_relations": [{"subject": "guidance:nist:sp-800-61r3", "subject_name": "NIST SP 800-61 Rev. 3 - Incident Response", "object": "concept:incident-response", "object_name": "Incident response", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Incident response should be integrated across organizational risk management, with preparation and continuous improvement supporting detection, response, and recovery."}], "curated_topics": ["incident-response"]}
   },
   {
     "source": "nist",
     "title": "NIST SP 800-207 - Zero Trust Architecture",
     "url": "https://csrc.nist.gov/pubs/sp/800/207/final",
     "content": "Zero trust grants no implicit trust based only on network location or ownership and evaluates access to resources explicitly.",
-    "metadata": {"external_id": "SP 800-207", "keywords": ["zero trust", "explicit verification", "policy enforcement"]}
+    "metadata": {"external_id": "SP 800-207", "keywords": ["zero trust", "explicit verification", "policy enforcement"], "graph_entities": [{"id": "guidance:nist:sp-800-207", "name": "NIST SP 800-207 - Zero Trust Architecture", "aliases": ["SP 800-207"]}, {"id": "concept:zero-trust", "name": "Zero trust", "aliases": ["zero trust architecture"]}, {"id": "concept:access-control", "name": "Access control", "aliases": ["controllo accessi", "authorization"]}], "graph_relations": [{"subject": "guidance:nist:sp-800-207", "subject_name": "NIST SP 800-207 - Zero Trust Architecture", "object": "concept:zero-trust", "object_name": "Zero trust", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Zero trust grants no implicit trust based only on network location or ownership and evaluates access to resources explicitly."}, {"subject": "guidance:nist:sp-800-207", "subject_name": "NIST SP 800-207 - Zero Trust Architecture", "object": "concept:access-control", "object_name": "Access control", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Zero trust grants no implicit trust based only on network location or ownership and evaluates access to resources explicitly."}], "curated_topics": ["zero-trust", "access-control"]}
   },
   {
     "source": "nist",
     "title": "NIST SP 800-53 Rev. 5 - Security and Privacy Controls",
     "url": "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final",
     "content": "SP 800-53 provides a catalog of security and privacy controls for information systems and organizations.",
-    "metadata": {"external_id": "SP 800-53r5", "keywords": ["security controls", "control catalog", "risk management"]}
+    "metadata": {"external_id": "SP 800-53r5", "keywords": ["security controls", "control catalog", "risk management"], "graph_entities": [{"id": "guidance:nist:sp-800-53r5", "name": "NIST SP 800-53 Rev. 5 - Security and Privacy Controls", "aliases": ["SP 800-53r5"]}, {"id": "concept:security-controls", "name": "Security controls", "aliases": ["controlli di sicurezza"]}], "graph_relations": [{"subject": "guidance:nist:sp-800-53r5", "subject_name": "NIST SP 800-53 Rev. 5 - Security and Privacy Controls", "object": "concept:security-controls", "object_name": "Security controls", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "SP 800-53 provides a catalog of security and privacy controls for information systems and organizations."}], "curated_topics": ["security-controls"]}
   },
   {
     "source": "nist",
     "title": "NIST SP 800-30 Rev. 1 - Risk Assessment",
     "url": "https://csrc.nist.gov/pubs/sp/800/30/r1/final",
     "content": "Risk assessment identifies threats, vulnerabilities, likelihood, and impact to inform organizational risk decisions.",
-    "metadata": {"external_id": "SP 800-30r1", "keywords": ["risk assessment", "threat", "likelihood", "impact"]}
+    "metadata": {"external_id": "SP 800-30r1", "keywords": ["risk assessment", "threat", "likelihood", "impact"], "graph_entities": [{"id": "guidance:nist:sp-800-30r1", "name": "NIST SP 800-30 Rev. 1 - Risk Assessment", "aliases": ["SP 800-30r1"]}, {"id": "concept:cyber-risk", "name": "Cybersecurity risk assessment", "aliases": ["risk assessment", "valutazione rischio"]}], "graph_relations": [{"subject": "guidance:nist:sp-800-30r1", "subject_name": "NIST SP 800-30 Rev. 1 - Risk Assessment", "object": "concept:cyber-risk", "object_name": "Cybersecurity risk assessment", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Risk assessment identifies threats, vulnerabilities, likelihood, and impact to inform organizational risk decisions."}], "curated_topics": ["cyber-risk"]}
   },
   {
     "source": "nist",
     "title": "NIST SP 800-40 Rev. 4 - Enterprise Patch Management",
     "url": "https://csrc.nist.gov/pubs/sp/800/40/r4/final",
     "content": "Enterprise patch management includes identifying, prioritizing, acquiring, installing, and verifying patches and related changes.",
-    "metadata": {"external_id": "SP 800-40r4", "keywords": ["patch management", "remediation", "vulnerability management"]}
+    "metadata": {"external_id": "SP 800-40r4", "keywords": ["patch management", "remediation", "vulnerability management"], "graph_entities": [{"id": "guidance:nist:sp-800-40r4", "name": "NIST SP 800-40 Rev. 4 - Enterprise Patch Management", "aliases": ["SP 800-40r4"]}, {"id": "concept:vulnerability-management", "name": "Vulnerability management", "aliases": ["gestione vulnerabilità"]}], "graph_relations": [{"subject": "guidance:nist:sp-800-40r4", "subject_name": "NIST SP 800-40 Rev. 4 - Enterprise Patch Management", "object": "concept:vulnerability-management", "object_name": "Vulnerability management", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Enterprise patch management includes identifying, prioritizing, acquiring, installing, and verifying patches and related changes."}], "curated_topics": ["vulnerability-management"]}
   },
   {
     "source": "nist",
     "title": "NIST SP 800-218 - Secure Software Development Framework",
     "url": "https://csrc.nist.gov/pubs/sp/800/218/final",
     "content": "The SSDF groups secure development practices around preparing the organization, protecting software, producing well-secured software, and responding to vulnerabilities.",
-    "metadata": {"external_id": "SP 800-218", "keywords": ["ssdf", "secure development", "software supply chain"]}
+    "metadata": {"external_id": "SP 800-218", "keywords": ["ssdf", "secure development", "software supply chain"], "graph_entities": [{"id": "guidance:nist:sp-800-218", "name": "NIST SP 800-218 - Secure Software Development Framework", "aliases": ["SP 800-218"]}, {"id": "concept:security-design", "name": "Secure system design", "aliases": ["secure design", "progettazione sicura"]}, {"id": "concept:software-integrity", "name": "Software integrity", "aliases": ["supply chain security", "integrità software"]}], "graph_relations": [{"subject": "guidance:nist:sp-800-218", "subject_name": "NIST SP 800-218 - Secure Software Development Framework", "object": "concept:security-design", "object_name": "Secure system design", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "The SSDF groups secure development practices around preparing the organization, protecting software, producing well-secured software, and responding to vulnerabilities."}, {"subject": "guidance:nist:sp-800-218", "subject_name": "NIST SP 800-218 - Secure Software Development Framework", "object": "concept:software-integrity", "object_name": "Software integrity", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "The SSDF groups secure development practices around preparing the organization, protecting software, producing well-secured software, and responding to vulnerabilities."}], "curated_topics": ["security-design", "software-integrity"]}
   },
   {
     "source": "nist",
     "title": "NIST SP 800-92 - Computer Security Log Management",
     "url": "https://csrc.nist.gov/pubs/sp/800/92/final",
     "content": "Security log management covers generation, transmission, storage, analysis, and disposal of computer security log data.",
-    "metadata": {"external_id": "SP 800-92", "keywords": ["log management", "telemetry", "monitoring", "retention"]}
+    "metadata": {"external_id": "SP 800-92", "keywords": ["log management", "telemetry", "monitoring", "retention"], "graph_entities": [{"id": "guidance:nist:sp-800-92", "name": "NIST SP 800-92 - Computer Security Log Management", "aliases": ["SP 800-92"]}, {"id": "concept:monitoring", "name": "Security logging and monitoring", "aliases": ["log management", "monitoraggio"]}], "graph_relations": [{"subject": "guidance:nist:sp-800-92", "subject_name": "NIST SP 800-92 - Computer Security Log Management", "object": "concept:monitoring", "object_name": "Security logging and monitoring", "predicate": "covers", "field_path": "metadata.curated_topics", "supporting_quote": "Security log management covers generation, transmission, storage, analysis, and disposal of computer security log data."}], "curated_topics": ["monitoring"]}
   }
 ]

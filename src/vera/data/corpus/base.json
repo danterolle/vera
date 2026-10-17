@@ -4,35 +4,35 @@
     "title": "T1190 - Exploit Public-Facing Application",
     "url": "https://attack.mitre.org/techniques/T1190/",
     "content": "Adversaries may exploit a weakness in an Internet-facing computer or program to gain initial access to a network. The weakness may be a software bug, temporary glitch, or misconfiguration.",
-    "metadata": {"technique_id": "T1190", "keywords": ["exploit", "public-facing", "web application", "initial access"]}
+    "metadata": {"technique_id": "T1190", "keywords": ["exploit", "public-facing", "web application", "initial access"], "graph_relations": [{"subject": "T1190", "object": "TA0001", "subject_name": "T1190 - Exploit Public-Facing Application", "object_name": "TA0001 - Initial Access", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Exploit Public-Facing Application"], "attack_version": "17.1", "stix_id": "attack-pattern--3f886f2a-874f-4333-b794-aa6075009b1c", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1046 - Network Service Discovery",
     "url": "https://attack.mitre.org/techniques/T1046/",
     "content": "Adversaries may attempt to get a listing of services running on remote hosts and local network infrastructure devices, including by scanning ports.",
-    "metadata": {"technique_id": "T1046", "keywords": ["port scan", "network service", "discovery"]}
+    "metadata": {"technique_id": "T1046", "keywords": ["port scan", "network service", "discovery"], "graph_relations": [{"subject": "T1046", "object": "TA0007", "subject_name": "T1046 - Network Service Discovery", "object_name": "TA0007 - Discovery", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Network Service Discovery"], "attack_version": "17.1", "stix_id": "attack-pattern--e3a12395-188d-4051-9a16-ea8e14d07b88", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1110 - Brute Force",
     "url": "https://attack.mitre.org/techniques/T1110/",
     "content": "Adversaries may use brute-force techniques to gain access to accounts when passwords are unknown or password hashes are obtained.",
-    "metadata": {"technique_id": "T1110", "keywords": ["brute force", "login", "password", "authentication"]}
+    "metadata": {"technique_id": "T1110", "keywords": ["brute force", "login", "password", "authentication"], "graph_relations": [{"subject": "T1110", "object": "TA0006", "subject_name": "T1110 - Brute Force", "object_name": "TA0006 - Credential Access", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Brute Force"], "attack_version": "17.1", "stix_id": "attack-pattern--a93494bb-4b80-4ea1-8695-3236a49916fd", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1059 - Command and Scripting Interpreter",
     "url": "https://attack.mitre.org/techniques/T1059/",
     "content": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries.",
-    "metadata": {"technique_id": "T1059", "keywords": ["command injection", "shell", "script", "execution"]}
+    "metadata": {"technique_id": "T1059", "keywords": ["command injection", "shell", "script", "execution"], "graph_relations": [{"subject": "T1059", "object": "TA0002", "subject_name": "T1059 - Command and Scripting Interpreter", "object_name": "TA0002 - Execution", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Command and Scripting Interpreter"], "attack_version": "17.1", "stix_id": "attack-pattern--7385dfaf-6886-4229-9ecd-6fd678040830", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "mitre_attack",
     "title": "T1071.001 - Web Protocols",
     "url": "https://attack.mitre.org/techniques/T1071/001/",
     "content": "Adversaries may communicate using application-layer web protocols to avoid detection by blending with existing traffic.",
-    "metadata": {"technique_id": "T1071.001", "keywords": ["http", "https", "web protocol", "command and control"]}
+    "metadata": {"technique_id": "T1071.001", "keywords": ["http", "https", "web protocol", "command and control"], "graph_relations": [{"subject": "T1071.001", "object": "TA0011", "subject_name": "T1071.001 - Web Protocols", "object_name": "TA0011 - Command and Control", "predicate": "part_of", "field_path": "STIX.kill_chain_phases"}], "aliases": ["Web Protocols"], "attack_version": "17.1", "stix_id": "attack-pattern--df8b2a25-8bdf-4856-953c-a04372b1c161", "graph_mapping_source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.1.json"}
   },
   {
     "source": "nvd",
