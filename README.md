@@ -150,7 +150,7 @@ with `tshark` installed. Pasting raw log text into `query` does not invoke strea
 `--simulated` labels synthetic data; omit it for real events. `--offline` disables live source
 lookups, while local model calls and graph retrieval remain available where selected.
 
-For option B's exact `vera-qwen3.5-4b` alias, run the four sequential model/graph/scope checks:
+For either server, run the four sequential model/graph/scope checks using `VERA_LLM_MODEL`:
 
 ```bash
 uv run --extra knowledge-graph python scripts/check-local-model.py
@@ -196,5 +196,5 @@ Other provider adapters are Ollama and Gemini; settings are defined in `.env.exa
 and `VERA_EMBEDDING_BACKEND=sentence-transformers` instead of the default hash backend.
 
 See [Knowledge Graph](docs/knowledge-graph.md), [Workflow Explorer](docs/workflow-explorer.md),
-[local model](docs/local-model.md), [architecture](docs/architecture.md), and
+[local models, including Apple silicon](docs/local-model.md), [architecture](docs/architecture.md), and
 [data provenance](docs/data-provenance.md) for details and limits.

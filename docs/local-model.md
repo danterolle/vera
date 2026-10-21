@@ -111,9 +111,8 @@ was used in the answer; availability and model-call counts alone do not.
 Try a known technique/weakness, an unknown CVE, and an unrelated question: missing details
 must remain unavailable and unrelated questions must stay outside VERA's cybersecurity scope.
 
-Run the four local checks sequentially against the running server. These checks expect
-the script profile's exact model alias `vera-qwen3.5-4b`; for other API identifiers, use
-the manual request and inspect the returned metadata as described above:
+Run the four local checks sequentially against the running server. The script verifies
+the model ID configured in `VERA_LLM_MODEL`; it also works with other local model servers:
 
 ```bash
 uv run --extra knowledge-graph python scripts/check-local-model.py
@@ -138,3 +137,58 @@ The complete answer is in the API/CLI result or `/v1/runs/<run_id>`.
 
 Sources: [model quantization](https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF),
 [llama.cpp server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server).
+
+## Apple silicon: LFM2.5-8B-A1B Q6_K and optional DSpark
+
+On an Apple M2 with 16 GiB unified memory, use a recent Metal-enabled `llama-server`.
+This profile is separate from the Linux/NVIDIA Qwen script above. The official
+[`Q6_K` target](https://huggingface.co/LiquidAI/LFM2.5-8B-A1B-GGUF) is 6.96 GB.
+Leave room for context, the server, and macOS; the model's 128K maximum context
+does not imply it fits this machine. Start at 8,192 tokens and one slot.
+
+```bash
+hf download LiquidAI/LFM2.5-8B-A1B-GGUF LFM2.5-8B-A1B-Q6_K.gguf --local-dir .vera/models
+llama-server -m .vera/models/LFM2.5-8B-A1B-Q6_K.gguf \
+  -ngl 99 -fa on --ctx-size 8192 --parallel 1 \
+  --reasoning off --reasoning-budget 0 \
+  --host 127.0.0.1 --port 1234 --alias vera-lfm2.5-8b
+```
+
+To test DSpark, stop the server and restart it with the same settings plus the official
+[`Q8_0` draft](https://huggingface.co/LiquidAI/LFM2.5-8B-A1B-DSpark-GGUF)
+(356 MB). An existing copy in LM Studio's library works as the `-md` path instead.
+
+```bash
+hf download LiquidAI/LFM2.5-8B-A1B-DSpark-GGUF \
+  LFM2.5-8B-A1B-DSpark-Q8_0.gguf --local-dir .vera/models
+llama-server -m .vera/models/LFM2.5-8B-A1B-Q6_K.gguf \
+  -md .vera/models/LFM2.5-8B-A1B-DSpark-Q8_0.gguf \
+  --spec-type draft-dspark --spec-draft-n-max 3 --spec-draft-n-min 0 \
+  -ngl 99 -ngld 99 -fa on --ctx-size 8192 --parallel 1 \
+  --reasoning off --reasoning-budget 0 \
+  --host 127.0.0.1 --port 1234 --alias vera-lfm2.5-8b
+```
+
+DSpark is a server-side draft model, not a VERA setting. On this M2, four warmed
+passes through four VERA checks per setup, alternating Q6/DSpark/DSpark/Q6,
+averaged 36.3 s per pass with Q6 alone versus 35.0 s with three draft tokens
+(3.7% faster). Nine draft tokens took 45.8 s versus 37.0 s without DSpark
+(23.8% slower); five draft tokens were roughly even in a shorter trial.
+All configurations produced identical answers without fallback. Under the
+corrected check, each passed 3/4 cases per pass: all incorrectly rejected the
+unknown CVE as out of scope. The earlier 4/4 report was a false positive:
+the check counted the generic "No evidence was cited" footer as a missing-data
+answer. DSpark at three draft tokens is an optional small speed optimization
+with extra memory and startup cost, not a quality improvement. These short
+requests cannot predict long-output performance. Disabling extended reasoning
+also reduced latency; do not use the Qwen-specific `scripts/start-local-model.sh`.
+
+In `.env`, set `VERA_LLM_PROVIDER=openai`, `VERA_LLM_MODEL=vera-lfm2.5-8b`,
+`VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1`, and
+`VERA_LLM_RESPONSE_FORMAT=json_schema`. Set `VERA_LLM_MAX_OUTPUT_TOKENS=4096`
+to avoid truncation if reasoning is enabled; 2,048 caused a fallback in a local
+check. Use `VERA_KG_ENABLED=true`, `VERA_MEMORY_K=0`, `VERA_REACT_ENABLED=false`,
+and `VERA_LIVE_SOURCES=false` for repeatable initial checks. Build the graph with
+`vera kg-build` if necessary, start VERA, and run `scripts/check-local-model.py`.
+Inspect `metadata.provider_fallback`, `warnings`, `metadata.model`, and graph
+citation IDs. Published decoding speedups are not VERA latency guarantees.
