@@ -5,6 +5,16 @@ LangGraph execution workflow, reading nodes/edges from `/v1/graph`; it does not 
 the domain knowledge stored in Kuzu. Both viewers use custom local HTML/CSS/JavaScript/SVG,
 with no external rendering service.
 
+## Run a question
+
+Enter a cybersecurity question under **Analyze** and click **Run analysis**.
+The page submits the question to `/v1/analyze`, shows the assessment, findings, cited sources,
+model/fallback, and warnings, then selects its saved workflow below. No model is called when
+you click a route preview. Select a recorded execution in the header to reopen its saved
+answer; **Open full saved report** shows the structured API result. Normalized events require
+the API or CLI; PCAP requires the CLI and `tshark`. The model server must be running
+for model-generated answers.
+
 ## Modes and interaction
 
 - **Overview** shows all available nodes and conditional connections.

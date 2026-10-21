@@ -107,12 +107,12 @@ The model server and VERA are separate processes; `vera serve` does not start Qw
 | Address | Purpose |
 | --- | --- |
 | <http://127.0.0.1:8000/docs> | Submit requests with POST `/v1/analyze`, **Try it out**, **Execute** |
-| <http://127.0.0.1:8000/graph> | Workflow Explorer: preview routes or inspect saved executions |
+| <http://127.0.0.1:8000/graph> | Ask a question, preview routes, or inspect saved executions |
 | <http://127.0.0.1:8000/knowledge-graph> | Explore domain entities, relationships, and sources |
 | <http://127.0.0.1:8000/health> | Inspect configured provider, model, and graph enablement |
 
-The root `/` redirects to `/graph`. Clicking a route preview does not execute an analysis.
-No chat page is implemented: answers are returned by the API/CLI and saved in run history.
+The root `/` redirects to `/graph`. The question form runs one analysis and displays its
+answer; route previews do not run anything. Use the API for events or the CLI for PCAP.
 
 ## 5. Ask questions and verify the connection
 

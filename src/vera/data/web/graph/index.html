@@ -7,52 +7,81 @@
   <link rel="stylesheet" href="/assets/graph.css">
   <link rel="stylesheet" href="/assets/graph-ui.css">
   <link rel="stylesheet" href="/assets/graph-svg.css">
+  <link rel="stylesheet" href="/assets/graph-analysis.css">
 </head>
 <body>
   <header class="topbar">
     <div class="brand">
       <div class="brand-mark">V</div>
       <div>
-        <p class="eyebrow">VERA observability</p>
         <h1>Workflow explorer</h1>
       </div>
     </div>
     <div class="header-actions">
       <a href="/knowledge-graph">Knowledge graph</a>
-      <span class="runtime-state"><i></i>Local runtime</span>
+      <a href="/docs">API docs</a>
       <label for="run">Recorded execution
         <select id="run"><option value="">No run selected</option></select>
       </label>
     </div>
   </header>
 
+  <section class="card analysis-card" aria-labelledby="analysis-title">
+    <h2 id="analysis-title">Analyze</h2>
+    <form id="analysis-form">
+      <label for="analysis-query">Question</label>
+      <div class="analysis-input">
+        <input id="analysis-query" name="query" type="text" maxlength="4000" required
+          placeholder="e.g. Explain CWE-89">
+        <button type="submit" id="analysis-submit">Run analysis</button>
+      </div>
+    </form>
+    <p id="analysis-status" class="analysis-status" role="status" aria-live="polite"></p>
+    <div id="analysis-result" class="analysis-result" hidden>
+      <div class="analysis-meta">
+        <span id="analysis-route"></span><span id="analysis-provider"></span>
+        <span id="analysis-latency"></span>
+      </div>
+      <h3>Assessment</h3>
+      <p id="analysis-assessment"></p>
+      <div id="analysis-incident" hidden>
+        <h3>Incident context</h3><p id="analysis-incident-summary"></p>
+        <ul id="analysis-actions"></ul>
+      </div>
+      <div class="analysis-columns">
+        <section aria-label="Findings"><h3>Findings</h3><ol id="analysis-claims"></ol></section>
+        <section aria-label="Cited sources"><h3>Cited sources</h3>
+          <ul id="analysis-sources"></ul></section>
+      </div>
+      <p id="analysis-warning" class="analysis-warning" hidden></p>
+      <a id="analysis-run-link" href="#">Open full saved report →</a>
+    </div>
+  </section>
+
   <section class="metrics" aria-label="Execution metrics">
     <article>
       <span>Route</span><strong id="metric-route">Explore</strong>
-      <small id="metric-route-meta">Five adaptive paths</small>
+      <small id="metric-route-meta"></small>
     </article>
     <article>
       <span>Latency</span><strong id="metric-latency">—</strong>
-      <small id="metric-latency-meta">Select a recorded run</small>
+      <small id="metric-latency-meta"></small>
     </article>
     <article>
       <span>Evidence</span><strong id="metric-evidence">—</strong>
-      <small id="metric-evidence-meta">Loading corpus</small>
+      <small id="metric-evidence-meta"></small>
     </article>
     <article>
-      <span>Completeness</span><strong id="metric-quality">—</strong>
-      <small id="metric-quality-meta">No run selected</small>
+      <span title="Evidence coverage, not a factual accuracy score">Evidence coverage</span>
+      <strong id="metric-quality">—</strong>
+      <small id="metric-quality-meta"></small>
     </article>
   </section>
 
   <main>
     <section class="card graph-card">
       <div class="graph-heading">
-        <div>
-          <p class="eyebrow">Execution map</p>
-          <h2>How VERA assembles an answer</h2>
-          <p class="view-help">Preview a route or select a recorded execution. Previews do not run an analysis.</p>
-        </div>
+        <h2>Execution map</h2>
         <div class="trace-state idle"><i></i><span id="summary">Topology overview</span></div>
       </div>
 
@@ -67,7 +96,7 @@
             <button data-route="STREAM" type="button">Stream</button>
             <button data-route="FULL" type="button">Full</button>
           </nav>
-          <p id="route-description">Inspect the complete topology or preview one adaptive path.</p>
+          <p id="route-description"></p>
         </div>
         <div class="canvas-controls" aria-label="Canvas controls">
           <button id="focus-path" type="button" aria-pressed="false" disabled>Focus path</button>
@@ -89,7 +118,6 @@
           <p>Reading the compiled LangGraph topology.</p>
           <button id="retry-load" type="button" hidden>Try again</button>
         </div>
-        <div class="canvas-hint">Click a context card to preview its route · Drag to pan · Scroll to zoom</div>
       </div>
     </section>
 
@@ -102,9 +130,7 @@
             <h2 id="node-title">Select a node</h2>
           </div>
         </div>
-        <p id="node-description" class="description">
-          Select a card in the graph to inspect its role and state contract.
-        </p>
+        <p id="node-description" class="description"></p>
         <div class="contracts">
           <article>
             <span>Receives</span>

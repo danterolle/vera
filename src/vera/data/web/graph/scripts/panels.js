@@ -1,7 +1,7 @@
 import { iconFor } from "/assets/graph-renderer.js";
 
 const ROUTE_COPY = {
-  "": "Inspect the complete topology or preview one adaptive path.",
+  "": "",
   CAG_ONLY: "Stable curated knowledge only. No retrieval and no live API calls.",
   CAG_RAG: "Curated knowledge plus hybrid retrieval from the local corpus.",
   CAG_RAG_TOOL: "Local context enriched with exact authoritative vulnerability APIs.",
@@ -51,8 +51,7 @@ export class GraphPanels {
     document.querySelector("#node-icon").textContent = "—";
     document.querySelector("#node-category").textContent = "Node inspector";
     document.querySelector("#node-title").textContent = "Select a node";
-    document.querySelector("#node-description").textContent =
-      "Select a card in the graph to inspect its role and state contract.";
+    document.querySelector("#node-description").textContent = "";
     document.querySelector("#node-input").textContent = "—";
     document.querySelector("#node-output").textContent = "—";
     document.querySelector("#node-id").textContent = "—";
@@ -70,12 +69,12 @@ export class GraphPanels {
     document.querySelector("#metric-route").textContent = routeLabel(route);
     document.querySelector("#metric-route-meta").textContent =
       mode === "run" ? "Recorded execution" :
-        mode === "preview" ? "Route preview" : "Five adaptive paths";
+        mode === "preview" ? "Route preview" : "";
     document.querySelector("#metric-latency").textContent =
       execution ? `${execution.latency_ms.toFixed(1)} ms` : "—";
     document.querySelector("#metric-latency-meta").textContent = execution
       ? `${execution.model_calls} model · ${execution.tool_calls} tool calls`
-      : "Select a recorded run";
+      : "";
     document.querySelector("#metric-evidence").textContent = execution
       ? String(execution.evidence_documents)
       : new Intl.NumberFormat().format(corpus.total_documents);
@@ -84,7 +83,7 @@ export class GraphPanels {
     document.querySelector("#metric-quality").textContent =
       execution ? `${Math.round(execution.completeness * 100)}%` : "—";
     document.querySelector("#metric-quality-meta").textContent = execution
-      ? `${execution.warning_count} warnings` : "No run selected";
+      ? `${execution.warning_count} warnings` : "";
     document.querySelector("#summary").textContent =
       mode === "run" ? `${active} nodes executed` :
         mode === "preview" ? `${active} nodes in preview` : "Topology overview";

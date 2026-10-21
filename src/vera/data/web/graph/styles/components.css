@@ -7,7 +7,6 @@
   border-bottom: 1px solid var(--border);
   background: #090e16;
 }
-.view-help { margin: 7px 0 0; color: var(--muted); font-size: .7rem; }
 .route-section { min-width: 0; }
 .control-label {
   display: block;
@@ -46,6 +45,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+#route-description:empty { display: none; }
 .canvas-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 7px; }
 .canvas-controls button {
   min-height: 31px;
@@ -76,19 +76,6 @@
   font-family: ui-monospace, monospace;
   font-size: .62rem;
   text-align: center;
-}
-.canvas-hint {
-  position: absolute;
-  right: 12px;
-  bottom: 10px;
-  padding: 6px 9px;
-  border: 1px solid #1e2a3b;
-  border-radius: 7px;
-  background: #070c13d9;
-  color: #617087;
-  font-size: .59rem;
-  pointer-events: none;
-  backdrop-filter: blur(8px);
 }
 .canvas-state {
   position: absolute;
@@ -139,6 +126,7 @@
   text-transform: uppercase;
 }
 .description { min-height: 60px; margin-bottom: 16px; color: #9eabba; font-size: .8rem; line-height: 1.55; }
+.description:empty { display: none; }
 .contracts { display: grid; gap: 8px; }
 .contracts article {
   padding: 10px 11px;
@@ -182,7 +170,6 @@ pre {
   .canvas-controls { justify-content: space-between; }
 }
 @media (max-width: 520px) {
-  .canvas-hint { display: none; }
   #route-description { white-space: normal; }
 }
 @media (prefers-reduced-motion: reduce) {

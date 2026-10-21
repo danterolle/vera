@@ -44,7 +44,15 @@ def test_graph_browser_and_api(settings) -> None:
             assert "default-src 'self'" in page.headers["content-security-policy"]
             assert "Workflow explorer" in page.text
             assert "Preview a route" in page.text
+            assert 'id="analysis-form"' in page.text
+            assert '<h2 id="analysis-title">Analyze</h2>' in page.text
+            assert "Start here" not in page.text
+            assert "Route previews below do not" not in page.text
+            assert 'id="analysis-result"' in page.text
+            assert 'maxlength="4000"' in page.text
             assert (await client.get("/assets/graph.js")).status_code == 200
+            assert (await client.get("/assets/graph-analysis.js")).status_code == 200
+            assert (await client.get("/assets/graph-analysis.css")).status_code == 200
             assert (await client.get("/assets/graph-ui.css")).status_code == 200
             assert (await client.get("/assets/graph-svg.css")).status_code == 200
             assert (await client.get("/assets/graph-panels.js")).status_code == 200

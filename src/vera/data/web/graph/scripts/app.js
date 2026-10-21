@@ -1,3 +1,4 @@
+import { initializeAnalysis } from "/assets/graph-analysis.js";
 import { GraphPanels, routeLabel } from "/assets/graph-panels.js";
 import { renderGraph } from "/assets/graph-renderer.js";
 import { GraphViewport } from "/assets/graph-viewport.js";
@@ -16,6 +17,8 @@ const ROUTE_NODES = {
 let topology;
 let corpus;
 let rendered;
+let loadVersion = 0;
+const analysis = initializeAnalysis(runId => load(runId));
 
 function pathPreview(data, route) {
   if (!route) {
@@ -78,24 +81,34 @@ function toggleFocus() {
 }
 
 async function load(runId = "") {
+  const version = ++loadVersion;
   showLoading();
   const query = runId ? `?run_id=${encodeURIComponent(runId)}` : "";
-  const [graphResponse, corpusResponse] = await Promise.all([
-    fetch(`/v1/graph${query}`), fetch("/v1/corpus")
-  ]);
-  if (!graphResponse.ok || !corpusResponse.ok) throw new Error("Runtime data unavailable");
-  [topology, corpus] = await Promise.all([graphResponse.json(), corpusResponse.json()]);
-  fillRuns(topology.recent_runs, topology.selected_run_id);
-  document.querySelector("#mermaid").textContent = topology.mermaid;
-  draw(topology, runId ? "run" : "overview");
-  hideLoading();
+  try {
+    const [graphResponse, corpusResponse] = await Promise.all([
+      fetch(`/v1/graph${query}`), fetch("/v1/corpus")
+    ]);
+    if (!graphResponse.ok || !corpusResponse.ok) throw new Error("Runtime data unavailable");
+    const [nextTopology, nextCorpus] = await Promise.all([
+      graphResponse.json(), corpusResponse.json()
+    ]);
+    if (version !== loadVersion) return;
+    topology = nextTopology;
+    corpus = nextCorpus;
+    fillRuns(topology.recent_runs, topology.selected_run_id);
+    document.querySelector("#mermaid").textContent = topology.mermaid;
+    draw(topology, runId ? "run" : "overview");
+    hideLoading();
+  } catch (error) {
+    if (version === loadVersion) throw error;
+  }
 }
 
 function fillRuns(runs, selected) {
   runSelect.replaceChildren(new Option("No run selected", ""));
   runs.forEach(run => {
     const stamp = new Date(run.created_at).toLocaleString();
-    runSelect.add(new Option(`${routeLabel(run.route)} · ${stamp}`, run.run_id));
+    runSelect.add(new Option(`${routeLabel(run.route)} · ${stamp} · ${run.run_id.slice(0, 8)}`, run.run_id));
   });
   runSelect.value = selected || "";
 }
@@ -122,11 +135,19 @@ function showError(error) {
 
 function selectRoute(route) {
   if (!topology) return;
+  loadVersion += 1;
+  hideLoading();
   runSelect.value = "";
+  analysis.clear();
   draw(pathPreview(topology, route), route ? "preview" : "overview");
 }
 routeButtons.forEach(button => button.addEventListener("click", () => selectRoute(button.dataset.route)));
-runSelect.addEventListener("change", () => load(runSelect.value).catch(showError));
+runSelect.addEventListener("change", () => {
+  const runId = runSelect.value;
+  if (runId) analysis.showRun(runId);
+  else analysis.clear();
+  load(runId).catch(showError);
+});
 focusButton.addEventListener("click", toggleFocus);
 document.querySelector("#zoom-in").addEventListener("click", () => viewport.zoom(1.2));
 document.querySelector("#zoom-out").addEventListener("click", () => viewport.zoom(0.84));
