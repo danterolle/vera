@@ -26,10 +26,15 @@ Requests, memory, downloaded corpus updates, and generated database files are no
 
 ## 2. Start Qwen 3.5
 
-The suggested local profile is **Qwen3.5-4B, GGUF Q4_K_M** from
-[lmstudio-community/Qwen3.5-4B-GGUF](https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF).
+The suggested local profile on the tested NVIDIA machine is **Qwen3.5-4B, GGUF Q4_K_M**
+from [lmstudio-community/Qwen3.5-4B-GGUF](https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF).
 This is the profile tested with VERA on an NVIDIA GPU with about 6 GB VRAM. Prefer this
 small profile to a 27B model on that hardware; performance depends on the machine.
+On Apple silicon, the selected profile is **Qwen3.5-4B MTP Q6_K** from
+[unsloth/Qwen3.5-4B-MTP-GGUF](https://huggingface.co/unsloth/Qwen3.5-4B-MTP-GGUF).
+It uses the MTP draft head in `llama-server` and was about 70% faster at decoding than
+the same Q6_K target without MTP, with no quality change in the local checks. See
+[Apple silicon: Qwen3.5-4B MTP Q6_K](docs/local-model.md#apple-silicon-qwen35-4b-mtp-q6_k).
 
 Choose **one** model-server option. Both use port **1234**; VERA uses port **8000**.
 

@@ -141,59 +141,71 @@ The complete answer is in the API/CLI result or `/v1/runs/<run_id>`.
 Sources: [model quantization](https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF),
 [llama.cpp server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server).
 
-## Apple silicon: LFM2.5-8B-A1B Q6_K and optional DSpark
+## Apple silicon: Qwen3.5-4B MTP Q6_K
 
-On an Apple M2 with 16 GiB unified memory, use a recent Metal-enabled `llama-server`.
-This profile is separate from the Linux/NVIDIA Qwen script above. The official
-[`Q6_K` target](https://huggingface.co/LiquidAI/LFM2.5-8B-A1B-GGUF) is 6.96 GB.
-Leave room for context, the server, and macOS; the model's 128K maximum context
-does not imply it fits this machine. Start at 8,192 tokens and one slot.
+On an Apple M2 with 16 GiB unified memory, use a recent Metal-enabled `llama-server`
+that supports MTP. The selected profile is **Qwen3.5-4B MTP, GGUF Q6_K** from
+[`unsloth/Qwen3.5-4B-MTP-GGUF`](https://huggingface.co/unsloth/Qwen3.5-4B-MTP-GGUF).
+The file is 3.4 GB and includes the MTP head, so no separate `-md` draft model is needed.
+Start at 8,192 context tokens and one slot; larger contexts leave less room for macOS.
 
 ```bash
-hf download LiquidAI/LFM2.5-8B-A1B-GGUF LFM2.5-8B-A1B-Q6_K.gguf --local-dir .vera/models
-llama-server -m .vera/models/LFM2.5-8B-A1B-Q6_K.gguf \
+hf download unsloth/Qwen3.5-4B-MTP-GGUF Qwen3.5-4B-Q6_K.gguf \
+  --local-dir .vera/models/qwen3.5-4b-mtp
+llama-server -m .vera/models/qwen3.5-4b-mtp/Qwen3.5-4B-Q6_K.gguf \
+  --spec-type draft-mtp --spec-draft-n-max 4 \
   -ngl 99 -fa on --ctx-size 8192 --parallel 1 \
   --reasoning off --reasoning-budget 0 \
-  --host 127.0.0.1 --port 1234 --alias vera-lfm2.5-8b
+  --host 127.0.0.1 --port 1234 --alias vera-qwen3.5-4b-mtp
 ```
 
-To test DSpark, stop the server and restart it with the same settings plus the official
-[`Q8_0` draft](https://huggingface.co/LiquidAI/LFM2.5-8B-A1B-DSpark-GGUF)
-(356 MB). An existing copy in LM Studio's library works as the `-md` path instead.
+MTP is a server-side decoding optimization, not a VERA setting. The log should contain
+`creating MTP draft context`; if the flag is unknown, update `llama-server`.
+`--spec-draft-n-max 4` was fastest on this M2. In 128-token completions with the same
+prompt, the Q6_K target alone produced 21.3 tok/s, while MTP at draft limits 2/3/4/6/8
+produced 32.2/34.1/36.2/33.4/25.6 tok/s. At four, 93 of 135 draft tokens were accepted
+(69%), decoding was 70% faster, and warmed VERA total latency fell 42%, from 44.2 s to
+25.8 s:
 
-```bash
-hf download LiquidAI/LFM2.5-8B-A1B-DSpark-GGUF \
-  LFM2.5-8B-A1B-DSpark-Q8_0.gguf --local-dir .vera/models
-llama-server -m .vera/models/LFM2.5-8B-A1B-Q6_K.gguf \
-  -md .vera/models/LFM2.5-8B-A1B-DSpark-Q8_0.gguf \
-  --spec-type draft-dspark --spec-draft-n-max 3 --spec-draft-n-min 0 \
-  -ngl 99 -ngld 99 -fa on --ctx-size 8192 --parallel 1 \
-  --reasoning off --reasoning-budget 0 \
-  --host 127.0.0.1 --port 1234 --alias vera-lfm2.5-8b
+| Check | Q6_K alone | MTP, n-max 4 |
+| --- | ---: | ---: |
+| PowerShell | 13.6 s | 7.4 s |
+| CWE-89 | 12.7 s | 6.9 s |
+| Missing CVE | 9.7 s | 5.8 s |
+| Out of scope | 8.2 s | 5.6 s |
+| Total | 44.2 s | 25.8 s |
+
+Both setups passed 3/4 in two consecutive runs, with the same cases and graph citations.
+The fourth check remains an unpublished HTTP 202 review: the unknown CVE has no evidence,
+so autonomous publication cannot pass while the missing-data review rule exists; 3/4 is
+the maximum. MTP adds a draft head rather than a separate model; the checks showed no
+quality loss.
+
+In `.env`, set:
+
+```dotenv
+VERA_LLM_PROVIDER=openai
+VERA_LLM_MODEL=vera-qwen3.5-4b-mtp
+VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
+VERA_LLM_RESPONSE_FORMAT=json_schema
+VERA_LLM_TIMEOUT_SECONDS=300
+VERA_LLM_MAX_OUTPUT_TOKENS=4096
+VERA_KG_ENABLED=true
+VERA_MEMORY_K=0
+VERA_REACT_ENABLED=false
+VERA_LIVE_SOURCES=false
 ```
 
-DSpark is a server-side draft model, not a VERA setting. On this M2, four warmed
-passes through four VERA checks per setup, alternating Q6/DSpark/DSpark/Q6,
-averaged 36.3 s per pass with Q6 alone versus 35.0 s with three draft tokens
-(3.7% faster). Nine draft tokens took 45.8 s versus 37.0 s without DSpark
-(23.8% slower); five draft tokens were roughly even in a shorter trial.
-Before human review was added, all setups produced identical answers without
-fallback and passed 3/4 under the corrected check: each falsely rejected the
-unknown CVE as out of scope. It now returns HTTP 202 for review, remains
-unpublished, and still fails the autonomous check. The earlier 4/4 was a false positive:
-the check counted the generic "No evidence was cited" footer as a missing-data
-answer. DSpark at three draft tokens is an optional small speed optimization
-with extra memory and startup cost, not a quality improvement. These short
-requests cannot predict long-output performance. Disabling extended reasoning
-also reduced latency; do not use the Qwen-specific `scripts/start-local-model.sh`.
+Use the alias from `/v1/models`; the server and VERA are separate processes. Build the graph
+with `vera kg-build` if necessary, start VERA, and run `scripts/check-local-model.py`.
+Disabling extended reasoning reduced latency in these tests. Do not use the CUDA-specific
+`scripts/start-local-model.sh` for this profile.
 
-In `.env`, set `VERA_LLM_PROVIDER=openai`, `VERA_LLM_MODEL=vera-lfm2.5-8b`,
-`VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1`, and
-`VERA_LLM_RESPONSE_FORMAT=json_schema`. Set `VERA_LLM_MAX_OUTPUT_TOKENS=4096`
-to avoid truncation if reasoning is enabled; 2,048 caused a fallback in a local
-check. Use `VERA_KG_ENABLED=true`, `VERA_MEMORY_K=0`, `VERA_REACT_ENABLED=false`,
-and `VERA_LIVE_SOURCES=false` for repeatable initial checks. Build the graph with
-`vera kg-build` if necessary, start VERA, and run `scripts/check-local-model.py`.
-For completed HTTP 200 reports, inspect `metadata.provider_fallback`, `warnings`,
-`metadata.model`, and graph citation IDs. Pending HTTP 202 reviews have no result metadata.
-Published decoding speedups are not VERA latency guarantees.
+Earlier Apple silicon candidates were removed. LFM2.5-8B-A1B Q6_K passed only 2/4, and its
+official DSpark draft at three tokens improved warmed VERA checks by only 3.7%; nine draft
+tokens were 23.8% slower. Qwen3.5-9B passed 3/4 but was substantially slower. There is no
+official DSpark GGUF for Qwen3.5-4B; MTP is its supported speculative path. The only model
+kept under `.vera/models` is `.vera/models/qwen3.5-4b-mtp/Qwen3.5-4B-Q6_K.gguf`.
+
+Sources: [Qwen3.5-4B MTP GGUF](https://huggingface.co/unsloth/Qwen3.5-4B-MTP-GGUF),
+[llama.cpp server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server).
