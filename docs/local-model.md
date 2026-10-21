@@ -118,7 +118,10 @@ the model ID configured in `VERA_LLM_MODEL`; it also works with other local mode
 uv run --extra knowledge-graph python scripts/check-local-model.py
 ```
 
-The report is `.vera/local-model-checks.json`; each result is also saved in normal run history.
+The report is `.vera/local-model-checks.json`. Completed HTTP 200 results enter run history;
+HTTP 202 responses are unpublished reviews. The checker reports the pending `run_id`,
+`status`, and `reasons`, counts it as a failed autonomous answer, and exits nonzero.
+It never decides a review; use `/graph` or [Human review](human-review.md).
 These checks exercise selected cases, not a general guarantee of model accuracy.
 The generation context includes source titles. Verified claim text repeats its source quote
 to avoid introducing identifiers absent from that quote. When the model declares a question
@@ -174,9 +177,10 @@ passes through four VERA checks per setup, alternating Q6/DSpark/DSpark/Q6,
 averaged 36.3 s per pass with Q6 alone versus 35.0 s with three draft tokens
 (3.7% faster). Nine draft tokens took 45.8 s versus 37.0 s without DSpark
 (23.8% slower); five draft tokens were roughly even in a shorter trial.
-All configurations produced identical answers without fallback. Under the
-corrected check, each passed 3/4 cases per pass: all incorrectly rejected the
-unknown CVE as out of scope. The earlier 4/4 report was a false positive:
+Before human review was added, all setups produced identical answers without
+fallback and passed 3/4 under the corrected check: each falsely rejected the
+unknown CVE as out of scope. It now returns HTTP 202 for review, remains
+unpublished, and still fails the autonomous check. The earlier 4/4 was a false positive:
 the check counted the generic "No evidence was cited" footer as a missing-data
 answer. DSpark at three draft tokens is an optional small speed optimization
 with extra memory and startup cost, not a quality improvement. These short
@@ -190,5 +194,6 @@ to avoid truncation if reasoning is enabled; 2,048 caused a fallback in a local
 check. Use `VERA_KG_ENABLED=true`, `VERA_MEMORY_K=0`, `VERA_REACT_ENABLED=false`,
 and `VERA_LIVE_SOURCES=false` for repeatable initial checks. Build the graph with
 `vera kg-build` if necessary, start VERA, and run `scripts/check-local-model.py`.
-Inspect `metadata.provider_fallback`, `warnings`, `metadata.model`, and graph
-citation IDs. Published decoding speedups are not VERA latency guarantees.
+For completed HTTP 200 reports, inspect `metadata.provider_fallback`, `warnings`,
+`metadata.model`, and graph citation IDs. Pending HTTP 202 reviews have no result metadata.
+Published decoding speedups are not VERA latency guarantees.

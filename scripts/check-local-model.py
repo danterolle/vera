@@ -18,6 +18,8 @@ CASES = [
 
 
 def check(result: dict, expectation: str, expected_model: str) -> bool:
+    if "status" in result:
+        return False
     metadata = result["metadata"]
     if metadata.get("provider_fallback") or metadata.get("model") != expected_model:
         return False
@@ -47,6 +49,39 @@ def check(result: dict, expectation: str, expected_model: str) -> bool:
     )
 
 
+def summarize(result: dict, http_status: int, expectation: str, model: str) -> dict:
+    if http_status == 202:
+        if (
+            result.get("status") != "pending"
+            or not isinstance(result.get("run_id"), str)
+            or not isinstance(result.get("reasons"), list)
+        ):
+            raise ValueError("HTTP 202 must contain a pending review with a run ID and reasons")
+        return {
+            "passed": False,
+            "http_status": http_status,
+            "status": "pending",
+            "human_review_required": True,
+            "run_id": result["run_id"],
+            "reasons": result["reasons"],
+            "kg_citations": None,
+            "fallback": None,
+        }
+    if http_status != 200 or "status" in result:
+        raise ValueError(f"Unexpected analysis response for HTTP {http_status}")
+    metadata = result["metadata"]
+    return {
+        "passed": check(result, expectation, model),
+        "http_status": http_status,
+        "status": "completed",
+        "human_review_required": False,
+        "run_id": result["run_id"],
+        "reasons": [],
+        "kg_citations": metadata["knowledge_graph"].get("cited_evidence_ids"),
+        "fallback": metadata.get("provider_fallback"),
+    }
+
+
 def main() -> None:
     settings = Settings()
     if settings.llm_provider == "deterministic":
@@ -62,23 +97,33 @@ def main() -> None:
             )
             response.raise_for_status()
             result = response.json()
-            passed = check(result, expectation, settings.llm_model)
+            summary = summarize(result, response.status_code, expectation, settings.llm_model)
             report = {
-                "case": name, "passed": passed, "seconds": round(time.monotonic() - started, 2),
+                "case": name,
+                "seconds": round(time.monotonic() - started, 2),
                 "result": result,
+                **summary,
             }
             reports.append(report)
-            print(json.dumps({
-                "case": name, "passed": passed, "seconds": report["seconds"],
-                "run_id": result["run_id"],
-                "kg_citations": result["metadata"]["knowledge_graph"].get("cited_evidence_ids"),
-                "fallback": result["metadata"].get("provider_fallback"),
-            }), flush=True)
+            display = {key: value for key, value in report.items() if key != "result"}
+            print(json.dumps(display), flush=True)
     output = Path(".vera/local-model-checks.json")
     output.parent.mkdir(exist_ok=True)
     output.write_text(json.dumps(reports, indent=2, ensure_ascii=False) + "\n")
+    print(json.dumps({
+        "passed": sum(item["passed"] for item in reports),
+        "total": len(reports),
+        "pending_reviews": sum(item["human_review_required"] for item in reports),
+    }), flush=True)
     if not all(item["passed"] for item in reports):
-        raise SystemExit("Some local-model checks failed; inspect .vera/local-model-checks.json")
+        pending = [item["run_id"] for item in reports if item["human_review_required"]]
+        detail = (
+            f" Human review required for {', '.join(pending)}; open /graph."
+            if pending else ""
+        )
+        raise SystemExit(
+            f"Some local-model checks failed; inspect .vera/local-model-checks.json.{detail}"
+        )
 
 
 if __name__ == "__main__":
