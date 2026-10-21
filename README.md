@@ -172,17 +172,10 @@ uv run --extra knowledge-graph python scripts/check-local-model.py
 
 ## Routes and evidence
 
-| Route | Context selected automatically by the resource plan |
-| --- | --- |
-| `CAG_ONLY` | Stable curated knowledge |
-| `CAG_RAG` | Curated knowledge, local corpus, and optional Kuzu retrieval |
-| `CAG_RAG_TOOL` | Local retrieval and exact authoritative CVE lookups |
-| `STREAM` | Normalized events without alerts or requested retrieval |
-| `FULL` | Events combined with retrieval and, when needed, CVE lookups |
-
-Rules handle clear requests; the configured LLM resolves ambiguous ones. Generation has at
-most two attempts by default. Claims distinguish `supported_fact` (quoted available evidence),
-`system_inference`, `unavailable`, and `simulated`; memory is not authoritative factual support.
+The resource plan selects the route from the request and the available evidence; the branch
+table is in [Workflow Explorer](docs/workflow-explorer.md#reading-the-workflow). Claims
+distinguish `supported_fact` (quoted available evidence), `system_inference`, `unavailable`,
+and `simulated`; memory is not authoritative factual support.
 
 ## Development and documentation
 
@@ -201,5 +194,5 @@ Other provider adapters are Ollama and Gemini; settings are defined in `.env.exa
 and `VERA_EMBEDDING_BACKEND=sentence-transformers` instead of the default hash backend.
 
 See [Knowledge Graph](docs/knowledge-graph.md), [Workflow Explorer](docs/workflow-explorer.md),
-[local models, including Apple silicon](docs/local-model.md), [architecture](docs/architecture.md), and
+[local models](docs/local-model.md), [architecture](docs/architecture.md), and
 [data provenance](docs/data-provenance.md) for details and limits.

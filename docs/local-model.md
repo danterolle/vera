@@ -1,4 +1,11 @@
-# Local Qwen3.5 with NVIDIA
+# Local model servers
+
+VERA reaches any OpenAI-compatible local server on port 1234. Two profiles are tested:
+**Qwen3.5-4B, GGUF Q4_K_M** on NVIDIA through LM Studio's CUDA runtime, and
+**Qwen3.5-4B MTP, GGUF Q6_K** on Apple silicon through `llama-server` with the MTP draft
+head. Model files are not included in Git.
+
+## Model files and Bionic
 
 The interactive profile uses **Qwen3.5-4B, GGUF Q4_K_M**, downloaded from
 `lmstudio-community/Qwen3.5-4B-GGUF` into `.vera/models`. Its adjacent metadata JSON
@@ -6,11 +13,8 @@ records the pinned revision, file size, and verified SHA-256.
 The NVIDIA GPU on this PC has about 6 GB VRAM; the earlier Qwen3.8-27B used CPU/RAM
 offload and substantial swap. The smaller model is intended to fit entirely on the GPU.
 
-## Model files and Bionic
-
-Model files are not included in Git. On another computer, download the GGUF from the
-repository above, or obtain it through Bionic/LM Studio's model search. The standard
-library location is:
+On another computer, download the GGUF from the repository above, or obtain it through
+Bionic/LM Studio's model search. The standard library location is:
 
 ```text
 ~/.lmstudio/models/lmstudio-community/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf
@@ -32,7 +36,7 @@ For serving directly through the Bionic GUI instead, follow
 [README option A](../README.md#option-a-bionic--lm-studio). Use the actual model ID returned
 by `/v1/models` in `.env`; `vera-qwen3.5-4b` is the alias assigned by the script.
 
-## Start and stop
+## NVIDIA profile: start and stop
 
 From the project directory, in one terminal:
 
@@ -68,6 +72,13 @@ Stop VERA with Ctrl+C in its terminal. The model is not started automatically by
 
 ## Local configuration
 
+`openai` names the protocol adapter; the endpoint is on this PC. The profile uses
+JSON Schema for routing, answer generation, and ReAct decisions. Model timeout is
+independent of the short HTTP timeout used for vulnerability sources. Output token limits
+produce an explicit failure rather than silently accepting truncated JSON.
+Live sources are disabled for repeatable local checks; enable them separately for current
+CVE lookups. Restart VERA after changing `.env`.
+
 ```dotenv
 VERA_LLM_PROVIDER=openai
 VERA_LLM_MODEL=vera-qwen3.5-4b
@@ -83,12 +94,8 @@ VERA_REACT_ENABLED=false
 VERA_LIVE_SOURCES=false
 ```
 
-`openai` names the protocol adapter; the endpoint is on this PC. The profile uses
-JSON Schema for routing, answer generation, and ReAct decisions. Model timeout is
-independent of the short HTTP timeout used for vulnerability sources. Output token limits
-produce an explicit failure rather than silently accepting truncated JSON.
-Live sources are disabled for repeatable local checks; enable them separately for current
-CVE lookups. Restart VERA after changing `.env`.
+The Apple silicon profile uses the same values with `vera-qwen3.5-4b-mtp` as the model ID,
+`VERA_LLM_TIMEOUT_SECONDS=300`, `VERA_LLM_MAX_OUTPUT_TOKENS=4096`, and `VERA_MEMORY_K=0`.
 
 ## Manual verification
 
@@ -138,9 +145,6 @@ In `/graph`, refresh and select the saved execution to inspect its route and met
 The complete answer is in the API/CLI result or `/v1/runs/<run_id>`.
 `/knowledge-graph` explores domain knowledge independently of model inference.
 
-Sources: [model quantization](https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF),
-[llama.cpp server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server).
-
 ## Apple silicon: Qwen3.5-4B MTP Q6_K
 
 On an Apple M2 with 16 GiB unified memory, use a recent Metal-enabled `llama-server`
@@ -179,27 +183,8 @@ Both setups passed 3/4 in two consecutive runs, with the same cases and graph ci
 The fourth check remains an unpublished HTTP 202 review: the unknown CVE has no evidence,
 so autonomous publication cannot pass while the missing-data review rule exists; 3/4 is
 the maximum. MTP adds a draft head rather than a separate model; the checks showed no
-quality loss.
-
-In `.env`, set:
-
-```dotenv
-VERA_LLM_PROVIDER=openai
-VERA_LLM_MODEL=vera-qwen3.5-4b-mtp
-VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
-VERA_LLM_RESPONSE_FORMAT=json_schema
-VERA_LLM_TIMEOUT_SECONDS=300
-VERA_LLM_MAX_OUTPUT_TOKENS=4096
-VERA_KG_ENABLED=true
-VERA_MEMORY_K=0
-VERA_REACT_ENABLED=false
-VERA_LIVE_SOURCES=false
-```
-
-Use the alias from `/v1/models`; the server and VERA are separate processes. Build the graph
-with `vera kg-build` if necessary, start VERA, and run `scripts/check-local-model.py`.
-Disabling extended reasoning reduced latency in these tests. Do not use the CUDA-specific
-`scripts/start-local-model.sh` for this profile.
+quality loss. Disabling extended reasoning reduced latency in these tests. Do not use the
+CUDA-specific `scripts/start-local-model.sh` for this profile.
 
 Earlier Apple silicon candidates were removed. LFM2.5-8B-A1B Q6_K passed only 2/4, and its
 official DSpark draft at three tokens improved warmed VERA checks by only 3.7%; nine draft
@@ -207,5 +192,6 @@ tokens were 23.8% slower. Qwen3.5-9B passed 3/4 but was substantially slower. Th
 official DSpark GGUF for Qwen3.5-4B; MTP is its supported speculative path. The only model
 kept under `.vera/models` is `.vera/models/qwen3.5-4b-mtp/Qwen3.5-4B-Q6_K.gguf`.
 
-Sources: [Qwen3.5-4B MTP GGUF](https://huggingface.co/unsloth/Qwen3.5-4B-MTP-GGUF),
+Sources: [model quantization](https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF),
+[Qwen3.5-4B MTP GGUF](https://huggingface.co/unsloth/Qwen3.5-4B-MTP-GGUF),
 [llama.cpp server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server).
