@@ -47,8 +47,26 @@ approval returns `200` with the saved `AnalysisResult`, and rejection returns `2
 
 Review decisions are local-only, not authenticated user identities: VERA refuses a
 non-loopback `vera serve` bind and rejects non-loopback clients/hosts or mismatched browser
-Origin. Do not expose the server through a proxy or port forward. The CLI returns exit code
-`2` with the pending review ID rather than claiming it produced a final answer.
+Origin. Do not expose the server through a proxy or port forward.
+
+The CLI provides the same local review gate without a running server. `vera analyze` offers
+an inline approve/reject/revise prompt when standard input is a terminal; `--no-interactive`
+or `--json` leaves the draft pending and exits with code `2`. Inspect or decide later:
+
+```bash
+vera reviews
+vera review <run_id> --json
+vera review <run_id> --interactive
+vera review <run_id> --approve
+vera review <run_id> --reject "Not reliable"
+vera review <run_id> --revise "Use the cited evidence"
+vera review <run_id> --retry
+```
+
+Decisions operate directly on the local SQLite database. A revision still requires an
+external model provider; the deterministic provider permits approval and rejection only.
+`--retry` repeats an interrupted decision after an error. The CLI never presents a pending
+draft as a saved report.
 
 ## Persistence and recovery
 
