@@ -19,6 +19,7 @@ class GraphState(TypedDict, total=False):
     request: AnalysisRequest
     run_id: str
     started_at: float
+    active_ms: float
     route: Route
     route_reason: str
     resource_plan: ResourcePlan
@@ -44,3 +45,9 @@ class GraphState(TypedDict, total=False):
     trace: list[str]
     warnings: list[str]
     knowledge_graph: dict
+    review_required: bool
+    review_reasons: list[str]
+    review_action: str
+    review_feedback: str
+    revision_count: int
+    revision_error: str | None

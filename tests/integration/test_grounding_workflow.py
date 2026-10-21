@@ -64,7 +64,9 @@ class SimulatedFactProvider:
 
 
 def test_ungrounded_provider_claim_reduces_quality_metrics(settings) -> None:
-    result = VeraOrchestrator(settings, provider=UngroundedProvider()).analyze(
+    result = VeraOrchestrator(
+        settings, provider=UngroundedProvider(), review_enabled=False
+    ).analyze(
         AnalysisRequest(query="What is defense in depth?")
     )
     assert result.claims[0].status == ClaimStatus.SYSTEM_INFERENCE
@@ -77,7 +79,9 @@ def test_ungrounded_provider_claim_reduces_quality_metrics(settings) -> None:
 
 def test_simulated_fact_downgrade_is_counted_as_grounding_failure(settings) -> None:
     events = load_events(Path(str(resource("samples/benign-web.jsonl"))))
-    result = VeraOrchestrator(settings, provider=SimulatedFactProvider()).analyze(
+    result = VeraOrchestrator(
+        settings, provider=SimulatedFactProvider(), review_enabled=False
+    ).analyze(
         AnalysisRequest(query="Analyze traffic.", events=events, simulated=True)
     )
     assert result.claims[0].status == ClaimStatus.SIMULATED

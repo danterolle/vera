@@ -1,11 +1,14 @@
 from dataclasses import replace
+from uuid import uuid4
 
 from vera.config import Settings, get_settings
 from vera.domain.graph import GraphTopology
 from vera.domain.reports import AnalysisResult
 from vera.domain.requests import AnalysisRequest
-from vera.errors import ConfigurationError
+from vera.domain.review import ReviewDecision, ReviewRecord
+from vera.errors import ConfigurationError, ReviewUnavailable
 from vera.knowledge_graph.store import KnowledgeGraphStore
+from vera.memory.reviews import ReviewStore
 from vera.memory.store import MemoryStore
 from vera.providers.base import ModelProvider
 from vera.providers.factory import build_provider
@@ -16,7 +19,10 @@ from vera.retrieval.knowledge import CuratedKnowledge
 from vera.retrieval.store import CorpusStore
 from vera.routing.router import Router
 from vera.sources.hub import SourceHub
+from vera.workflow.checkpoints import sqlite_checkpointer
 from vera.workflow.graph import build_graph
+from vera.workflow.review_recovery import recover_reviews
+from vera.workflow.review_service import ReviewService
 from vera.workflow.runtime import Runtime
 from vera.workflow.topology import build_topology
 
@@ -29,6 +35,7 @@ class VeraOrchestrator:
         provider: ModelProvider | None = None,
         embedder: Embedder | None = None,
         sources: SourceHub | None = None,
+        review_enabled: bool = True,
     ) -> None:
         self.settings = settings or get_settings()
         selected_embedder = embedder or build_embedder(self.settings)
@@ -59,9 +66,15 @@ class VeraOrchestrator:
                 KnowledgeGraphStore(self.settings) if self.settings.kg_enabled else None
             ),
         )
-        self.graph = build_graph(self.runtime)
+        self.reviews = ReviewStore(self.runtime.memory)
+        self.checkpointer = sqlite_checkpointer(self.settings.db_path)
+        self.graph = build_graph(
+            self.runtime, checkpointer=self.checkpointer, review_enabled=review_enabled
+        )
+        self.review_service = ReviewService(self.runtime, self.graph, self.reviews)
+        recover_reviews(self.checkpointer, self.review_service)
 
-    def analyze(self, request: AnalysisRequest | dict) -> AnalysisResult:
+    def analyze(self, request: AnalysisRequest | dict) -> AnalysisResult | ReviewRecord:
         normalized = (
             request
             if isinstance(request, AnalysisRequest)
@@ -69,13 +82,28 @@ class VeraOrchestrator:
         )
         if len(normalized.events) > self.settings.max_events:
             raise ValueError(f"Request exceeds the {self.settings.max_events} event limit")
-        config = (
-            {"recursion_limit": 2 * self.settings.max_react_steps + 20}
-            if self.settings.react_enabled
-            else None
+        run_id = str(uuid4())
+        config = self.review_service.config(
+            run_id, recursion_limit=2 * self.settings.max_react_steps + 45
         )
-        state = self.graph.invoke({"request": normalized}, config=config)
+        state = self.graph.invoke({"request": normalized, "run_id": run_id}, config=config)
+        if "__interrupt__" in state:
+            return self.review_service.register(run_id)
+        if "result" not in state:
+            raise ReviewUnavailable("Analysis ended without a report or review checkpoint")
+        self.review_service.prune(run_id)
         return state["result"]
+
+    def get_review(self, run_id: str) -> ReviewRecord | None:
+        return self.review_service.get(run_id)
+
+    def list_reviews(self) -> list[ReviewRecord]:
+        return self.review_service.list_open()
+
+    def decide_review(
+        self, run_id: str, decision: ReviewDecision
+    ) -> AnalysisResult | ReviewRecord:
+        return self.review_service.decide(run_id, decision)
 
     def get_run(self, run_id: str) -> AnalysisResult | None:
         return self.runtime.memory.get_run(run_id)

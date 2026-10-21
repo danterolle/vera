@@ -96,7 +96,9 @@ def test_simulated_alerts_and_original_event_indexes_are_persisted(engine):
 def test_knowledge_graph_page_api_and_bounds(engine):
     async def exercise():
         transport = httpx.ASGITransport(app=create_app(orchestrator=engine))
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://127.0.0.1"
+        ) as client:
             page = await client.get("/knowledge-graph")
             assert page.status_code == 200 and "Knowledge graph" in page.text
             assert "default-src 'self'" in page.headers["content-security-policy"]

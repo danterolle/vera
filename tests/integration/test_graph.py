@@ -1,9 +1,11 @@
 import asyncio
+from uuid import uuid4
 
 import httpx
 
 from vera.domain.enums import Route
 from vera.domain.requests import AnalysisRequest
+from vera.domain.review import ReviewDecision, ReviewRecord
 from vera.interfaces.api import create_app
 from vera.workflow.orchestrator import VeraOrchestrator
 
@@ -12,8 +14,8 @@ def test_compiled_topology_and_execution_highlight(settings) -> None:
     orchestrator = VeraOrchestrator(settings)
     topology = orchestrator.get_topology()
     assert topology is not None
-    assert len(topology.nodes) == 13
-    assert len(topology.edges) == 17
+    assert len(topology.nodes) == 16
+    assert len(topology.edges) == 24
     assert "graph TD" in topology.mermaid
     assert not any(node.active for node in topology.nodes)
 
@@ -23,6 +25,8 @@ def test_compiled_topology_and_execution_highlight(settings) -> None:
     active = {node.id for node in executed.nodes if node.active}
     assert {"initialize", "route", "cag", "generate", "finalize"} <= active
     assert "rag" not in active
+    assert "review_assess" in active
+    assert "review_wait" not in active
     assert executed.selected_run_id == result.run_id
     assert executed.recent_runs[0].route == Route.CAG_ONLY
     assert executed.execution is not None
@@ -33,12 +37,35 @@ def test_compiled_topology_and_execution_highlight(settings) -> None:
     assert route_node.output_contract
 
 
+def test_reviewed_execution_shows_the_human_gate(settings) -> None:
+    orchestrator = VeraOrchestrator(settings)
+    pending = orchestrator.analyze(AnalysisRequest(query="Analyze CVE-2099-9999"))
+    assert isinstance(pending, ReviewRecord)
+    result = orchestrator.decide_review(
+        pending.run_id,
+        ReviewDecision(action="approve", version=0, decision_id=uuid4()),
+    )
+    topology = orchestrator.get_topology(result.run_id)
+    assert topology is not None
+    assert next(node for node in topology.nodes if node.id == "review_wait").active
+    assert any(
+        edge.source == "review_assess" and edge.target == "review_wait" and edge.active
+        for edge in topology.edges
+    )
+    assert not any(
+        edge.source == "review_assess" and edge.target == "finalize" and edge.active
+        for edge in topology.edges
+    )
+
+
 def test_graph_browser_and_api(settings) -> None:
     orchestrator = VeraOrchestrator(settings)
 
     async def exercise() -> None:
         transport = httpx.ASGITransport(app=create_app(orchestrator=orchestrator))
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://127.0.0.1"
+        ) as client:
             page = await client.get("/graph")
             assert page.status_code == 200
             assert "default-src 'self'" in page.headers["content-security-policy"]
@@ -60,7 +87,7 @@ def test_graph_browser_and_api(settings) -> None:
             assert (await client.get("/assets/graph-viewport.js")).status_code == 200
             graph = await client.get("/v1/graph")
             assert graph.status_code == 200
-            assert len(graph.json()["nodes"]) == 13
+            assert len(graph.json()["nodes"]) == 16
             assert (await client.get("/v1/graph?run_id=missing")).status_code == 404
 
     asyncio.run(exercise())

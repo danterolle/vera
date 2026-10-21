@@ -13,7 +13,9 @@ def test_http_analysis_and_history(settings) -> None:
 
     async def exercise_api() -> None:
         transport = httpx.ASGITransport(app=create_app(orchestrator=orchestrator))
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://127.0.0.1"
+        ) as client:
             health = await client.get("/health")
             assert health.status_code == 200
             assert health.json()["corpus_documents"] >= 60

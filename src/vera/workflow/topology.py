@@ -103,9 +103,15 @@ def _execution_state(result: AnalysisResult | None) -> tuple[set[str], Counter[s
         "generate",
         "validate",
         "reflection",
+        "review_assess",
         "finalize",
         "__end__",
     }
+    review = result.metadata.get("human_review")
+    if review:
+        active.add("review_wait")
+        if review.get("revision_count", 0):
+            active.add("revise")
     if result.metadata.get("react_enabled"):
         active.add("react_decide")
         if any(item.startswith("react:execute=") for item in result.trace):
@@ -119,6 +125,24 @@ def _execution_state(result: AnalysisResult | None) -> tuple[set[str], Counter[s
     )
     executions["generate"] = sum(item.startswith("generation:") for item in result.trace)
     executions["validate"] = sum(item.startswith("validation:") for item in result.trace)
+    executions["retry_generate"] = sum(
+        item.startswith("validation:retry") for item in result.trace
+    )
+    executions["review_assess"] = result.metadata.get("human_review", {}).get(
+        "revision_count", 0
+    ) + 1
+    executions["review_wait"] = sum(
+        item.startswith("review:") for item in result.trace
+    )
+    executions["revise"] = sum(
+        item.startswith("revision:") for item in result.trace
+    )
+    executions["revision_success"] = sum(
+        item.startswith("revision:attempt") for item in result.trace
+    )
+    executions["revision_failed"] = sum(
+        item.startswith("revision:failed") for item in result.trace
+    )
     return active, executions
 
 
@@ -139,7 +163,17 @@ def _edge_active(
     if target == "generate" and source in ROUTE_NODE.values():
         return source in active and "react_decide" not in active
     if source == "validate" and target == "generate":
-        return executions["generate"] > 1
+        return executions["retry_generate"] > 0
+    if source == "review_assess" and target == "finalize":
+        return "review_wait" not in active
+    if source == "review_assess" and target == "review_wait":
+        return "review_wait" in active
+    if source == "review_wait" and target == "__end__":
+        return False
+    if source == "revise" and target == "review_assess":
+        return executions["revision_failed"] > 0
+    if source == "revise" and target == "validate":
+        return executions["revision_success"] > 0
     return source in active and target in active
 
 

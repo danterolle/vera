@@ -51,6 +51,18 @@ NODE_DETAILS = {
         "Guardrail", "Score completeness and record evidence gaps.",
         "Validated claims and source status", "Structured reflection report",
     ),
+    "review_assess": (
+        "Guardrail", "Select only uncertain or high-risk drafts for human review.",
+        "Draft, alerts, evidence, and reflection", "Review reasons or automatic continuation",
+    ),
+    "review_wait": (
+        "Control", "Interrupt and await a local review decision on a durable checkpoint.",
+        "Pending draft and review reasons", "Approve, reject, or request revision",
+    ),
+    "revise": (
+        "Reasoning", "Regenerate with reviewer feedback before validation and another review.",
+        "Original evidence and reviewer feedback", "Revised draft or explicit revision error",
+    ),
     "finalize": (
         "Persistence", "Render, measure, and persist the completed analysis.",
         "Draft, incident, reflection, and trace", "Persistent AnalysisResult",
@@ -75,8 +87,11 @@ POSITIONS = {
     "generate": (600, 488),
     "validate": (600, 572),
     "reflection": (600, 656),
-    "finalize": (600, 740),
-    "__end__": (600, 824),
+    "review_assess": (600, 735),
+    "review_wait": (900, 805),
+    "revise": (1080, 885),
+    "finalize": (600, 850),
+    "__end__": (600, 940),
 }
 
 NODE_LABELS = {
@@ -93,6 +108,9 @@ NODE_LABELS = {
     "generate": "Generate answer",
     "validate": "Validate claims",
     "reflection": "Reflect",
+    "review_assess": "Check review risk",
+    "review_wait": "Human review",
+    "revise": "Revise answer",
     "finalize": "Persist result",
     "__end__": "END",
 }

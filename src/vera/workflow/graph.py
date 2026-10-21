@@ -5,11 +5,13 @@ from vera.domain.state import GraphState
 from vera.workflow.acquisition import ContextAcquirer
 from vera.workflow.nodes import WorkflowNodes
 from vera.workflow.react import ReActEvidenceNodes
+from vera.workflow.review import ReviewNodes
 from vera.workflow.runtime import Runtime
 
 
-def build_graph(runtime: Runtime):
+def build_graph(runtime: Runtime, *, checkpointer=None, review_enabled: bool = True):
     nodes = WorkflowNodes(runtime)
+    review = ReviewNodes(runtime, enabled=review_enabled)
     acquisition = ContextAcquirer(runtime)
     graph = StateGraph(GraphState)
     graph.add_node("initialize", nodes.initialize)
@@ -22,6 +24,9 @@ def build_graph(runtime: Runtime):
     graph.add_node("generate", nodes.generate)
     graph.add_node("validate", nodes.validate)
     graph.add_node("reflection", nodes.reflection)
+    graph.add_node("review_assess", review.assess)
+    graph.add_node("review_wait", review.wait)
+    graph.add_node("revise", review.revise)
     graph.add_node("finalize", nodes.finalize)
     if runtime.settings.react_enabled:
         react_nodes = ReActEvidenceNodes(runtime)
@@ -56,6 +61,21 @@ def build_graph(runtime: Runtime):
         lambda state: "retry" if state["retry_generation"] else "continue",
         {"retry": "generate", "continue": "reflection"},
     )
-    graph.add_edge("reflection", "finalize")
+    graph.add_edge("reflection", "review_assess")
+    graph.add_conditional_edges(
+        "review_assess",
+        lambda state: "review" if state["review_required"] else "continue",
+        {"review": "review_wait", "continue": "finalize"},
+    )
+    graph.add_conditional_edges(
+        "review_wait",
+        lambda state: state["review_action"],
+        {"approve": "finalize", "reject": END, "revise": "revise"},
+    )
+    graph.add_conditional_edges(
+        "revise",
+        lambda state: "error" if state.get("revision_error") else "continue",
+        {"error": "review_assess", "continue": "validate"},
+    )
     graph.add_edge("finalize", END)
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)

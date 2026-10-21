@@ -9,10 +9,12 @@ import uvicorn
 
 from vera.config import Settings
 from vera.domain.requests import AnalysisRequest
+from vera.domain.review import ReviewRecord
 from vera.errors import VeraError
 from vera.evaluation.runner import run_evaluation
 from vera.interfaces.api import create_app
 from vera.interfaces.knowledge_graph import register_commands
+from vera.interfaces.local_access import is_loopback
 from vera.retrieval.corpus import LocalCorpus
 from vera.retrieval.embeddings import build_embedder
 from vera.retrieval.models import CorpusFeed
@@ -71,6 +73,12 @@ def analyze(
     except (VeraError, ValueError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
+    if isinstance(result, ReviewRecord):
+        typer.echo(
+            result.model_dump_json(indent=2) if json_output
+            else f"Review required for {result.run_id}. Open /graph on the local VERA server."
+        )
+        raise typer.Exit(code=2)
     typer.echo(result.model_dump_json(indent=2) if json_output else result.answer)
 
 
@@ -109,6 +117,8 @@ def serve(
         typer.Option("--open-browser", help="Open the local LangGraph visualization."),
     ] = False,
 ) -> None:
+    if not is_loopback(host):
+        raise typer.BadParameter("Review-enabled VERA serves only on a loopback address")
     if open_browser:
         browser_host = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
         timer = threading.Timer(

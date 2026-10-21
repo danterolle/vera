@@ -16,3 +16,11 @@ class SourceError(VeraError):
 
 class StreamError(VeraError):
     """Raised when an event stream or PCAP cannot be processed safely."""
+
+
+class ReviewConflict(VeraError):
+    """Raised when a review decision is stale or already being processed."""
+
+
+class ReviewUnavailable(VeraError):
+    """Raised when a durable review checkpoint is missing or inconsistent."""

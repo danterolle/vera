@@ -1,13 +1,16 @@
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from vera import __version__
 from vera.config import Settings
 from vera.domain.graph import GraphTopology
 from vera.domain.reports import AnalysisResult
 from vera.domain.requests import AnalysisRequest
-from vera.errors import VeraError
+from vera.domain.review import ReviewRecord
+from vera.errors import ReviewUnavailable, VeraError
 from vera.interfaces.assets import load_asset, load_graph_page
+from vera.interfaces.local_access import permits_local_request
+from vera.interfaces.reviews import register_review_routes
 from vera.knowledge_graph.models import GraphStatus, GraphView
 from vera.knowledge_graph.search import search_entities
 from vera.knowledge_graph.store import KnowledgeGraphError, KnowledgeGraphStore
@@ -28,6 +31,22 @@ def create_app(
     )
     application.state.orchestrator = engine
     knowledge_store = engine.runtime.knowledge_graph or KnowledgeGraphStore(engine.settings)
+
+    @application.middleware("http")
+    async def local_only(request: Request, call_next):
+        if not permits_local_request(request):
+            return JSONResponse(status_code=403, content={"detail": "Local access only"})
+        if (
+            request.method == "POST"
+            and request.url.path.endswith("/decisions")
+            and request.headers.get("content-type", "").split(";", 1)[0].lower()
+            != "application/json"
+        ):
+            return JSONResponse(
+                status_code=415,
+                content={"detail": "Decisions require application/json"},
+            )
+        return await call_next(request)
 
     @application.get("/", include_in_schema=False)
     def home() -> RedirectResponse:
@@ -77,12 +96,17 @@ def create_app(
             "corpus_documents": corpus.total_documents,
         }
 
-    @application.post("/v1/analyze", response_model=AnalysisResult)
-    def analyze(request: AnalysisRequest) -> AnalysisResult:
+    @application.post("/v1/analyze", response_model=AnalysisResult | ReviewRecord)
+    def analyze(request: AnalysisRequest, response: Response) -> AnalysisResult | ReviewRecord:
         try:
-            return engine.analyze(request)
+            outcome = engine.analyze(request)
+        except ReviewUnavailable as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         except (VeraError, ValueError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+        if isinstance(outcome, ReviewRecord):
+            response.status_code = 202
+        return outcome
 
     @application.get("/graph", include_in_schema=False)
     def graph_page():
@@ -117,4 +141,5 @@ def create_app(
             raise HTTPException(status_code=404, detail="Run not found")
         return result
 
+    register_review_routes(application, engine)
     return application

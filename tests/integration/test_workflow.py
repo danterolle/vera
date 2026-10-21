@@ -4,6 +4,7 @@ from pathlib import Path
 from vera.data import resource
 from vera.domain.enums import ClaimStatus, Route, SourceType
 from vera.domain.requests import AnalysisRequest, NetworkEvent
+from vera.domain.review import ReviewStatus
 from vera.stream.parsers import load_events
 from vera.workflow.orchestrator import VeraOrchestrator
 
@@ -68,13 +69,16 @@ def test_cve_workflow_marks_disabled_sources(settings) -> None:
 def test_simulated_stream_runs_full_pipeline(settings) -> None:
     path = Path(str(resource("samples/network-events.jsonl")))
     events = load_events(path)
-    result = VeraOrchestrator(settings).analyze(
+    orchestrator = VeraOrchestrator(settings)
+    result = orchestrator.analyze(
         AnalysisRequest(query="Analyze this replay", events=events, simulated=True)
     )
     assert result.route == Route.FULL
     assert result.incident is not None
     assert result.incident.alerts
-    assert any(claim.status == ClaimStatus.SIMULATED for claim in result.claims)
+    assert result.status == ReviewStatus.PENDING
+    assert orchestrator.get_run(result.run_id) is None
+    assert any(claim.status == ClaimStatus.SIMULATED for claim in result.draft.claims)
 
 
 def test_mixed_cve_and_benign_stream_acquires_both_contexts(settings) -> None:
@@ -163,5 +167,8 @@ def test_large_alert_batch_is_summarized_safely(settings) -> None:
     assert len(result.incident.alerts) == 35
     assert len(stream.content) < 12_000
     assert stream.metadata["rule_counts"] == {"HTTP-PATH-TRAVERSAL": 35}
-    simulated_claims = [claim for claim in result.claims if claim.status == ClaimStatus.SIMULATED]
+    assert result.status == ReviewStatus.PENDING
+    simulated_claims = [
+        claim for claim in result.draft.claims if claim.status == ClaimStatus.SIMULATED
+    ]
     assert len(simulated_claims) == 1

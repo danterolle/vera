@@ -1,18 +1,14 @@
 import time
-from uuid import uuid4
 
-from vera.domain.enums import ClaimStatus
-from vera.domain.reports import AnalysisResult, RunMetrics
 from vera.domain.state import GraphState
-from vera.providers.rendering import render_answer
 from vera.reasoning.reflection import reflect
 from vera.reasoning.validation import validate_and_repair
 from vera.stream.detectors import detect_events
 from vera.stream.incident import build_incident
 from vera.stream.policy import DetectionPolicy
 from vera.stream.statistics import calculate_statistics
+from vera.workflow.finalization import finalize_result
 from vera.workflow.generation import generate_draft
-from vera.workflow.knowledge_graph import graph_metadata, persist_result
 from vera.workflow.runtime import Runtime
 
 
@@ -41,8 +37,8 @@ class WorkflowNodes:
             request.session_id,
         )
         return {
-            "run_id": str(uuid4()),
             "started_at": time.perf_counter(),
+            "active_ms": 0.0,
             "alerts": alerts,
             "statistics": statistics,
             "incident": build_incident(alerts, statistics),
@@ -96,6 +92,7 @@ class WorkflowNodes:
             and not state["provider_fallback"]
             and state["generation_attempts"] < self.runtime.settings.generation_attempt_limit
             and state["model_calls"] < self.runtime.settings.model_call_limit
+            and not state.get("revision_count", 0)
         )
         if can_retry:
             return {
@@ -128,67 +125,4 @@ class WorkflowNodes:
         }
 
     def finalize(self, state: GraphState) -> dict:
-        claims = state["draft"].claims
-        factual = [
-            claim
-            for claim in claims
-            if claim.status == ClaimStatus.SUPPORTED_FACT
-        ]
-        assessable = [
-            claim
-            for claim in claims
-            if claim.status in {ClaimStatus.SUPPORTED_FACT, ClaimStatus.SYSTEM_INFERENCE}
-        ]
-        hidden_failures = max(
-            0,
-            state["reflection"].grounding_failures
-            - sum(claim.status == ClaimStatus.SYSTEM_INFERENCE for claim in claims),
-        )
-        grounded = sum(bool(claim.citations) for claim in factual)
-        denominator = len(assessable) + hidden_failures
-        coverage = grounded / denominator if denominator else 1.0
-        trace = state["trace"] + ["persistence:sqlite"]
-        metadata = {
-            "provider": self.runtime.provider.name,
-            "model": self.runtime.settings.llm_model if self.runtime.provider.external else None,
-            "provider_fallback": state["provider_fallback"],
-            "out_of_scope": state["draft"].out_of_scope,
-            "embedding_backend": self.runtime.embedder.name,
-            "route_reason": state["route_reason"],
-            "resource_plan": state["resource_plan"].model_dump(mode="json"),
-            "knowledge_graph": graph_metadata(state),
-        }
-        if self.runtime.settings.react_enabled:
-            metadata["react_enabled"] = True
-            metadata["model_call_limit"] = self.runtime.settings.model_call_limit
-            metadata["react_steps"] = state["react_steps"]
-            metadata["generation_attempts"] = state["generation_attempts"]
-            metadata["react_observations"] = [
-                item.model_dump(mode="json") for item in state["react_observations"]
-            ]
-        result = AnalysisResult(
-            run_id=state["run_id"],
-            route=state["route"],
-            answer=render_answer(
-                state["draft"].summary,
-                claims,
-                state["evidence"],
-                state["incident"],
-            ),
-            claims=claims,
-            evidence=state["evidence"],
-            incident=state["incident"],
-            reflection=state["reflection"],
-            metrics=RunMetrics(
-                latency_ms=(time.perf_counter() - state["started_at"]) * 1000,
-                model_calls=state["model_calls"],
-                tool_calls=state["tool_calls"],
-                retrieved_documents=len(state["evidence"]),
-                source_coverage=round(coverage, 3),
-            ),
-            trace=trace,
-            warnings=state["warnings"],
-            metadata=metadata,
-        )
-        persist_result(self.runtime, state, result)
-        return {"result": result, "trace": trace}
+        return finalize_result(self.runtime, state)
