@@ -1,4 +1,5 @@
 import json
+import sys
 import threading
 import webbrowser
 from pathlib import Path
@@ -13,8 +14,10 @@ from vera.domain.review import ReviewRecord
 from vera.errors import VeraError
 from vera.evaluation.runner import run_evaluation
 from vera.interfaces.api import create_app
-from vera.interfaces.knowledge_graph import register_commands
+from vera.interfaces.knowledge_graph import register_commands as register_graph_commands
 from vera.interfaces.local_access import is_loopback
+from vera.interfaces.review_cli import prompt_review
+from vera.interfaces.review_cli import register_commands as register_review_commands
 from vera.retrieval.corpus import LocalCorpus
 from vera.retrieval.embeddings import build_embedder
 from vera.retrieval.models import CorpusFeed
@@ -29,7 +32,8 @@ app = typer.Typer(
     help="Vulnerability Evidence and Reasoning Agent.",
     no_args_is_help=True,
 )
-register_commands(app)
+register_graph_commands(app)
+register_review_commands(app)
 
 
 @app.command()
@@ -55,28 +59,44 @@ def analyze(
         bool,
         typer.Option("--json", help="Emit the complete JSON result."),
     ] = False,
+    interactive: Annotated[
+        bool | None,
+        typer.Option(
+            "--interactive/--no-interactive",
+            help="Prompt for a human review decision in an interactive terminal.",
+        ),
+    ] = None,
 ) -> None:
     if events is not None and pcap is not None:
         raise typer.BadParameter("Use either --events or --pcap, not both")
+    if json_output and interactive:
+        raise typer.BadParameter("--json cannot be combined with --interactive")
     settings = Settings()
     if offline:
         settings = settings.model_copy(update={"live_sources": False})
+    engine = VeraOrchestrator(settings)
     try:
         normalized = load_events(events, settings.max_events) if events else []
         if pcap is not None:
             normalized = PcapExtractor(settings.max_events).extract(pcap)
         if simulated:
             normalized = [event.model_copy(update={"simulated": True}) for event in normalized]
-        result = VeraOrchestrator(settings).analyze(
+        result = engine.analyze(
             AnalysisRequest(query=query, events=normalized, simulated=simulated)
         )
     except (VeraError, ValueError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
     if isinstance(result, ReviewRecord):
+        if json_output:
+            typer.echo(result.model_dump_json(indent=2))
+            raise typer.Exit(code=2)
+        prompt_human = interactive if interactive is not None else sys.stdin.isatty()
+        if prompt_human:
+            prompt_review(engine, result)
         typer.echo(
-            result.model_dump_json(indent=2) if json_output
-            else f"Review required for {result.run_id}. Open /graph on the local VERA server."
+            f"Review required for {result.run_id}. Open /graph on the local VERA server "
+            f"or run: vera review {result.run_id}"
         )
         raise typer.Exit(code=2)
     typer.echo(result.model_dump_json(indent=2) if json_output else result.answer)
