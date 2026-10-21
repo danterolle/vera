@@ -111,8 +111,8 @@ The model server and VERA are separate processes; `vera serve` does not start Qw
 | <http://127.0.0.1:8000/knowledge-graph> | Explore domain entities, relationships, and sources |
 | <http://127.0.0.1:8000/health> | Inspect configured provider, model, and graph enablement |
 
-The root `/` redirects to `/graph`. The question form runs one analysis and displays its
-answer; route previews do not run anything. Use the API for events or the CLI for PCAP.
+The `/graph` question form shows completed reports or unpublished pending reviews; see
+[Human review](docs/human-review.md). Previews do not run. Use API for events, CLI for PCAP.
 
 ## 5. Ask questions and verify the connection
 

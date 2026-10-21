@@ -1,5 +1,6 @@
 import { initializeAnalysis } from "/assets/graph-analysis.js";
 import { GraphPanels, routeLabel } from "/assets/graph-panels.js";
+import { initializeReview } from "/assets/graph-review.js";
 import { renderGraph } from "/assets/graph-renderer.js";
 import { GraphViewport } from "/assets/graph-viewport.js";
 
@@ -10,7 +11,7 @@ const focusButton = document.querySelector("#focus-path");
 const panels = new GraphPanels(routeButtons);
 const viewport = new GraphViewport(svg, value => {
   document.querySelector("#zoom-level").textContent = `${value}%`;
-});
+}, { x: 0, y: 0, width: 1200, height: 980 });
 const ROUTE_NODES = {
   CAG_ONLY: "cag", CAG_RAG: "rag", CAG_RAG_TOOL: "tools", STREAM: "stream", FULL: "full"
 };
@@ -18,7 +19,21 @@ let topology;
 let corpus;
 let rendered;
 let loadVersion = 0;
-const analysis = initializeAnalysis(runId => load(runId));
+const analysis = initializeAnalysis(runId => {
+  review.clear();
+  return load(runId);
+}, record => review.receive(record));
+const review = initializeReview({
+  onSelect() {
+    analysis.clear();
+    if (runSelect.value) {
+      runSelect.value = "";
+      if (topology && corpus) draw(pathPreview(topology, ""), "overview");
+      load().catch(showError);
+    }
+  },
+  onApproved: report => analysis.showApproved(report)
+});
 
 function pathPreview(data, route) {
   if (!route) {
@@ -33,7 +48,7 @@ function pathPreview(data, route) {
   const react = data.nodes.some(node => node.id === "react_decide");
   const active = new Set([
     "__start__", "initialize", "route", branch, "generate",
-    "validate", "reflection", "finalize", "__end__"
+    "validate", "reflection", "review_assess", "finalize", "__end__"
   ]);
   if (react) active.add("react_decide");
   return {
@@ -143,6 +158,7 @@ function selectRoute(route) {
 }
 routeButtons.forEach(button => button.addEventListener("click", () => selectRoute(button.dataset.route)));
 runSelect.addEventListener("change", () => {
+  review.clear();
   const runId = runSelect.value;
   if (runId) analysis.showRun(runId);
   else analysis.clear();

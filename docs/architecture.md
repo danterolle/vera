@@ -21,7 +21,12 @@ flowchart LR
     A --> V[Validate claims]
     V -->|one bounded retry| A
     V --> X[Reflect]
-    X --> P[Persist and return]
+    X --> Q{Uncertain or high risk?}
+    Q -->|no| P[Persist and return]
+    Q -->|yes| H[Durable checkpoint and human review]
+    H -->|approve| P
+    H -->|reject| E[End without publishing]
+    H -->|revise with feedback| A
 ```
 
 ## Domain boundaries
@@ -33,7 +38,7 @@ flowchart LR
 - `stream`: normalized event parsing, restricted PCAP extraction, rules, and statistics.
 - `providers`: deterministic, OpenAI-compatible, Ollama, Unsloth, and Gemini generation.
 - `reasoning`: citation validation, bounded repair, and structured reflection.
-- `memory`: SQLite execution history plus semantic and episodic memories.
+- `memory`: SQLite history, semantic memories, and pending-review decisions.
 - `workflow`: LangGraph state transitions and dependency wiring.
 - `interfaces`: Typer CLI and FastAPI HTTP API.
 
@@ -173,6 +178,8 @@ HTTP payload signatures remain event-local.
 SQLite stores runs, evidence, reflection reports, and two memories per completed execution.
 Semantic memory contains supported findings; episodic memory contains the request, route, and
 outcome. Retrieval uses the configured local embedder and can be scoped by `session_id`.
+LangGraph SQLite checkpoints and the review ledger hold unpublished drafts before finalization;
+only approved drafts enter run history and memory. See [Human review](human-review.md).
 
 ## Domain knowledge graph
 

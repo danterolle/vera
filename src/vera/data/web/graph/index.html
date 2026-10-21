@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/assets/graph-ui.css">
   <link rel="stylesheet" href="/assets/graph-svg.css">
   <link rel="stylesheet" href="/assets/graph-analysis.css">
+  <link rel="stylesheet" href="/assets/graph-review.css">
 </head>
 <body>
   <header class="topbar">
@@ -55,6 +56,27 @@
       </div>
       <p id="analysis-warning" class="analysis-warning" hidden></p>
       <a id="analysis-run-link" href="#">Open full saved report →</a>
+    </div>
+  </section>
+
+  <section class="card review-card" aria-labelledby="review-title">
+    <div class="review-heading"><div><h2 id="review-title">Human review</h2>
+      <p>Pending drafts and review errors are not recorded executions.</p></div>
+      <button id="review-refresh" type="button">Refresh open reviews</button></div>
+    <p id="review-status" role="status" aria-live="polite"></p>
+    <label for="review-list">Open reviews</label>
+    <select id="review-list"><option value="">Select an open review</option></select>
+    <div id="review-draft" hidden>
+      <h3 id="review-state">Pending · unpublished draft</h3>
+      <p id="review-context"></p><div id="review-details"></div>
+      <form id="review-form">
+        <label for="review-feedback">Reviewer feedback (required for reject or revise)</label>
+        <textarea id="review-feedback" maxlength="4000" rows="3"></textarea>
+        <div class="review-actions"><button type="submit" value="approve">Approve and publish</button>
+          <button id="review-revise" type="submit" value="revise">Request revision</button>
+          <button type="submit" value="reject">Reject draft</button></div>
+        <button id="review-retry" type="submit" value="retry" hidden>Retry previous decision</button>
+      </form>
     </div>
   </section>
 
@@ -110,7 +132,7 @@
       </div>
 
       <div id="viewport" class="viewport">
-        <svg id="graph" viewBox="0 0 1200 880" tabindex="0" role="img"
+        <svg id="graph" viewBox="0 0 1200 980" tabindex="0" role="img"
              aria-label="Interactive VERA LangGraph workflow"></svg>
         <div id="canvas-state" class="canvas-state">
           <span class="spinner"></span>

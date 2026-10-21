@@ -12,8 +12,19 @@ ASSETS = {
     "graph-ui.css": ("web/graph/styles/components.css", "text/css; charset=utf-8"),
     "graph-svg.css": ("web/graph/styles/diagram.css", "text/css; charset=utf-8"),
     "graph-analysis.css": ("web/graph/styles/analysis.css", "text/css; charset=utf-8"),
+    "graph-review.css": ("web/graph/styles/review.css", "text/css; charset=utf-8"),
     "graph.js": ("web/graph/scripts/app.js", "text/javascript; charset=utf-8"),
     "graph-analysis.js": ("web/graph/scripts/analysis.js", "text/javascript; charset=utf-8"),
+    "graph-analysis-report.js": (
+        "web/graph/scripts/analysis-report.js", "text/javascript; charset=utf-8"
+    ),
+    "graph-review.js": ("web/graph/scripts/review.js", "text/javascript; charset=utf-8"),
+    "graph-review-request.js": (
+        "web/graph/scripts/review-request.js", "text/javascript; charset=utf-8"
+    ),
+    "graph-review-render.js": (
+        "web/graph/scripts/review-render.js", "text/javascript; charset=utf-8"
+    ),
     "graph-panels.js": ("web/graph/scripts/panels.js", "text/javascript; charset=utf-8"),
     "graph-renderer.js": ("web/graph/scripts/renderer.js", "text/javascript; charset=utf-8"),
     "graph-viewport.js": ("web/graph/scripts/viewport.js", "text/javascript; charset=utf-8"),
