@@ -38,16 +38,18 @@ matching, or automatic CVE-to-technique mapping is implemented.
 uv run --extra knowledge-graph vera serve
 ```
 
-Open **http://127.0.0.1:8000/knowledge-graph**. Search by name, alias, or ID: `PowerShell`,
-`Log4Shell`, `SQL injection`, `incident response`, or `T1059.001`. Suggestions disambiguate
-names shared by several entities. Click a node to read its sources; **Explore neighbors**
-continues navigation. Click a connection to inspect its predicate, status, and supporting
-sources. Pan, zoom, and Fit control the canvas. Overview displays a bounded subset.
+Open **http://127.0.0.1:8000/knowledge-graph**. Search from the header by name, alias,
+or ID: `PowerShell`, `Log4Shell`, `SQL injection`, `incident response`, or `T1059.001`.
+Use the arrow keys and Enter, or click a suggestion, to disambiguate names.
+Use the node list or graph to inspect sources; **Explore neighbors** continues navigation.
+Select a connection to inspect its predicate, status, and sources. Pan, zoom, and Fit work
+on mobile too. Overview displays a bounded subset.
 
 The default view draws direct semantic connections and combines repeated support for the
-same relationship. **Show sources in graph** displays Assertion/SourceRecord provenance
-nodes instead. This is a custom local SVG frontend backed by the Kuzu API, not Kuzu Explorer.
-The [Workflow Explorer](workflow-explorer.md) at `/graph` displays execution instead.
+same relationship. The toolbar sets the relationship limit, opens **Overview**, and toggles
+**Sources & assertions** to display Assertion/SourceRecord provenance nodes.
+This is a custom local SVG frontend backed by the Kuzu API, not Kuzu Explorer.
+The [Workflow Explorer](workflow-explorer.md) at `/graph` runs questions and displays execution.
 Viewing a built database does not enable graph retrieval by itself.
 
 Read-only HTTP endpoints:

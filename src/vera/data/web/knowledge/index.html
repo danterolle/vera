@@ -7,44 +7,70 @@
   <link rel="stylesheet" href="/assets/knowledge.css">
 </head>
 <body>
-  <header>
-    <div><p class="eyebrow">VERA · Connected cybersecurity knowledge</p><h1>Knowledge graph</h1>
-      <p>Explore concepts, their relationships, and the sources that support them.</p></div>
-    <a href="/graph">Workflow explorer →</a>
-  </header>
-  <form id="filters">
-    <div class="search-box">
-      <label for="entity">Find a concept by name or identifier</label>
-      <input id="entity" value="PowerShell" placeholder="PowerShell, Log4Shell, SQL injection…"
-        autocomplete="off" aria-controls="suggestions">
-      <div id="suggestions" aria-label="Matching concepts"></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">V</span>
+      <div><p class="eyebrow">VERA / Explore</p><h1>Knowledge graph</h1></div>
     </div>
-    <label>Relationship limit
-      <select id="limit"><option selected>20</option><option>50</option><option>100</option></select>
-    </label>
-    <button type="submit">Explore</button>
-    <button type="button" id="overview" class="secondary">Overview</button>
-    <label class="toggle"><input type="checkbox" id="provenance"> Show sources in graph</label>
-  </form>
-  <p id="status" role="status">Loading local graph…</p>
+    <div class="search-area">
+      <form id="filters" role="search" aria-label="Search knowledge graph">
+        <div class="search-box">
+          <label for="entity" class="visually-hidden">Search concepts or identifiers</label>
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m15.5 15.5 5 5"></path>
+          </svg>
+          <input id="entity" value="PowerShell" placeholder="Search a concept or ID"
+            autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"
+            aria-controls="suggestions" aria-describedby="search-help">
+          <div id="suggestions" role="listbox" aria-label="Matching concepts" hidden></div>
+        </div>
+        <button type="submit" class="search-submit" aria-label="Search concepts">→</button>
+      </form>
+      <span id="search-help" class="visually-hidden">Type two or more characters for suggestions.
+        Use arrow keys to choose, Enter to search, or Escape to close suggestions.</span>
+      <p id="search-feedback" class="search-feedback" role="status" aria-live="polite"></p>
+    </div>
+    <a class="nav-link" href="/graph">Open analysis <span aria-hidden="true">↗</span></a>
+  </header>
+  <div class="view-state">
+    <div class="view-summary"><h2 id="view-title">Loading graph…</h2>
+      <p id="status" role="status" aria-live="polite">Reading local knowledge graph…</p></div>
+    <div class="view-toolbar" role="group" aria-label="Graph display options">
+      <label class="limit-control" for="limit">Relationships
+        <select id="limit"><option selected>20</option><option>50</option><option>100</option></select>
+      </label>
+      <button type="button" id="overview" class="secondary">Overview</button>
+      <label class="toggle"><input type="checkbox" id="provenance"> Sources &amp; assertions</label>
+    </div>
+  </div>
   <main>
-    <section class="canvas">
+    <section class="canvas" aria-label="Interactive knowledge graph">
       <div class="canvas-heading">
-        <div class="legend"><span>Technique / tactic</span><span>Mitigation / group / software</span>
-          <span>Vulnerability / weakness</span><span>Guidance / concept</span><span>Source</span></div>
+        <div class="legend" aria-label="Node colors"><span>Technique / tactic</span>
+          <span>Mitigation / group / software</span><span>Vulnerability / weakness</span>
+          <span>Guidance / concept</span><span>Source / assertion</span></div>
         <div class="controls"><button type="button" id="zoom-out" aria-label="Zoom out">−</button>
-          <output id="zoom-level">100%</output><button type="button" id="zoom-in" aria-label="Zoom in">+</button>
-          <button type="button" id="fit-graph">Fit</button></div>
+          <output id="zoom-level" aria-label="Zoom level">100%</output>
+          <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+          <button type="button" id="fit-graph">Fit graph</button></div>
       </div>
-      <div class="viewport"><svg id="graph" tabindex="0" role="img"
-        aria-label="Cybersecurity concepts and supported relationships"></svg></div>
-      <p id="empty" hidden>No matching concepts. Try a suggestion or run vera kg-build.</p>
-      <p class="hint">Click nodes and connections to read their sources · Drag to pan · Scroll to zoom</p>
+      <div class="viewport"><svg id="graph" tabindex="0" role="group"
+        aria-label="Interactive concepts and relationships" aria-describedby="graph-help"></svg></div>
+      <p id="empty" class="empty-state" hidden></p>
+      <p id="graph-help" class="hint">Select to inspect · Drag to pan · Scroll to zoom
+        <span class="visually-hidden">Use arrow keys to pan, plus or minus to zoom, and 0 to fit.</span>
+        <span class="touch-help">Swipe sideways to pan · Use buttons to zoom</span></p>
+      <details class="concept-browser"><summary>Browse nodes in this view</summary>
+        <div id="concept-list" class="concept-list"></div>
+      </details>
     </section>
-    <aside><h2 id="title">Explore a concept</h2><div id="details"></div></aside>
+    <aside id="inspector" aria-labelledby="title">
+      <h2 id="title">Inspector</h2>
+      <div id="details"><p class="muted-text">Select a node or connection to inspect sources.</p></div>
+      <button type="button" id="back-to-graph" class="secondary">Back to graph</button>
+    </aside>
   </main>
-  <footer>Connections represent supported mappings or explicit topic classifications.
-    They do not establish compromise. Source snapshots retain their catalog versions.</footer>
+  <footer>Connections show supported mappings, not proof of compromise.
+    Sources retain catalog versions.</footer>
   <script type="module" src="/assets/knowledge.js"></script>
 </body>
 </html>

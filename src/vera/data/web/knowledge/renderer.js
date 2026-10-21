@@ -34,6 +34,7 @@ export function renderGraph(svg, data, inspect) {
     const x1 = a.x + dx * factor, y1 = a.y + dy * factor;
     const x2 = b.x - dx * factor, y2 = b.y - dy * factor;
     const group = element("g", {class: "edge-group", tabindex: "0", role: "button",
+      "aria-pressed": "false", "data-source-id": edge.source, "data-target-id": edge.target,
       "aria-label": `${readable(a.label)} ${edge.label} ${readable(b.label)}`});
     const d = `M${x1} ${y1}L${x2} ${y2}`;
     group.append(element("path", {d, class: "edge-hit"}), element("path", {
@@ -49,7 +50,8 @@ export function renderGraph(svg, data, inspect) {
   for (const node of map.values()) {
     const group = element("g", {transform: `translate(${node.x - 140},${node.y - 48})`,
       class: `node ${node.kind}${data.selected_ids.includes(node.id) ? " seed" : ""}`,
-      tabindex: "0", role: "button", "aria-label": node.label, "data-node-id": node.id});
+      tabindex: "0", role: "button", "aria-pressed": "false",
+      "aria-label": `${node.label}, ${node.kind}`, "data-node-id": node.id});
     group.append(element("title", {}, node.label));
     group.append(element("rect", {width: 280, height: 96, rx: 13}));
     const words = readable(node.label).split(" ");
