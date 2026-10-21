@@ -47,11 +47,21 @@ class HttpModelProvider:
         prompt = generation_prompt(request, route, evidence, alerts, statistics, feedback)
         schema = GeneratedAnswer.model_json_schema()
         schema["required"] = [*schema.get("required", []), "out_of_scope"]
+        schema["properties"]["claims"]["maxItems"] = 3
+        claim_schema = schema["$defs"]["Claim"]
+        claim_schema["required"] = ["text", "status", "evidence_ids", "citations"]
+        evidence_ids = list(dict.fromkeys(item.id for item in evidence))
+        if evidence_ids:
+            claim_schema["properties"]["evidence_ids"]["items"]["enum"] = evidence_ids
+            schema["$defs"]["Citation"]["properties"]["evidence_id"]["enum"] = evidence_ids
         content = self._complete(prompt, SYSTEM_PROMPT, schema)
         try:
-            return GeneratedAnswer.model_validate(_json_object(content))
+            answer = GeneratedAnswer.model_validate(_json_object(content))
         except (ValidationError, json.JSONDecodeError) as exc:
             raise ProviderError(f"{self.name} returned an invalid analysis payload") from exc
+        if len(answer.claims) > 3:
+            raise ProviderError(f"{self.name} returned more than three claims")
+        return answer
 
     def decide_action(
         self,

@@ -155,6 +155,10 @@ identifiers, numeric values, and negation. Invalid claims receive one bounded re
 available; otherwise they become explicit system inferences. Reflection and source coverage
 are calculated from the grounded result rather than citation presence alone.
 
+For OpenAI-compatible JSON Schema responses, the generation schema allows at most three
+claims and enumerates the selected evidence IDs for claims and citations. Validation
+still checks actual support; a structurally valid reference alone cannot establish a fact.
+
 This deterministic layer rejects unrelated citations and simple contradictions. It remains a
 conservative lexical check, not a complete natural-language inference model.
 
