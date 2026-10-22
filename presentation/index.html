@@ -1,0 +1,1314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VERA — Vulnerability Evidence and Reasoning Agent</title>
+    <meta
+      name="description"
+      content="VERA presentation: evidence-based security analysis with LangGraph, Kuzu and local models."
+    />
+    <link rel="stylesheet" href="vendor/reveal.js/reset.css" />
+    <link rel="stylesheet" href="vendor/reveal.js/reveal.css" />
+    <link rel="stylesheet" href="css/theme.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section class="dark cover">
+          <div class="cover-main">
+            <div class="cover-title">
+              <h1>VERA</h1>
+              <div class="cover-subtitle">Vulnerability Evidence and Reasoning Agent</div>
+              <p class="cover-thesis">
+                Evidence-based security analysis with a local model and an inspectable
+                workflow.
+              </p>
+            </div>
+            <aside class="cover-panel">
+              <div class="glance">
+                <div><span>Workflow</span><b>One stateful LangGraph</b></div>
+                <div><span>Routes</span><b>Five acquisition paths</b></div>
+                <div><span>Model</span><b>Local and bounded</b></div>
+                <div><span>State</span><b>SQLite + Kuzu</b></div>
+              </div>
+              <p class="cover-panel-note">The model, API and explorers run on the local machine.</p>
+            </aside>
+          </div>
+          <footer class="deck-footer">
+            <span>01 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Alerts and unsupported claims</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-55" style="flex: 1; align-items: stretch">
+              <div class="stack problem-cards" style="gap: 14px; flex: 1">
+                <div class="card accent">
+                  <div class="num">01 · signal</div>
+                  <h3>A port scan is reconnaissance</h3>
+                  <p>It shows scanning activity, but not whether a host was compromised.</p>
+                </div>
+                <div class="card amber">
+                  <div class="num">02 · fluency</div>
+                  <h3>Fluent output without support</h3>
+                  <p>A model answer may be fluent while its citations are missing or irrelevant.</p>
+                </div>
+                <div class="card teal">
+                  <div class="num">03 · proof</div>
+                  <h3>Claims are checked against evidence</h3>
+                  <p>The validator checks identifiers, numbers and quotations against fetched evidence.</p>
+                </div>
+              </div>
+              <div class="stack" style="justify-content: center">
+                <p class="quote">
+                  Assessments report evidence, confidence and completeness.
+                </p>
+              </div>
+            </div>
+            <div class="branch-row">
+              <div class="branch"><b>Detect</b><span>signal from events</span></div>
+              <div class="branch"><b>Retrieve</b><span>local + graph evidence</span></div>
+              <div class="branch"><b>Validate</b><span>citations checked</span></div>
+              <div class="branch"><b>Review</b><span>human review for high risk</span></div>
+              <div class="branch"><b>Report</b><span>assessment, limits, sources</span></div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>02 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>What VERA is</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <p class="lede">
+              VERA is a teaching prototype for evidence-based security analysis: one LangGraph
+              workflow over curated knowledge, local retrieval, a knowledge graph and event rules.
+            </p>
+            <div class="split split-55" style="flex: 1; align-items: stretch">
+              <div class="grid g2 principles" style="gap: 14px">
+                <div class="card">
+                  <div class="num">01</div>
+                  <h3>Quoted evidence</h3>
+                  <p>Supported facts quote non-memory evidence verbatim.</p>
+                </div>
+                <div class="card">
+                  <div class="num">02</div>
+                  <h3>Bounded model use</h3>
+                  <p>Deterministic checks verify which statements are supported.</p>
+                </div>
+                <div class="card">
+                  <div class="num">03</div>
+                  <h3>Local execution</h3>
+                  <p>The model, API and explorers run locally.</p>
+                </div>
+                <div class="card">
+                  <div class="num">04</div>
+                  <h3>Visible workflow</h3>
+                  <p>The UI exposes routes, evidence, warnings and reviews.</p>
+                </div>
+              </div>
+              <div class="stack" style="justify-content: center; gap: 14px">
+                <div class="callout teal">
+                  <strong>In scope:</strong> one workflow, five routes, a local model, a trace.
+                </div>
+                <div class="callout">
+                  <strong>Out of scope:</strong> agent swarms, cloud dependency, asset inventory.
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>03 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Architecture and repository layout</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <p class="body-text">Modules are separated by typed contracts.</p>
+            <div class="grid g5" style="flex: 1; gap: 10px">
+              <div class="card">
+                <h4>domain</h4>
+                <p>Request, evidence, claim and result contracts.</p>
+              </div>
+              <div class="card">
+                <h4>routing</h4>
+                <p>Intent rules; optional LLM disambiguation.</p>
+              </div>
+              <div class="card">
+                <h4>retrieval</h4>
+                <p>Ranking, embeddings, corpus sync.</p>
+              </div>
+              <div class="card">
+                <h4>sources</h4>
+                <p>Read-only CVE.org, NVD, KEV, EPSS, OSV.</p>
+              </div>
+              <div class="card">
+                <h4>stream</h4>
+                <p>Events, PCAP, detectors, statistics.</p>
+              </div>
+              <div class="card">
+                <h4>providers</h4>
+                <p>Deterministic, OpenAI-compatible, Ollama, Gemini.</p>
+              </div>
+              <div class="card">
+                <h4>reasoning</h4>
+                <p>Citation validation, repair, reflection.</p>
+              </div>
+              <div class="card">
+                <h4>memory</h4>
+                <p>SQLite history, memories, review ledger.</p>
+              </div>
+              <div class="card">
+                <h4>workflow</h4>
+                <p>LangGraph topology and wiring.</p>
+              </div>
+              <div class="card">
+                <h4>interfaces</h4>
+                <p>FastAPI API and Typer CLI.</p>
+              </div>
+            </div>
+            <div class="callout dark">
+              <span class="mono" style="font-size: 12px">
+                src/vera/ → domain · workflow · retrieval · sources · stream · providers ·
+                reasoning · memory · interfaces · data &nbsp;|&nbsp; tests/ → unit ·
+                integration · architecture
+              </span>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>04 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Workflow and acquisition paths</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="legend">
+              <span><i></i> deterministic</span>
+              <span><i class="model"></i> model involvement</span>
+              <span class="muted">One resource plan selects one branch.</span>
+            </div>
+            <div class="flow" style="flex: 1; justify-content: center">
+              <div class="flow-row">
+                <div class="node">
+                  <span class="k">Input</span><b>Validated request</b><span>query · events · PCAP</span>
+                </div>
+                <div class="conn">→</div>
+                <div class="node">
+                  <span class="k">Deterministic</span><b>Normalize &amp; detect</b
+                  ><span>alerts, rules, memory</span>
+                </div>
+                <div class="conn">→</div>
+                <div class="node">
+                  <span class="k">Deterministic</span><b>Meta-controller</b
+                  ><span>typed ResourcePlan</span>
+                </div>
+              </div>
+              <svg class="fan" viewBox="0 0 1000 20" preserveAspectRatio="none" aria-hidden="true">
+                <path
+                  d="M500 0 V9 M100 9 H900 M100 9 V20 M300 9 V20 M500 9 V20 M700 9 V20 M900 9 V20"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  fill="none"
+                  vector-effect="non-scaling-stroke"
+                />
+              </svg>
+              <div class="branch-row">
+                <div class="branch"><b>CAG</b><span>curated knowledge + memory</span></div>
+                <div class="branch"><b>CAG + RAG</b><span>+ local retrieval</span></div>
+                <div class="branch"><b>CAG + RAG + API</b><span>+ exact CVE lookups</span></div>
+                <div class="branch"><b>Stream</b><span>stats, no alerts</span></div>
+                <div class="branch"><b>Full</b><span>detections + retrieval</span></div>
+              </div>
+              <div class="down">↓<span>one branch selected</span></div>
+              <div class="flow-row">
+                <div class="node model">
+                  <span class="k">Model</span><b>Generate</b><span>answer + citations</span>
+                </div>
+                <div class="conn">→</div>
+                <div class="node">
+                  <span class="k">Deterministic</span><b>Validate claims</b
+                  ><span>one bounded repair</span>
+                </div>
+                <div class="conn">→</div>
+                <div class="node">
+                  <span class="k">Deterministic</span><b>Reflect</b
+                  ><span>completeness, evidence gaps</span>
+                </div>
+                <div class="conn">→</div>
+                <div class="node">
+                  <span class="k">Gate</span><b>Review assessment</b
+                  ><span>high risk or uncertainty</span>
+                </div>
+              </div>
+              <div class="outcomes">
+                <div class="outcome"><b>200</b> Persist and return.</div>
+                <div class="outcome hold"><b>202</b> Unpublished draft for review.</div>
+              </div>
+            </div>
+            <div class="callout">
+              Context acquisition always runs between routing and generation.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>05 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Routing: four independent flags</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <p class="body-text">
+              Four independent flags. The <code>Route</code> label is derived; mixed requests
+              combine resources.
+            </p>
+            <div class="split split-45" style="flex: 1">
+              <div>
+                <div class="micro" style="margin-bottom: 4px">Independent flags</div>
+                <div class="flag"><b>CAG</b><span>Curated knowledge + memory.</span></div>
+                <div class="flag"><b>RAG</b><span>Local corpus; optional Kuzu.</span></div>
+                <div class="flag"><b>TOOL</b><span>Read-only CVE lookups.</span></div>
+                <div class="flag"><b>STREAM</b><span>Events and detectors.</span></div>
+                <p class="tiny" style="margin-top: 10px">
+                  CAG-only applies when curated knowledge covers the topic. Live lookups need
+                  explicitly enabled sources.
+                </p>
+              </div>
+              <div>
+                <div class="matrix">
+                  <div class="matrix-head">
+                    <span>Route</span><span>CAG</span><span>RAG</span><span>Tool</span
+                    ><span>Stream</span><span>When</span>
+                  </div>
+                  <div class="matrix-row">
+                    <span class="route">CAG</span><span class="dot on"></span
+                    ><span class="dot"></span><span class="dot"></span><span class="dot"></span
+                    ><span class="when">Conceptual question with curated coverage.</span>
+                  </div>
+                  <div class="matrix-row">
+                    <span class="route">CAG + RAG</span><span class="dot on"></span
+                    ><span class="dot on"></span><span class="dot"></span><span class="dot"></span
+                    ><span class="when">Needs documentary sources.</span>
+                  </div>
+                  <div class="matrix-row">
+                    <span class="route">CAG + RAG + API</span><span class="dot on"></span
+                    ><span class="dot on"></span><span class="dot on"></span
+                    ><span class="dot"></span
+                    ><span class="when">CVE IDs present; live sources enabled.</span>
+                  </div>
+                  <div class="matrix-row">
+                    <span class="route">Stream</span><span class="dot"></span
+                    ><span class="dot"></span><span class="dot"></span><span class="dot on"></span
+                    ><span class="when">Events without alerts.</span>
+                  </div>
+                  <div class="matrix-row">
+                    <span class="route">Full</span><span class="dot on"></span
+                    ><span class="dot on"></span><span class="dot on"></span
+                    ><span class="dot on"></span
+                    ><span class="when">Active alerts, e.g. <code>NET-PORT-SCAN</code>.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="callout">
+              One request can combine stream detection, retrieval and exact API lookups.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>06 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Model role and deterministic checks</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-even" style="flex: 1">
+              <div class="card teal">
+                <h4>Deterministic layer</h4>
+                <ul class="checks" style="margin-top: 4px">
+                  <li>Routing and event detection</li>
+                  <li>BM25 + embedding ranking, provenance rerank</li>
+                  <li>Citation validation and lexical grounding</li>
+                  <li>Reflection on completeness and gaps</li>
+                  <li>Human-review triggers</li>
+                  <li>Graph projection and persistence</li>
+                </ul>
+                <p class="small muted" style="margin-top: auto">
+                  Without a model, the <strong>deterministic</strong> provider still runs the
+                  workflow.
+                </p>
+              </div>
+              <div class="card accent">
+                <h4>Model tasks</h4>
+                <ul class="clean" style="margin-top: 4px">
+                  <li>Resolve routing ambiguity <span class="muted">(optional)</span></li>
+                  <li>Generate the answer and its citations</li>
+                  <li>Make one correction after an invalid claim</li>
+                  <li>Choose a ReAct action <span class="muted">(optional, bounded)</span></li>
+                </ul>
+                <p class="small muted" style="margin-top: auto">
+                  No graph writes, arbitrary queries, URLs or commands. Memory cannot establish
+                  a fact.
+                </p>
+              </div>
+            </div>
+            <div class="grid g3">
+              <div class="card">
+                <h4>Call budget</h4>
+                <p>
+                  2 calls by default; <code>VERA_MAX_REACT_STEPS + 3</code> with ReAct.
+                </p>
+              </div>
+              <div class="card">
+                <h4>Providers</h4>
+                <p>Deterministic, OpenAI-compatible, Ollama, Unsloth, Gemini.</p>
+              </div>
+              <div class="card">
+                <h4>Explicit degradation</h4>
+                <p><code>provider_fallback</code>, <code>warnings</code>, model metadata.</p>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>07 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>How claims are validated</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-45" style="flex: 1">
+              <div class="stack claim-types" style="gap: 8px">
+                <div class="micro">Claim types</div>
+                <div class="card teal">
+                  <h4>supported_fact</h4>
+                  <p>A verbatim quotation from non-memory evidence.</p>
+                </div>
+                <div class="card violet">
+                  <h4>system_inference</h4>
+                  <p>A structured mapping; still validated.</p>
+                </div>
+                <div class="card amber">
+                  <h4>unavailable</h4>
+                  <p>Missing evidence, stated explicitly.</p>
+                </div>
+                <div class="card">
+                  <h4>simulated</h4>
+                  <p>Synthetic data, labelled end to end.</p>
+                </div>
+              </div>
+              <div>
+                <div class="micro" style="margin-bottom: 4px">What the validator checks</div>
+                <div class="steps compact">
+                  <div class="step">
+                    <span class="n">01</span>
+                    <div><h4>Registry integrity</h4><p>Unknown IDs cannot support a fact.</p></div>
+                  </div>
+                  <div class="step">
+                    <span class="n">02</span>
+                    <div><h4>Quotation presence</h4><p>The quote must appear in the evidence.</p></div>
+                  </div>
+                  <div class="step">
+                    <span class="n">03</span>
+                    <div><h4>Coverage</h4><p>Terms, IDs, numbers and negation.</p></div>
+                  </div>
+                  <div class="step">
+                    <span class="n">04</span>
+                    <div><h4>Contradictions</h4><p>Irrelevant citations and simple contradictions are rejected.</p></div>
+                  </div>
+                  <div class="step">
+                    <span class="n">05</span>
+                    <div><h4>Bounded repair</h4><p>One retry, then an explicit inference.</p></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="callout amber">
+              The validator performs <strong>lexical checks</strong> against grounded evidence.
+              Coverage is computed from grounded results.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>08 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Hybrid retrieval and ranking</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-even" style="flex: 1">
+              <div>
+                <div class="micro">Hybrid score</div>
+                <div class="weights">
+                  <div class="w70">0.7 · BM25</div>
+                  <div class="w30">0.3 · embeddings</div>
+                </div>
+                <p class="tiny" style="margin-bottom: 12px">
+                  Normalized scores. Exact IDs stay single tokens.
+                </p>
+                <div class="micro" style="margin-bottom: 6px">Above the relevance threshold</div>
+                <div class="branch-row" style="grid-template-columns: repeat(4, 1fr)">
+                  <div class="branch"><b>Candidates</b><span>bounded set</span></div>
+                  <div class="branch"><b>Rerank</b><span>provenance · date · novelty</span></div>
+                  <div class="branch"><b>Dedupe</b><span>near-identical documents</span></div>
+                  <div class="branch"><b>Top-k</b><span>selected evidence</span></div>
+                </div>
+                <ul class="clean" style="margin-top: 12px">
+                  <li><strong>Hash embeddings</strong> by default; Sentence Transformers optional.</li>
+                  <li><strong>Ranking order:</strong> live records, then synchronized feeds, then snapshots.</li>
+                  <li>Undated guidance gets a <strong>neutral freshness</strong> score.</li>
+                </ul>
+              </div>
+              <div>
+                <div class="micro" style="margin-bottom: 4px">Quality signals exposed per result</div>
+                <table>
+                  <thead>
+                    <tr><th style="width: 38%">Field</th><th>Meaning</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>retrieval_score</code></td><td>Original hybrid score</td></tr>
+                    <tr><td><code>quality_score</code></td><td>Source quality</td></tr>
+                    <tr><td><code>freshness_score</code></td><td>Freshness; neutral when undated</td></tr>
+                    <tr><td><code>novelty_score</code></td><td>Novelty against the rest</td></tr>
+                    <tr><td><code>selection_score</code></td><td>Final selection score</td></tr>
+                  </tbody>
+                </table>
+                <div class="callout teal" style="margin-top: 12px">
+                  <strong>Explicit sync.</strong> Allowlisted ATT&amp;CK STIX and CISA KEV only;
+                  validated and staged before publishing.
+                </div>
+                <p class="tiny" style="margin-top: 8px">
+                  Scores rank evidence; they do not verify source accuracy.
+                </p>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>09 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Knowledge graph: Kuzu</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-45" style="flex: 1">
+              <div>
+                <svg class="graph" viewBox="0 0 520 228" aria-label="Entity, assertion and source record graph">
+                  <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#aaa18e"></path>
+                    </marker>
+                  </defs>
+                  <line x1="90" y1="64" x2="190" y2="104" stroke="#aaa18e" stroke-width="1.2" marker-end="url(#arrow)"></line>
+                  <line x1="430" y1="64" x2="330" y2="104" stroke="#aaa18e" stroke-width="1.2" marker-end="url(#arrow)"></line>
+                  <line x1="260" y1="164" x2="260" y2="192" stroke="#aaa18e" stroke-width="1.2" marker-end="url(#arrow)"></line>
+                  <text x="108" y="92" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a" letter-spacing="1">SUBJECT</text>
+                  <text x="356" y="92" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a" letter-spacing="1">OBJECT</text>
+                  <text x="268" y="184" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a" letter-spacing="1">SUPPORTED BY</text>
+                  <rect x="10" y="10" width="160" height="54" fill="#fffdf7" stroke="#c84627" stroke-width="1.4"></rect>
+                  <text x="24" y="34" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="700" fill="#191a1c">PowerShell</text>
+                  <text x="24" y="50" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a" letter-spacing="1">ENTITY</text>
+                  <rect x="350" y="10" width="160" height="54" fill="#fffdf7" stroke="#aaa18e" stroke-width="1"></rect>
+                  <text x="364" y="34" font-family="Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="700" fill="#191a1c">T1059</text>
+                  <text x="364" y="50" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a" letter-spacing="1">ENTITY</text>
+                  <rect x="180" y="104" width="160" height="60" fill="#f3efe4" stroke="#191a1c" stroke-width="1"></rect>
+                  <text x="194" y="128" font-family="Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" fill="#191a1c">subtechnique_of</text>
+                  <text x="194" y="146" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a" letter-spacing="1">ASSERTION</text>
+                  <rect x="180" y="192" width="160" height="30" fill="#fffdf7" stroke="#aaa18e" stroke-width="1"></rect>
+                  <text x="194" y="211" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#45464a" letter-spacing="0.5">SOURCERECORD · MITRE</text>
+                </svg>
+                <div class="split split-even" style="gap: 12px; margin-top: 6px">
+                  <div>
+                    <div class="stat" style="font-size: 40px">120</div>
+                    <div class="stat-label">entities</div>
+                  </div>
+                  <div>
+                    <div class="stat" style="font-size: 40px">112</div>
+                    <div class="stat-label">supported assertions</div>
+                  </div>
+                </div>
+                <div class="tags" style="margin-top: 8px">
+                  <span class="tag">ATT&amp;CK 17.1</span>
+                  <span class="tag">CWE 4.20</span>
+                  <span class="tag">CAPEC 3.9</span>
+                  <span class="tag">KEV 2026.10.08</span>
+                  <span class="tag">OWASP 2021</span>
+                  <span class="tag">NIST</span>
+                </div>
+              </div>
+              <div>
+                <table>
+                  <thead>
+                    <tr><th style="width: 27%">Node</th><th>Meaning</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><code>Entity</code></td><td>CVE, CWE, CAPEC, technique, tactic, mitigation, group, software, concept</td></tr>
+                    <tr><td><code>Assertion</code></td><td>A sourced statement: subject + predicate + object</td></tr>
+                    <tr><td><code>SourceRecord</code></td><td>Immutable evidence version with title, URL, status and metadata</td></tr>
+                    <tr><td><code>Run · Alert · Event</code></td><td>Technical projection of the analysis history</td></tr>
+                  </tbody>
+                </table>
+                <div class="tags" style="margin-top: 10px">
+                  <span class="tag accent">subtechnique_of</span>
+                  <span class="tag">has_weakness</span>
+                  <span class="tag">part_of</span>
+                  <span class="tag">mitigates</span>
+                  <span class="tag">uses</span>
+                  <span class="tag">child_of</span>
+                  <span class="tag">exploits_weakness</span>
+                  <span class="tag">covers</span>
+                </div>
+                <div class="micro" style="margin: 10px 0 5px">Traversal bounds</div>
+                <div class="bounds">
+                  <div class="bound"><b>Hops</b><span>one or two logical hops; default one</span></div>
+                  <div class="bound"><b>Results</b><span>12 per frontier, 8 identifiers max</span></div>
+                  <div class="bound"><b>Timeout</b><span>3,000 ms per query</span></div>
+                  <div class="bound"><b>Queries</b><span>fixed Cypher templates, bound inputs</span></div>
+                </div>
+                <div class="callout" style="margin-top: 10px">
+                  No arbitrary queries or graph writes. If Kuzu is missing, retrieval continues
+                  with <strong>warnings</strong>.
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>10 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Stream detection and PCAP input</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-55" style="flex: 1">
+              <div>
+                <svg class="timeline" viewBox="0 0 600 126" aria-label="Sliding window timeline">
+                  <line x1="20" y1="88" x2="580" y2="88" stroke="#aaa18e" stroke-width="1"></line>
+                  <line x1="20" y1="88" x2="20" y2="96" stroke="#aaa18e" stroke-width="1"></line>
+                  <line x1="120" y1="88" x2="120" y2="96" stroke="#aaa18e" stroke-width="1"></line>
+                  <line x1="220" y1="88" x2="220" y2="96" stroke="#aaa18e" stroke-width="1"></line>
+                  <line x1="320" y1="88" x2="320" y2="96" stroke="#aaa18e" stroke-width="1"></line>
+                  <line x1="420" y1="88" x2="420" y2="96" stroke="#aaa18e" stroke-width="1"></line>
+                  <line x1="520" y1="88" x2="520" y2="96" stroke="#aaa18e" stroke-width="1"></line>
+                  <text x="16" y="112" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a">0s</text>
+                  <text x="108" y="112" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a">10s</text>
+                  <text x="208" y="112" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a">20s</text>
+                  <text x="308" y="112" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a">30s</text>
+                  <text x="408" y="112" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a">40s</text>
+                  <text x="508" y="112" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#77736a">50s</text>
+                  <rect x="220" y="22" width="200" height="12" fill="rgba(200,70,39,0.12)" stroke="#c84627" stroke-width="1"></rect>
+                  <text x="270" y="16" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#c84627" letter-spacing="0.8">WINDOW · 10s · THRESHOLD 8</text>
+                  <circle cx="240" cy="88" r="3.5" fill="#191a1c"></circle>
+                  <circle cx="262" cy="88" r="3.5" fill="#191a1c"></circle>
+                  <circle cx="286" cy="88" r="3.5" fill="#191a1c"></circle>
+                  <circle cx="310" cy="88" r="3.5" fill="#191a1c"></circle>
+                  <circle cx="336" cy="88" r="3.5" fill="#191a1c"></circle>
+                  <circle cx="362" cy="88" r="3.5" fill="#191a1c"></circle>
+                  <circle cx="390" cy="88" r="3.5" fill="#191a1c"></circle>
+                  <circle cx="410" cy="88" r="5" fill="#c84627"></circle>
+                  <text x="432" y="74" font-family="SFMono-Regular, Menlo, monospace" font-size="8" fill="#c84627" letter-spacing="0.8">NET-PORT-SCAN</text>
+                  <line x1="410" y1="74" x2="410" y2="84" stroke="#c84627" stroke-width="1"></line>
+                </svg>
+                <p class="small muted">
+                  Alerts expose count, threshold, timestamps, duration and confidence.
+                </p>
+                <div class="micro" style="margin: 8px 0 6px">Bundled synthetic sample</div>
+                <pre><code>vera analyze "Analyze this traffic" \
+  --events src/vera/data/samples/port-scan.jsonl \
+  --simulated --offline --json</code></pre>
+                <p class="tiny" style="margin-top: 6px">
+                  <code>benign-web</code> → <code>STREAM</code>, no alerts.
+                  <code>port-scan</code> → <code>FULL</code>, <code>NET-PORT-SCAN</code>.
+                </p>
+              </div>
+              <div class="stack" style="gap: 10px">
+                <div class="card amber">
+                  <h4>Sliding windows</h4>
+                  <p>Port scans, auth failures and SYN bursts use configurable windows.</p>
+                </div>
+                <div class="card violet">
+                  <h4>Event-local signatures</h4>
+                  <p>HTTP payload signatures stay event-local.</p>
+                </div>
+                <div class="card teal">
+                  <h4>Restricted PCAP</h4>
+                  <p>PCAP is parsed from an argument list without a shell. Packet bytes stay outside model context.</p>
+                </div>
+                <div class="micro" style="margin-top: 4px">Input rules</div>
+                <ul class="checks">
+                  <li>Events via API or <code>--events</code>; raw logs in <code>query</code> are ignored.</li>
+                  <li>PCAP needs the CLI and <code>tshark</code>.</li>
+                  <li><code>--simulated</code> labels synthetic data; <code>--offline</code> disables live lookups.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>11 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>When human review is required</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-even" style="align-items: center">
+              <div>
+                <div class="micro">Deterministic review triggers</div>
+                <div class="tags" style="margin-top: 6px">
+                  <span class="tag accent">High / critical alert</span>
+                  <span class="tag accent">Unsupported claim</span>
+                  <span class="tag accent">Missing usable evidence</span>
+                  <span class="tag accent">Out-of-scope conflict</span>
+                </div>
+              </div>
+            </div>
+            <div class="flow" style="gap: 10px">
+              <div class="flow-row">
+                <div class="node" style="flex: 1.4">
+                  <span class="k">Deterministic</span><b>Reflect</b
+                  ><span>completeness and evidence gaps</span>
+                </div>
+                <div class="conn">→</div>
+                <div class="node model" style="flex: 1">
+                  <span class="k">Gate</span><b>Review assessment</b
+                  ><span>ordinary path returns 200</span>
+                </div>
+              </div>
+              <div class="grid g3" style="gap: 10px">
+                <div class="card teal">
+                  <div class="num">200 · approve</div>
+                  <h3>Saved report</h3>
+                  <p>Persisted as a completed run.</p>
+                </div>
+                <div class="card">
+                  <div class="num">200 · reject</div>
+                  <h3>Closed review</h3>
+                  <p>Nothing published; feedback required.</p>
+                </div>
+                <div class="card amber">
+                  <div class="num">202 · revise</div>
+                  <h3>Pauses again</h3>
+                  <p>One model run, then pauses. Max two cycles.</p>
+                </div>
+              </div>
+            </div>
+            <div class="split split-even pushed">
+              <div class="callout violet">
+                <strong>Unpublished:</strong> drafts never appear in <code>/v1/runs</code>,
+                history, memory or graph projection.
+              </div>
+              <div class="callout">
+                <strong>Local decisions:</strong> loopback and Origin checks; no identities.
+                The CLI uses the same review gate.
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>12 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Optional ReAct mode</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-even" style="flex: 1">
+              <div>
+                <div class="micro" style="margin-bottom: 6px">
+                  Optional ReAct loop · <code>VERA_REACT_ENABLED=true</code>
+                </div>
+                <div class="stack" style="gap: 4px">
+                  <div class="node model">
+                    <span class="k">Model decision</span><b>react_decide</b
+                    ><span>typed action + short operational reason</span>
+                  </div>
+                  <div class="down">↓</div>
+                  <div class="node">
+                    <span class="k">Deterministic tool</span><b>react_execute</b
+                    ><span>local search · exact CVE lookup</span>
+                  </div>
+                  <div class="down">↓</div>
+                  <div class="node">
+                    <span class="k">Observation</span><b>New evidence in the registry</b
+                    ><span>back to decide</span>
+                  </div>
+                  <div class="down">↺<span>until finish or budget</span></div>
+                  <div class="node verdict">
+                    <span class="k">Exit</span><b>finish → Generate</b
+                    ><span>generation resumes</span>
+                  </div>
+                </div>
+                <div class="card accent" style="margin-top: 6px">
+                  <h4>Budget</h4>
+                  <p>
+                    2 calls default. ReAct: <code>steps + 3</code>. 3 steps → 6 calls; 10 → 13.
+                  </p>
+                </div>
+              </div>
+              <div>
+                <ul class="clean">
+                  <li>Local context is tried first; tools and full mode defer live lookups.</li>
+                  <li>Typed decisions: corpus search and exact CVE lookups.</li>
+                  <li>Every decision needs a <strong>short reason</strong>.</li>
+                  <li>Reasons and outcomes land in the persisted trace.</li>
+                  <li>The loop cannot spend the two generation calls.</li>
+                </ul>
+                <div class="callout amber" style="margin-top: 12px">
+                  The trace records decisions and outcomes, not hidden reasoning.
+                </div>
+                <div class="callout violet" style="margin-top: 10px">
+                  <strong>No web search</strong>, arbitrary URLs or commands.
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>13 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Safety boundaries</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="grid g2" style="flex: 1">
+              <div class="limit">
+                <h3>Shell-free PCAP</h3>
+                <p>Argument lists for PCAP; fixed read-only HTTP for tools.</p>
+              </div>
+              <div class="limit">
+                <h3>Packet data stays local</h3>
+                <p>Packet bytes are parsed locally; evidence is treated as untrusted data.</p>
+              </div>
+              <div class="limit">
+                <h3>Bounded work</h3>
+                <p>Input, PCAP, model calls, tool calls and timeouts have limits.</p>
+              </div>
+              <div class="limit">
+                <h3>Verbatim evidence</h3>
+                <p>Unknown IDs cannot support a fact; quotes are required.</p>
+              </div>
+              <div class="limit">
+                <h3>Explicit missing data</h3>
+                <p>Missing data is recorded as <strong>unavailable</strong> evidence.</p>
+              </div>
+              <div class="limit">
+                <h3>Loopback-only server</h3>
+                <p>Loopback only; foreign clients and Origins are rejected.</p>
+              </div>
+            </div>
+            <div class="principle">
+              <p>
+                Missing evidence is recorded as unavailable and remains citable.
+              </p>
+              <span>Design rule</span>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>14 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Persistence and recovery</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-55" style="flex: 1">
+              <div>
+                <div class="micro" style="margin-bottom: 2px">Written by a completed run</div>
+                <div class="steps">
+                  <div class="step">
+                    <span class="n">01</span>
+                    <div><h4>Run history</h4><p>Requests, evidence, reflection.</p></div>
+                  </div>
+                  <div class="step">
+                    <span class="n">02</span>
+                    <div><h4>Semantic memory</h4><p>Supported findings used only as context.</p></div>
+                  </div>
+                  <div class="step">
+                    <span class="n">03</span>
+                    <div><h4>Episodic memory</h4><p>Request, route, outcome.</p></div>
+                  </div>
+                  <div class="step">
+                    <span class="n">04</span>
+                    <div><h4>Checkpoints + ledger</h4><p>Drafts and versioned review decisions.</p></div>
+                  </div>
+                  <div class="step">
+                    <span class="n">05</span>
+                    <div><h4>Graph projection</h4><p>Committed with history; idempotent retries.</p></div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="micro" style="margin-bottom: 6px">Recovery, in order</div>
+                <ul class="clean" style="gap: 6px">
+                  <li><code>interrupt()</code> after reflection.</li>
+                  <li><code>Command(resume=...)</code> continues the graph.</li>
+                  <li>Compare-and-set decisions with idempotency keys.</li>
+                  <li>Startup reconciles; missing state fails closed.</li>
+                </ul>
+                <div class="grid g2" style="gap: 8px; margin-top: 10px">
+                  <div class="schema-card">
+                    <div class="schema-title">review</div>
+                    <p>Max two revision cycles.</p>
+                  </div>
+                  <div class="schema-card">
+                    <div class="schema-title">conflict</div>
+                    <p>Stale version → <code>409</code>.</p>
+                  </div>
+                  <div class="schema-card">
+                    <div class="schema-title">pruning</div>
+                    <p>Terminal threads pruned.</p>
+                  </div>
+                  <div class="schema-card">
+                    <div class="schema-title">server</div>
+                    <p>One process per database.</p>
+                  </div>
+                </div>
+                <p class="tiny" style="margin-top: 10px">
+                  CLI: <code>vera reviews</code> · <code>vera review &lt;run_id&gt; --approve</code>
+                </p>
+              </div>
+            </div>
+            <div class="callout violet pushed">
+              Drafts <strong>never</strong> appear in <code>/v1/runs</code>, history, memory or
+              graph projection.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>15 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Interfaces</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="surface-list" style="flex: 1">
+              <div class="surface-row">
+                <div class="surface-head"><h3>HTTP API</h3><span class="url">/docs</span></div>
+                <p>
+                  <code>POST /v1/analyze</code> → report (<code>200</code>) or draft
+                  (<code>202</code>). Read runs, topology, reviews and health.
+                </p>
+                <div class="row-meta">/v1/analyze · /v1/runs · /v1/graph · /v1/reviews</div>
+              </div>
+              <div class="surface-row">
+                <div class="surface-head"><h3>Typer CLI</h3><span class="url">vera</span></div>
+                <p>The CLI exposes the same review gate without a server: analyze, serve, history, evaluate, import, review.</p>
+                <div class="row-meta">--events · --pcap · --offline · --simulated · --json</div>
+              </div>
+              <div class="surface-row">
+                <div class="surface-head"><h3>Workflow Explorer</h3><span class="url">/graph</span></div>
+                <p>Compiled topology, previews, recorded runs, contracts and Mermaid. Previews never call a model.</p>
+                <div class="row-meta">topology · preview · execution</div>
+              </div>
+              <div class="surface-row">
+                <div class="surface-head"><h3>Knowledge Graph Explorer</h3><span class="url">/knowledge-graph</span></div>
+                <p>Search by name, alias or ID; inspect neighbours, predicates, sources and provenance.</p>
+                <div class="row-meta">entities · predicates · sources</div>
+              </div>
+            </div>
+            <div class="callout dark pushed">
+              All components are served locally; there is no external renderer.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>16 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Local model setup</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-55" style="flex: 1">
+              <div>
+                <div class="profile">
+                  <div class="profile-head"><h4>NVIDIA · 6 GB VRAM</h4><b>Qwen3.5-4B</b></div>
+                  <p>
+                    <strong>GGUF Q4_K_M</strong> via LM Studio CUDA, served as
+                    <code>vera-qwen3.5-4b</code>. 8,192 context, thinking off.
+                  </p>
+                </div>
+                <div class="profile" style="margin-top: 10px">
+                  <div class="profile-head"><h4>Apple silicon</h4><b>Qwen3.5-4B MTP</b></div>
+                  <p>
+                    <strong>GGUF Q6_K</strong> via <code>llama-server</code> with MTP. About
+                    <strong>70% faster</strong> decoding, same local quality.
+                  </p>
+                </div>
+                <p class="tiny" style="margin-top: 8px">
+                  Model files are <strong>not</strong> in the repository.
+                </p>
+                <div class="micro" style="margin: 10px 0 6px">Verify the connection</div>
+                <ul class="checks">
+                  <li>Model ID matches.</li>
+                  <li><code>provider_fallback=false</code>: model answered.</li>
+                  <li>Nonempty <code>cited_evidence_ids</code>: graph evidence cited.</li>
+                  <li><code>/health</code> is configuration, not inference.</li>
+                </ul>
+              </div>
+              <div>
+                <div class="micro" style="margin-bottom: 6px">Configuration</div>
+                <pre><code>VERA_LLM_PROVIDER=openai
+VERA_LLM_MODEL=Qwen3.5-4B
+VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
+VERA_KG_ENABLED=true
+VERA_RETRIEVAL_K=3
+VERA_MEMORY_K=1
+VERA_REACT_ENABLED=false
+VERA_LIVE_SOURCES=false</code></pre>
+                <div class="ports" style="margin-top: 12px">
+                  <span class="port">model server <b>:1234</b></span>
+                  <span class="port-arrow">→</span>
+                  <span class="port">VERA <b>:8000</b></span>
+                  <span class="port-arrow">→</span>
+                  <span class="port">loopback browser</span>
+                </div>
+                <div class="callout teal" style="margin-top: 12px">
+                  <strong>No LLM?</strong> <code>VERA_LLM_PROVIDER=deterministic</code> still runs.
+                </div>
+                <p class="tiny" style="margin-top: 8px">
+                  Separate processes: <code>vera serve</code> does not start Qwen.
+                </p>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>17 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Code size and tests</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="grid g4">
+              <div class="card accent">
+                <div class="stat">7,557</div>
+                <div class="stat-label">lines of Python source</div>
+              </div>
+              <div class="card teal">
+                <div class="stat">3,215</div>
+                <div class="stat-label">lines of test code</div>
+              </div>
+              <div class="card amber">
+                <div class="stat">107</div>
+                <div class="stat-label">source modules</div>
+              </div>
+              <div class="card violet">
+                <div class="stat">33</div>
+                <div class="stat-label">test modules</div>
+              </div>
+            </div>
+            <div class="split split-55" style="flex: 1">
+              <div>
+                <div class="micro" style="margin-bottom: 6px">Test layout</div>
+                <ul class="checks">
+                  <li><strong>unit/</strong> — isolated domain behaviour.</li>
+                  <li><strong>integration/</strong> — workflow, API, UI, persistence, evaluation.</li>
+                  <li><strong>architecture/</strong> — repository-wide structural constraints.</li>
+                </ul>
+                <p class="small muted" style="margin-top: 8px">
+                  Graph tests cover imports, two-hop retrieval, conflicts, rollback, missing
+                  databases, simulation and projection retries.
+                </p>
+                <div class="micro" style="margin: 12px 0 6px">Lines of code</div>
+                <div class="bars">
+                  <div class="bar-row"><span>Source</span><div class="bar"><i style="width: 100%"></i></div><b>7,557</b></div>
+                  <div class="bar-row"><span>Tests</span><div class="bar teal"><i style="width: 43%"></i></div><b>3,215</b></div>
+                </div>
+                <p class="tiny" style="margin-top: 6px">
+                  Test code is ~43% of the source line count.
+                </p>
+              </div>
+              <div>
+                <div class="micro" style="margin-bottom: 6px">Development commands</div>
+                <pre><code>E="uv run --extra dev --extra knowledge-graph"
+
+$E ruff check .
+$E pytest
+$E vera evaluate --json
+$E vera corpus-sync
+$E vera kg-build</code></pre>
+                <div class="callout amber" style="margin-top: 12px">
+                  Offline evaluation disables review to measure routing and grounding.
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>18 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Dependencies</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-even" style="flex: 1; align-items: stretch">
+              <div class="card accent">
+                <h4>Runtime</h4>
+                <ul class="clean" style="margin-top: 4px">
+                  <li><strong>Python 3.11+</strong> · packages managed with <code>uv</code></li>
+                  <li><strong>LangGraph</strong> <code>≥0.2.60,&lt;2</code> — workflow orchestration</li>
+                  <li><strong>langgraph-checkpoint-sqlite</strong> <code>≥3.1,&lt;4</code> — checkpoints</li>
+                  <li><strong>FastAPI</strong> <code>≥0.115,&lt;1</code> · <strong>uvicorn</strong> <code>≥0.34,&lt;1</code></li>
+                  <li><strong>Pydantic</strong> <code>≥2.10,&lt;3</code> · <strong>pydantic-settings</strong> <code>≥2.7,&lt;3</code></li>
+                  <li><strong>Typer</strong> <code>≥0.15,&lt;1</code> — CLI</li>
+                  <li><strong>httpx</strong> <code>≥0.27,&lt;1</code> — HTTP client</li>
+                </ul>
+                <p class="small muted" style="margin-top: auto">
+                  Versions are declared in <code>pyproject.toml</code> and locked by
+                  <code>uv.lock</code>.
+                </p>
+              </div>
+              <div class="card violet">
+                <h4>Optional extras</h4>
+                <ul class="clean" style="margin-top: 4px">
+                  <li><strong>kuzu</strong> <code>==0.11.3</code> — <code>knowledge-graph</code> extra, pinned</li>
+                  <li><strong>sentence-transformers</strong> <code>≥3.3,&lt;6</code> — <code>embeddings</code> extra</li>
+                  <li><strong>pytest</strong> <code>≥8.3,&lt;10</code> · <strong>pytest-cov</strong> <code>≥6,&lt;8</code> — <code>dev</code> extra</li>
+                  <li><strong>ruff</strong> <code>≥0.9,&lt;1</code> — lint (E, F, I, UP, B, SIM)</li>
+                </ul>
+                <div class="callout amber" style="margin-top: auto">
+                  Kuzu’s upstream repository is <strong>archived</strong>: the dependency is
+                  pinned to 0.11.3 and the integration requires no extensions.
+                </div>
+              </div>
+            </div>
+            <div class="callout">
+              <strong>Not included:</strong> cloud SDK, external vector database, graph server,
+              frontend build step.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>19 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Getting started</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="split split-55" style="flex: 1">
+              <div class="steps">
+                <div class="step">
+                  <span class="n">1</span>
+                  <div>
+                    <h4>Install</h4>
+                    <pre><code>uv sync --extra dev --extra knowledge-graph
+cp -n .env.example .env</code></pre>
+                  </div>
+                </div>
+                <div class="step">
+                  <span class="n">2</span>
+                  <div>
+                    <h4>Start a local model on port 1234</h4>
+                    <pre><code># Bionic / LM Studio: load Qwen3.5-4B, serve :1234
+curl -fsS http://127.0.0.1:1234/v1/models</code></pre>
+                    <p class="tiny" style="margin-top: 3px">
+                      Or, on Linux/NVIDIA: <code>bash scripts/start-local-model.sh</code>.
+                    </p>
+                  </div>
+                </div>
+                <div class="step">
+                  <span class="n">3</span>
+                  <div>
+                    <h4>Configure</h4>
+                    <p class="small muted">
+                      Set provider, exact model ID, base URL and
+                      <code>VERA_KG_ENABLED=true</code>. Restart after <code>.env</code> changes.
+                    </p>
+                  </div>
+                </div>
+                <div class="step">
+                  <span class="n">4</span>
+                  <div>
+                    <h4>Build the graph and serve</h4>
+                    <pre><code>uv run --extra knowledge-graph vera kg-build
+uv run --extra knowledge-graph vera kg-status
+uv run --extra knowledge-graph vera serve --open-browser</code></pre>
+                  </div>
+                </div>
+                <div class="step">
+                  <span class="n">5</span>
+                  <div>
+                    <h4>Ask the first question</h4>
+                    <pre><code>curl -fsS http://127.0.0.1:8000/v1/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"Explain PowerShell. Give a brief sourced claim."}'</code></pre>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="callout dark">
+                  Model server on <code style="color: #f3efe4; background: rgba(243,239,228,.09); border-color: rgba(243,239,228,.2)">:1234</code>,
+                  VERA on <code style="color: #f3efe4; background: rgba(243,239,228,.09); border-color: rgba(243,239,228,.2)">:8000</code>.
+                  <code style="color: #f3efe4; background: rgba(243,239,228,.09); border-color: rgba(243,239,228,.2)">vera serve</code>
+                  does not start Qwen.
+                </div>
+                <div class="micro" style="margin: 12px 0 6px">Where to look</div>
+                <div class="tags">
+                  <span class="tag">/docs · Swagger</span>
+                  <span class="tag">/graph · workflow</span>
+                  <span class="tag">/knowledge-graph · domain</span>
+                  <span class="tag">/health · configuration</span>
+                </div>
+                <div class="callout teal" style="margin-top: 12px">
+                  <strong>No model?</strong> <code>VERA_LLM_PROVIDER=deterministic</code> still
+                  runs the workflow.
+                </div>
+                <p class="tiny" style="margin-top: 8px">
+                  Check <code>metadata.model</code> and <code>provider_fallback=false</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>20 / 21</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Limitations</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="grid g2" style="flex: 1">
+              <div class="limit">
+                <h3>No asset inventory</h3>
+                <p>No version matching; no automatic CVE-to-technique mapping.</p>
+              </div>
+              <div class="limit">
+                <h3>Dated corpus</h3>
+                <p>The corpus is a focused snapshot and is not continuously refreshed.</p>
+              </div>
+              <div class="limit">
+                <h3>Lexical grounding</h3>
+                <p>Citations are checked lexically; full inference is out of scope.</p>
+              </div>
+              <div class="limit">
+                <h3>Coverage score</h3>
+                <p>The score measures evidence coverage. It does not measure whether conclusions are correct.</p>
+              </div>
+              <div class="limit">
+                <h3>No expiry policy</h3>
+                <p>Cached API records are not live lookups.</p>
+              </div>
+              <div class="limit">
+                <h3>Limited concurrency</h3>
+                <p>One API worker; close the database before replacing it.</p>
+              </div>
+            </div>
+            <div class="principle">
+              <p>
+                Graph relations describe domain facts, not host compromise: PowerShell →
+                subtechnique_of → T1059.
+              </p>
+              <span class="note">Teaching prototype only.</span>
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>21 / 21</span>
+          </footer>
+        </section>
+      </div>
+    </div>
+
+    <script src="vendor/reveal.js/reveal.js"></script>
+    <script>
+      Reveal.initialize({
+        hash: true,
+        slideNumber: false,
+        width: 1210,
+        height: 681,
+        margin: 0,
+        center: false,
+        minScale: 0.2,
+        maxScale: 1.6,
+        transition: "fade",
+        transitionSpeed: "fast",
+        backgroundTransition: "fade",
+        pdfSeparateFragments: false,
+        pdfMaxPagesPerSlide: 1,
+        plugins: [],
+      });
+    </script>
+  </body>
+</html>
