@@ -5,6 +5,9 @@
 # Existing VERA runtime data: databases, models, backups and reports
 /.vera/
 
+# Generated Kaggle upload archives
+/vera-sft-*.zip
+
 # Existing Python and tool caches
 __pycache__/
 /.pytest_cache/

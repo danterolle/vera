@@ -196,3 +196,5 @@ and `VERA_EMBEDDING_BACKEND=sentence-transformers` instead of the default hash b
 See [Knowledge Graph](docs/knowledge-graph.md), [Workflow Explorer](docs/workflow-explorer.md),
 [local models](docs/local-model.md), [architecture](docs/architecture.md), and
 [data provenance](docs/data-provenance.md) for details and limits.
+
+[Kaggle fine-tuning](docs/fine-tuning.md) covers offline data preparation and Kaggle-only LoRA.

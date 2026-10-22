@@ -30,6 +30,7 @@ knowledge-graph = ["kuzu==0.11.3"]
 
 [project.scripts]
 vera = "vera.interfaces.cli:app"
+vera-prepare-kaggle = "vera.training.bundle:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/vera"]
