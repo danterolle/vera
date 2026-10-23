@@ -32,6 +32,8 @@ def prepare_bundle(
         for source, name in (
             (root / "training/kaggle/requirements-lock.txt", "requirements-kaggle.txt"),
             (root / "training/kaggle/vera-qwen35.ipynb", "vera-qwen35.ipynb"),
+            (root / "training/kaggle/bootstrap.py", "bootstrap.py"),
+            (root / "training/kaggle/recover.py", "recover.py"),
             (root / "docs/fine-tuning.md", "INSTRUCTIONS.md"),
         ):
             shutil.copyfile(source, staging / name)
@@ -52,6 +54,9 @@ def prepare_bundle(
                     raise ValueError(f"Unexpected private/runtime file in wheel: {name}")
         files = sorted(path for path in staging.rglob("*") if path.is_file())
         manifest = {
+            "format_version": 2,
+            "workflow_version": 3,
+            "runtime_isolation": "venv",
             "files": {str(path.relative_to(staging)): file_hash(path) for path in files},
             "notice": "Private synthetic bootstrap data; automated checks are not expert approval.",
             "training_location": "Kaggle only; bundle preparation never loads model weights.",
@@ -69,7 +74,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Prepare a private Kaggle dataset; no training runs.",
     )
-    parser.add_argument("--output", type=Path, default=Path(".vera/finetuning/vera-sft-v1"))
+    parser.add_argument("--output", type=Path, default=Path(".vera/finetuning/vera-sft-v3"))
     parser.add_argument("--seed", type=int, default=3407)
     parser.add_argument("--train-size", type=int, default=2000)
     parser.add_argument("--validation-size", type=int, default=200)

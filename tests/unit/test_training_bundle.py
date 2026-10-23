@@ -54,6 +54,8 @@ def test_bundle_only_copies_explicit_files_and_wheel(tmp_path, monkeypatch):
         names = package.namelist()
         assert "data/manifest.json" in names
         assert "wheels/vera.whl" in names
+        assert "bootstrap.py" in names
+        assert json.loads(package.read("bundle.json"))["workflow_version"] == 3
         assert json.loads(package.read("quality-report.json"))["passed"] is True
         assert not any(".env" in name or name.endswith((".db", ".gguf")) for name in names)
     manifest = json.loads((output / "bundle.json").read_text())
