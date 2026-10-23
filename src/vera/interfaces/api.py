@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 
@@ -24,10 +27,20 @@ def create_app(
     orchestrator: VeraOrchestrator | None = None,
 ) -> FastAPI:
     engine = orchestrator or VeraOrchestrator(settings)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            if orchestrator is None:
+                engine.close()
+
     application = FastAPI(
         title="VERA",
         version=__version__,
         description="Vulnerability Evidence and Reasoning Agent",
+        lifespan=lifespan,
     )
     application.state.orchestrator = engine
     knowledge_store = engine.runtime.knowledge_graph or KnowledgeGraphStore(engine.settings)

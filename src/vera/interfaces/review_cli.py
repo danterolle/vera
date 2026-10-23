@@ -78,7 +78,8 @@ def list_reviews(
     ] = False,
 ) -> None:
     try:
-        records = VeraOrchestrator(Settings()).list_reviews()
+        with VeraOrchestrator(Settings()) as engine:
+            records = engine.list_reviews()
     except (VeraError, ValueError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
@@ -138,49 +139,49 @@ def review(
         raise typer.BadParameter("--reject requires feedback")
     if revise is not None and not revise.strip():
         raise typer.BadParameter("--revise requires feedback")
-    engine = VeraOrchestrator(Settings())
-    try:
-        record = engine.get_review(run_id)
-    except (VeraError, ValueError) as exc:
-        typer.echo(f"Error: {exc}", err=True)
-        raise typer.Exit(code=1) from exc
-    if record is None:
-        typer.echo(f"Error: review {run_id} was not found", err=True)
-        raise typer.Exit(code=1)
-    action = None
-    feedback = None
-    if approve:
-        action = "approve"
-    elif reject is not None:
-        action = "reject"
-        feedback = reject.strip()
-    elif revise is not None:
-        action = "revise"
-        feedback = revise.strip()
-    if retry:
-        if record.status != ReviewStatus.ERROR or record.retry_decision is None:
-            typer.echo("Error: there is no interrupted decision to retry", err=True)
-            raise typer.Exit(code=1)
-        decision = record.retry_decision
-    elif action is not None:
+    with VeraOrchestrator(Settings()) as engine:
         try:
-            decision = new_decision(record, action, feedback)
-        except VeraError as exc:
+            record = engine.get_review(run_id)
+        except (VeraError, ValueError) as exc:
             typer.echo(f"Error: {exc}", err=True)
             raise typer.Exit(code=1) from exc
-    else:
-        if json_output:
-            typer.echo(record.model_dump_json(indent=2))
+        if record is None:
+            typer.echo(f"Error: review {run_id} was not found", err=True)
+            raise typer.Exit(code=1)
+        action = None
+        feedback = None
+        if approve:
+            action = "approve"
+        elif reject is not None:
+            action = "reject"
+            feedback = reject.strip()
+        elif revise is not None:
+            action = "revise"
+            feedback = revise.strip()
+        if retry:
+            if record.status != ReviewStatus.ERROR or record.retry_decision is None:
+                typer.echo("Error: there is no interrupted decision to retry", err=True)
+                raise typer.Exit(code=1)
+            decision = record.retry_decision
+        elif action is not None:
+            try:
+                decision = new_decision(record, action, feedback)
+            except VeraError as exc:
+                typer.echo(f"Error: {exc}", err=True)
+                raise typer.Exit(code=1) from exc
+        else:
+            if json_output:
+                typer.echo(record.model_dump_json(indent=2))
+                return
+            echo_review(record)
+            if interactive or sys.stdin.isatty():
+                apply_decision(engine, record, prompt_decision(record), json_output=False)
+            if record.status == ReviewStatus.ERROR:
+                typer.echo(f"Review left in error. Run: vera review {run_id} --retry")
+                raise typer.Exit(code=2)
+            if record.status == ReviewStatus.PENDING:
+                typer.echo(f"Review left pending. Run: vera review {run_id} --interactive")
+                raise typer.Exit(code=2)
+            typer.echo(f"Review {run_id} is {record.status.value}; no action is possible.")
             return
-        echo_review(record)
-        if interactive or sys.stdin.isatty():
-            apply_decision(engine, record, prompt_decision(record), json_output=False)
-        if record.status == ReviewStatus.ERROR:
-            typer.echo(f"Review left in error. Run: vera review {run_id} --retry")
-            raise typer.Exit(code=2)
-        if record.status == ReviewStatus.PENDING:
-            typer.echo(f"Review left pending. Run: vera review {run_id} --interactive")
-            raise typer.Exit(code=2)
-        typer.echo(f"Review {run_id} is {record.status.value}; no action is possible.")
-        return
-    apply_decision(engine, record, decision, json_output=json_output)
+        apply_decision(engine, record, decision, json_output=json_output)

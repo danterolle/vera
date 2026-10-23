@@ -69,8 +69,8 @@ def run_evaluation(settings: Settings | None = None) -> EvaluationReport:
                 "live_sources": False,
             }
         )
-        orchestrator = VeraOrchestrator(isolated, review_enabled=False)
-        results = [_run_scenario(orchestrator, scenario) for scenario in scenarios]
+        with VeraOrchestrator(isolated, review_enabled=False) as orchestrator:
+            results = [_run_scenario(orchestrator, scenario) for scenario in scenarios]
     count = len(results)
     event_results = [item for item in results if item.has_events]
     factual_claims = sum(item.factual_claims for item in results)

@@ -74,32 +74,32 @@ def analyze(
     settings = Settings()
     if offline:
         settings = settings.model_copy(update={"live_sources": False})
-    engine = VeraOrchestrator(settings)
-    try:
-        normalized = load_events(events, settings.max_events) if events else []
-        if pcap is not None:
-            normalized = PcapExtractor(settings.max_events).extract(pcap)
-        if simulated:
-            normalized = [event.model_copy(update={"simulated": True}) for event in normalized]
-        result = engine.analyze(
-            AnalysisRequest(query=query, events=normalized, simulated=simulated)
-        )
-    except (VeraError, ValueError) as exc:
-        typer.echo(f"Error: {exc}", err=True)
-        raise typer.Exit(code=1) from exc
-    if isinstance(result, ReviewRecord):
-        if json_output:
-            typer.echo(result.model_dump_json(indent=2))
+    with VeraOrchestrator(settings) as engine:
+        try:
+            normalized = load_events(events, settings.max_events) if events else []
+            if pcap is not None:
+                normalized = PcapExtractor(settings.max_events).extract(pcap)
+            if simulated:
+                normalized = [event.model_copy(update={"simulated": True}) for event in normalized]
+            result = engine.analyze(
+                AnalysisRequest(query=query, events=normalized, simulated=simulated)
+            )
+        except (VeraError, ValueError) as exc:
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+        if isinstance(result, ReviewRecord):
+            if json_output:
+                typer.echo(result.model_dump_json(indent=2))
+                raise typer.Exit(code=2)
+            prompt_human = interactive if interactive is not None else sys.stdin.isatty()
+            if prompt_human:
+                prompt_review(engine, result)
+            typer.echo(
+                f"Review required for {result.run_id}. Open /graph on the local VERA server "
+                f"or run: vera review {result.run_id}"
+            )
             raise typer.Exit(code=2)
-        prompt_human = interactive if interactive is not None else sys.stdin.isatty()
-        if prompt_human:
-            prompt_review(engine, result)
-        typer.echo(
-            f"Review required for {result.run_id}. Open /graph on the local VERA server "
-            f"or run: vera review {result.run_id}"
-        )
-        raise typer.Exit(code=2)
-    typer.echo(result.model_dump_json(indent=2) if json_output else result.answer)
+        typer.echo(result.model_dump_json(indent=2) if json_output else result.answer)
 
 
 @app.command("evaluate")
@@ -153,7 +153,8 @@ def serve(
 def history(
     limit: Annotated[int, typer.Option(min=1, max=100)] = 10,
 ) -> None:
-    runs = VeraOrchestrator().list_runs(limit)
+    with VeraOrchestrator() as engine:
+        runs = engine.list_runs(limit)
     typer.echo(
         json.dumps(
             [

@@ -1,3 +1,4 @@
+from contextlib import ExitStack
 from dataclasses import replace
 from uuid import uuid4
 
@@ -67,12 +68,23 @@ class VeraOrchestrator:
             ),
         )
         self.reviews = ReviewStore(self.runtime.memory)
-        self.checkpointer = sqlite_checkpointer(self.settings.db_path)
-        self.graph = build_graph(
-            self.runtime, checkpointer=self.checkpointer, review_enabled=review_enabled
-        )
-        self.review_service = ReviewService(self.runtime, self.graph, self.reviews)
-        recover_reviews(self.checkpointer, self.review_service)
+        with ExitStack() as resources:
+            self.checkpointer = resources.enter_context(sqlite_checkpointer(self.settings.db_path))
+            self.graph = build_graph(
+                self.runtime, checkpointer=self.checkpointer, review_enabled=review_enabled
+            )
+            self.review_service = ReviewService(self.runtime, self.graph, self.reviews)
+            recover_reviews(self.checkpointer, self.review_service)
+            self._resources = resources.pop_all()
+
+    def __enter__(self) -> "VeraOrchestrator":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+    def close(self) -> None:
+        self._resources.close()
 
     def analyze(self, request: AnalysisRequest | dict) -> AnalysisResult | ReviewRecord:
         normalized = (

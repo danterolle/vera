@@ -176,6 +176,10 @@ outcome. Retrieval uses the configured local embedder and can be scoped by `sess
 LangGraph SQLite checkpoints and the review ledger hold unpublished drafts before finalization;
 only approved drafts enter run history and memory. See [Human review](human-review.md).
 
+Use `with VeraOrchestrator(...) as engine:` in Python, or call `engine.close()` when done.
+CLI commands and evaluation close their checkpoint connections on exit. The HTTP application
+closes its own orchestrator at shutdown; an injected orchestrator remains caller-owned.
+
 ## Domain knowledge graph
 
 The optional [Kuzu integration](knowledge-graph.md) acquires evidence through bounded,

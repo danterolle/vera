@@ -1,7 +1,7 @@
 import json
 import sqlite3
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 from uuid import uuid4
 
@@ -168,12 +168,9 @@ class MemoryStore:
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
-        connection = sqlite3.connect(self.path, timeout=10)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        connection.execute("PRAGMA journal_mode = WAL")
-        try:
-            yield connection
-            connection.commit()
-        finally:
-            connection.close()
+        with closing(sqlite3.connect(self.path, timeout=10)) as connection:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("PRAGMA journal_mode = WAL")
+            with connection:
+                yield connection

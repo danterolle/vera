@@ -1,4 +1,6 @@
 import sqlite3
+from collections.abc import Iterator
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
@@ -28,9 +30,10 @@ CHECKPOINT_MODELS = [
 ]
 
 
-def sqlite_checkpointer(path: Path) -> SqliteSaver:
-    connection = sqlite3.connect(path, timeout=10, check_same_thread=False)
-    connection.execute("PRAGMA busy_timeout = 10000")
-    return SqliteSaver(
-        connection, serde=JsonPlusSerializer(allowed_msgpack_modules=CHECKPOINT_MODELS)
-    )
+@contextmanager
+def sqlite_checkpointer(path: Path) -> Iterator[SqliteSaver]:
+    with closing(sqlite3.connect(path, timeout=10, check_same_thread=False)) as connection:
+        connection.execute("PRAGMA busy_timeout = 10000")
+        yield SqliteSaver(
+            connection, serde=JsonPlusSerializer(allowed_msgpack_modules=CHECKPOINT_MODELS)
+        )
