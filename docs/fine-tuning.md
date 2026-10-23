@@ -1,10 +1,31 @@
-# Qwen3.5 fine-tuning on Kaggle
+# Isolated Kaggle validation for Qwen3.5
 
-Training runs **only on Kaggle**. Local commands below prepare synthetic data, run ordinary
-code checks, and build an upload archive. They do not load model weights or train adapters.
-Training dependencies are isolated in `training/kaggle/requirements.txt`, not VERA's runtime.
+This package currently validates installation, data formatting and an optional baseline.
+It is **not a ready domain fine-tuning dataset**. The default notebook never starts training
+or downloads Qwen model weights. Real CUDA checks run only on Kaggle; local verification
+does not establish T4 compatibility, model memory fit or training stability.
 
-## Prepare the private upload
+## Data suitability
+
+The default bundle has 2,000 training, 200 validation and 300 test conversations.
+Each JSONL shard has up to 200 complete system/user/assistant exchanges, not one sentence.
+The targets follow VERA's short JSON answer contract.
+
+However, the 1,300 factual claims in the training split contain only **86 distinct texts**.
+Template variations are useful for testing quotation, JSON, unavailable information,
+memory boundaries and simulation handling; they are not independent expert annotations.
+The manifest explicitly marks the data `purpose: "contract_bootstrap"`.
+Full training is rejected on that purpose before GPU libraries are imported.
+Domain SFT needs a separate, substantially more diverse dataset and independent evaluation.
+Changing a metadata label is not a substitute for collecting suitable examples.
+
+The automated audit checks every target, original factual source, duplicate, split and
+claim-status coverage. Each split contains simulated traffic with and without alerts.
+This is not expert or legal approval. The software license does not replace source terms.
+Keep uploads private; upstream data provenance is retained in `data/sources.jsonl`.
+No local runtime databases, real logs, credentials or genuine HITL decisions are read.
+
+## Build the private package
 
 From the repository root:
 
@@ -12,136 +33,100 @@ From the repository root:
 uv run vera-prepare-kaggle
 ```
 
-The upload ZIP is visible at `vera-sft-v1.zip` in the repository root. A copy and its unpacked
-contents are kept in `.vera/finetuning/`, which Finder normally hides.
-Existing outputs are never overwritten; use `--output .vera/finetuning/vera-sft-v2` for a
-new bundle. Optional `--train-size`, `--validation-size`, `--test-size`, and `--seed` flags
-control generation; each split needs at least 20 examples.
+The visible upload is `vera-sft-v3.zip`. An identical copy and unpacked contents are kept in
+`.vera/finetuning/vera-sft-v3/`. Existing outputs are not overwritten; use
+`--output .vera/finetuning/vera-sft-v4` for another build.
+Optional `--train-size`, `--validation-size`, `--test-size` and `--seed` control generation.
+Every split needs at least 20 examples. Increasing row counts does not create new expertise.
 
-The archive contains the following:
-
-| Path | Purpose |
+| Included path | Purpose |
 | --- | --- |
-| `data/train/*.jsonl` | 2,000 synthetic training conversations |
-| `data/validation/*.jsonl` | 200 model-selection conversations |
-| `data/test/*.jsonl` | 300 final held-out conversations |
-| `data/sources.jsonl` | Source URLs, original IDs, content hashes and version metadata |
-| `data/manifest.json` | Split groups, checksums, task counts and limitations |
-| `wheels/*.whl` | Installable VERA code and bundled public resources |
-| `requirements-kaggle.txt` | Pinned core training packages and Unsloth source revisions |
-| `vera-qwen35.ipynb` | Notebook to import into Kaggle |
-| `bundle.json` | Checksums for the complete upload |
-| `quality-report.json` | Exhaustive automated target, provenance, split and coverage audit |
+| `data/*/*.jsonl` | Synthetic contract conversations |
+| `data/sources.jsonl` | Original source IDs, URLs, versions and content hashes |
+| `data/manifest.json` | Purpose, split groups and shard checksums |
+| `quality-report.json` | Automated audit, diversity counts and explicit limitations |
+| `wheels/*.whl` | VERA package, without local secrets or model weights |
+| `requirements-kaggle.txt` | Linux/Python 3.11 dependency lock |
+| `bootstrap.py` | Isolated installer and dependency checks |
+| `vera-qwen35.ipynb` | Notebook with safe defaults |
+| `bundle.json` | Upload checksums and workflow version |
 
-No `.env`, `.vera` databases, local model weights, real logs or existing HITL decisions are
-read. The wheel includes VERA's public package, not the local checkout or its Git history.
-The notebook checks the automated audit without requiring a manual-review declaration.
-This is not expert or legal approval. The repository's software license does not replace
-upstream data licenses. Keep the Dataset and notebook private; public
-redistribution and commercial use require a separate source-license review.
+## Notebook flow
 
-## Data contract and limitations
+Attach only the v3 bundle to a private Kaggle notebook, enable Internet and select T4 x2.
+Import `training/kaggle/vera-qwen35.ipynb`. No kernel restart is required.
+By default, Run All executes only:
 
-Each row has `messages`, an ID, task, source groups and provenance. The system/user messages
-use VERA's actual `SYSTEM_PROMPT` and `generation_prompt`; the assistant target is
-`GeneratedAnswer` JSON, not a rendered report or `AnalysisResult`.
-Targets pass the existing claim validator and additional exact-quotation checks.
+1. Bundle, workflow-version and data-audit verification.
+2. Installation in `/kaggle/working/vera-finetuning/runtime`.
+3. A runtime check: real imports, loader/trainer APIs, NumPy and small CUDA arithmetic.
+4. Tokenizer-only validation of every record, including exact assistant loss masks.
+5. Packaging of available diagnostics and provenance, even without a trained adapter.
 
-Half the examples teach grounded quoting. The remainder cover unavailable sources,
-irrelevant records, memory-only context, cautious inference, simulated traffic, scope,
-untrusted instructions and synthetic revision feedback. All targets are explicitly
-`synthetic_template`, with **no human-review approval implied**.
-This bootstrap dataset teaches the application contract, not general cybersecurity expertise.
-2,500 augmented examples are not 2,500 independently annotated security cases.
-The automated audit checks every row, including exact origin of factual source content.
-Each split contains simulated traffic both above and below its detection threshold.
+The installer uses an actual virtual environment with global and user packages excluded.
+It never installs training packages into Kaggle's notebook-kernel Python.
+`pip check` must pass before the isolated runtime is marked ready.
+All subprocesses, including DDP, use that runtime's Python with `-I`.
+Python path/home overrides are removed. The base notebook environment is not repaired,
+upgraded or downgraded by the installer.
 
-Source records are grouped before augmentation by shared URLs, identifiers and exact
-content. Parent/subtechnique IDs share a group. Source groups never cross splits;
-distractors come from the same split. Relationship-only ATT&CK and OWASP mapping records
-are excluded rather than treated as independently grounded graph conclusions.
-Stream families are separately held out: port scanning for training, authentication for
-validation and SYN bursts for testing. Stream technique IDs can occur in document examples;
-this is not a claim that every semantic concept is unseen during training.
-Scope topics are also separated. Exact semantic duplicates ignore randomized evidence IDs.
-Nothing changes VERA's graph traversal, detector thresholds, tools or HITL policy.
+If any stage fails, do not continue to later compute stages. The download cell can still
+collect available diagnostics. Existing reports are preserved rather than silently reused
+or overwritten; use a fresh work directory for an independent repeated validation.
 
-## Kaggle execution
+### Optional model baseline
 
-1. Create a **private Dataset** from the ZIP, preserving its extracted directories.
-2. Import `training/kaggle/vera-qwen35.ipynb` into a **private notebook**, attach that Dataset,
-   enable Internet and select **GPU T4 x2**.
-3. Run the location cell: it verifies all bundle hashes and the matching automated audit.
-4. Run location and installation. Restart the kernel, rerun location, then configuration.
-   Installation uses CUDA 12.6 wheels and must be compatible with Kaggle's installed driver.
-5. Leave `GPU_COUNT = 1`. Run preflight, baseline, 40-update smoke training and smoke
-   evaluation. Preflight rejects overlong examples instead of truncating evidence or JSON.
-6. Inspect the raw validation answers, rates, finite gradients, changed adapter weights,
-   memory and measured time. Only then set `RUN_FULL_TRAINING = True`, rerun configuration,
-   and execute the full-training and full-validation cells.
-7. After selecting an adapter, optionally enable `RUN_FINAL_TEST` for the same 300 held-out
-   examples on both models. Do not select more hyperparameters against the test results.
-8. Download the complete results ZIP before ending the session. It includes the adapter,
-   retained checkpoints and smoke provenance. Save the notebook without automatically
-   rerunning all cells. Export to merged weights or GGUF is optional and disabled by default.
+Only after the runtime and data checks pass, set `RUN_BASELINE = True` and execute the
+baseline cell. It downloads the pinned Qwen3.5-4B weights and evaluates nine stratified cases.
+No claim repair or deterministic provider fallback is used.
+Raw answers and truncation are retained. This checks the application contract, not the
+whole of cybersecurity reasoning, summary accuracy or HITL behavior.
 
-The notebook uses separate subprocesses so model memory is released between stages.
-Do not use Run All blindly, rerun completed output cells, or keep an idle GPU session running.
-Only the main training process writes shared reports, adapters and checkpoint recipes.
+### Optional training compatibility probe
 
-## T4 precision, memory and two GPUs
+`RUN_SMOKE = False` by default. After a baseline, explicitly enabling it performs only five
+optimizer updates, followed by a small adapter evaluation. This is a numerical and memory
+compatibility experiment, not domain fine-tuning or evidence of improved quality.
+Finite gradients and actual adapter updates are checked; non-finite values stop execution.
+Keep full training, final model testing and export disabled for the bundled bootstrap.
 
-The recipe pins `Qwen/Qwen3.5-4B` revision
-`851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a`, uses language-only rank-8 LoRA,
+The separate CLI also rejects full training on the bootstrap, even if a smoke report passes.
+An appropriate domain dataset, independent evaluation and a matching successful smoke run
+are prerequisites for any future full-training use.
+
+## T4 limitations and quota
+
+The model is `Qwen/Qwen3.5-4B`, pinned to revision
+`851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a`. The optional LoRA probe uses rank 8,
 alpha 16, learning rate `5e-5`, batch 1, gradient checkpointing and no 4-bit training.
-Only assistant target tokens contribute to the loss. Default context is 2,048 tokens;
-data-loader workers are zero and dataset preparation uses one process.
+The context limit is 2,048 tokens; overlong examples fail instead of being truncated.
 
-T4 has no native BF16. Qwen3.5's generic FP16 path can overflow, so the loader must activate
-its float32 safeguards; training does not force FP16 autocast.
+T4 has no native BF16. Qwen3.5's generic FP16 path can overflow, so the pinned loader must
+activate its float32 safeguards. No forced FP16 override or automatic QLoRA fallback exists.
 The advertised BF16 memory estimate is not a T4 guarantee.
-Dependency installation, CUDA kernels, peak memory and real training speed still need the
-Kaggle smoke run; CPU tests do not establish CUDA compatibility.
-The Linux/Python 3.11 dependency lock is generated from `requirements.txt` and `pyproject.toml`;
-each run also saves the actual `pip freeze` environment. The notebook installs the lock.
+Runtime checks do not load the full model or exercise gated-delta training kernels;
+their report explicitly leaves `model_load_verified` and `training_verified` false.
 
-If the one-GPU smoke run succeeds, optionally change `GPU_COUNT = 2`, rerun configuration,
-and run a **new** smoke/evaluation pair before full DDP training.
-One GPU uses accumulation 8; two GPUs use accumulation 4 per process, keeping effective
-batch 8. DDP replicates the model and does not combine memory into a 32 GB device.
-If useful contexts do not fit one card, stop: DDP is not a memory fix. Do not disable
-precision guards or silently switch to QLoRA. Sharding/offload needs a separate experiment.
+Start with `GPU_COUNT = 1`, even though Kaggle supplies two T4 cards.
+DDP replicates the model; it does not combine them into a single 32 GB memory device.
+One process uses accumulation 8; two use accumulation 4 to preserve effective batch 8.
+Every different GPU count/context/recipe needs its own compatibility probe.
+Treat 30 weekly hours as a ceiling, not a training target. Do not leave an idle GPU session
+running, run repeated hyperparameter searches on the bootstrap or infer timing from JIT startup.
 
-Treat the 30 weekly hours as a ceiling, not a training target. Reserve at most two hours
-for initial compatibility, eight for a first training run, six for a motivated alternative,
-four for evaluation/export and ten for recovery. These are spending caps, not runtime
-predictions. With 2,000 examples and effective batch 8, one epoch is about 250 updates.
-Estimate elapsed time after compilation, adding evaluation and checkpoint overhead.
+## Persistence and older notebooks
 
-## Checkpoints, evaluation and deployment
+Download the results ZIP before ending a session. It includes diagnostics, provenance and
+any completed adapter/checkpoints, but never the installed runtime or model caches.
+A diagnostics ZIP without an adapter is explicitly identified as such.
+Interrupted smoke runs can still preserve complete checkpoints through the download cell.
+Only your own complete Trainer checkpoints are safe resume inputs.
 
-Smoke runs save every ten updates; full runs save every fifty and retain two checkpoints.
-Checkpoints contain optimizer/scheduler/RNG state and a recipe fingerprint, not just LoRA.
-The download cell can also archive full-run checkpoints after a training subprocess fails,
-even if no final adapter was saved. Run it before ending the interactive session.
-After interruption, attach previously saved Kaggle outputs or the extracted results ZIP
-as a private Dataset. Set `SMOKE_REPORT_OVERRIDE` to `provenance/smoke-report.json` and
-`RESUME_CHECKPOINT` to the original complete checkpoint directory in configuration.
-Resume requires the same dataset hash, model revision, GPU count and training recipe.
-A model-only adapter is not accepted as a resumable Trainer checkpoint.
-Checkpoint files are trusted executable model artifacts; only resume your own outputs.
-
-Raw evaluation checks JSON, exact quotation grounding, expected claim statuses, relevant
-factual source selection and scope, without repair or provider fallback. It preserves raw
-answers and identifies output truncation. The small validation subset is stratified by task.
-These checks do not fully validate prose summaries or exercise HITL. After deployment,
-keep VERA's application-level review rules and compare matched local runs; missing evidence
-can correctly result in HTTP 202, not an autonomous report.
-
-The adapter pins its original base revision. Optional export uses that same base and can
-require substantial RAM/disk or llama.cpp compilation. GGUF quantization after LoRA is
-different from QLoRA training. MTP preservation is not verified. Compare the exported GGUF
-again against the original local profile before changing `VERA_LLM_MODEL`.
+If an old global installer changed Kaggle's preinstalled packages, a kernel restart alone
+does not undo those pip changes. If the kernel still works, the legacy recovery cell
+`training/kaggle/recover.py` can use a separate environment without reuploading its Dataset.
+If the notebook was deleted or the kernel itself is broken, use a clean session and the v3
+workflow only after its actual T4 validation has been confirmed.
 
 References: [Qwen model](https://huggingface.co/Qwen/Qwen3.5-4B),
 [Unsloth Qwen3.5](https://unsloth.ai/docs/models/qwen3.5/fine-tune),
