@@ -2,6 +2,9 @@
 
 A reveal.js deck describing the VERA project, plus a headless-Chrome PDF export.
 
+The deck and PDF retain a historical project snapshot, including references to the
+automated test suite that has since been removed.
+
 ## Files
 
 ```text

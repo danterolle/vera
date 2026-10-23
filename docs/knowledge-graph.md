@@ -117,13 +117,8 @@ in the RAG/tools/full branches, including when ReAct is enabled; it is not a mod
 ReAct action. Conceptual CAG-only and benign stream-only branches do not query the graph.
 
 ```bash
-uv run --extra dev --extra knowledge-graph pytest
 uv run --extra dev --extra knowledge-graph ruff check .
 ```
-
-The graph tests cover repeated import, two-hop retrieval, source conflicts, failed-import
-rollback, missing databases, simulation, CLI/API inspection, and projection retries.
-A workflow test disables lexical retrieval and verifies that graph-only evidence is cited.
 
 ## Data and operational contract
 

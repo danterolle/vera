@@ -181,14 +181,14 @@ and `simulated`; memory is not authoritative factual support.
 
 ```bash
 uv run --extra dev --extra knowledge-graph ruff check .
-uv run --extra dev --extra knowledge-graph pytest
 VERA_LLM_PROVIDER=deterministic uv run --extra knowledge-graph vera evaluate --json
 uv run --extra knowledge-graph vera corpus-sync
 uv run --extra knowledge-graph vera kg-build
 ```
 
-Corpus synchronization is explicit and downloads official ATT&CK/CISA data; it is not
-required for the bundled graph. Rebuild after synchronization to import the updated sources.
+CI runs Ruff; no automated test suite is included. Corpus synchronization is explicit and
+downloads official ATT&CK/CISA data; it is not required for the bundled graph. Rebuild after
+synchronization to import the updated sources.
 Other provider adapters are Ollama and Gemini; settings are defined in `.env.example` and
 [`Settings`](src/vera/config.py). Optional Sentence Transformers use the `embeddings` extra
 and `VERA_EMBEDDING_BACKEND=sentence-transformers` instead of the default hash backend.

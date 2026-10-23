@@ -61,11 +61,6 @@ src/vera/
     ├── evaluation/  Controlled benchmark scenarios
     ├── samples/     Safe synthetic event streams
     └── web/graph/   Workflow explorer HTML, styles, and scripts
-
-tests/
-├── unit/            Isolated domain behavior
-├── integration/     Workflow, API, UI, persistence, and evaluation
-└── architecture/    Repository-wide structural constraints
 ```
 
 ## Routing contract

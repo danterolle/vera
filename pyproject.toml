@@ -21,8 +21,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.3,<10",
-  "pytest-cov>=6,<8",
   "ruff>=0.9,<1",
 ]
 embeddings = ["sentence-transformers>=3.3,<6"]
@@ -33,11 +31,6 @@ vera = "vera.interfaces.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/vera"]
-
-[tool.pytest.ini_options]
-addopts = "-q"
-pythonpath = ["src"]
-testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
