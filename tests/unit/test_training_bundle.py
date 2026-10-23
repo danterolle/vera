@@ -3,6 +3,7 @@ import json
 import zipfile
 from pathlib import Path
 
+import nbformat
 import pytest
 
 from vera.training.bundle import main, prepare_bundle
@@ -14,6 +15,7 @@ ROOT = Path(__file__).parents[2]
 def test_notebook_is_valid_python_and_keeps_expensive_actions_opt_in():
     path = ROOT / "training/kaggle/vera-qwen35.ipynb"
     notebook = json.loads(path.read_text())
+    nbformat.validate(nbformat.read(path, as_version=4))
     assert notebook["nbformat"] == 4
     code = []
     for cell in notebook["cells"]:
