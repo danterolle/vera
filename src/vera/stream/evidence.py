@@ -1,9 +1,8 @@
 import json
 from collections import defaultdict
 
+from vera.domain.enums import SEVERITY_ORDER
 from vera.domain.reports import DetectionAlert, StreamStatistics
-
-SEVERITY_RANK = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 
 
 def summarize_stream(
@@ -24,7 +23,7 @@ def summarize_stream(
             (alert.last_seen for alert in values if alert.last_seen is not None),
             default=None,
         )
-        highest = max(values, key=lambda alert: SEVERITY_RANK[alert.severity.value])
+        highest = max(values, key=lambda alert: SEVERITY_ORDER[alert.severity])
         summaries.append(
             {
                 "rule_id": rule_id,

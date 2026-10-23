@@ -1,11 +1,9 @@
 from collections import defaultdict
 
-from vera.domain.enums import ClaimStatus, EvidenceStatus
+from vera.domain.enums import SEVERITY_ORDER, ClaimStatus, EvidenceStatus
 from vera.domain.evidence import Citation, Claim, Evidence
 from vera.domain.reports import DetectionAlert, StreamStatistics
 from vera.domain.requests import AnalysisRequest
-
-SEVERITY_RANK = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
 
 
 def compose_stream(
@@ -18,7 +16,7 @@ def compose_stream(
     simulated = simulated or bool(stream and stream.status == EvidenceStatus.SIMULATED)
     status = ClaimStatus.SIMULATED if simulated else ClaimStatus.SYSTEM_INFERENCE
     if alerts:
-        highest = max(alerts, key=lambda alert: SEVERITY_RANK[alert.severity.value])
+        highest = max(alerts, key=lambda alert: SEVERITY_ORDER[alert.severity])
         summary = (
             f"Detected {len(alerts)} deterministic signal(s) across "
             f"{statistics.total_events} event(s); highest severity is "

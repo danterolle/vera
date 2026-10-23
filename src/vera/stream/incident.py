@@ -1,13 +1,5 @@
-from vera.domain.enums import Severity
+from vera.domain.enums import SEVERITY_ORDER
 from vera.domain.reports import DetectionAlert, IncidentReport, StreamStatistics
-
-SEVERITY_ORDER = {
-    Severity.INFO: 0,
-    Severity.LOW: 1,
-    Severity.MEDIUM: 2,
-    Severity.HIGH: 3,
-    Severity.CRITICAL: 4,
-}
 
 
 def build_incident(
@@ -16,7 +8,7 @@ def build_incident(
 ) -> IncidentReport | None:
     if not alerts:
         return None
-    severity = max((alert.severity for alert in alerts), key=SEVERITY_ORDER.get)
+    severity = max((alert.severity for alert in alerts), key=SEVERITY_ORDER.__getitem__)
     rule_ids = {alert.rule_id for alert in alerts}
     actions = [
         "Preserve the source events and relevant host logs before containment.",
