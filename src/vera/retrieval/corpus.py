@@ -31,12 +31,10 @@ class LocalCorpus:
 
     def search(self, query: str, limit: int = 5) -> list[Evidence]:
         query_vector = self.embedder.embed([query])[0]
-        vector_scores = [
+        vectors = [
             max(0.0, cosine_similarity(query_vector, vector)) for vector in self._vectors
         ]
-        lexical_scores = self._lexical.scores(query)
-        vectors = vector_scores
-        lexical = normalize(lexical_scores)
+        lexical = normalize(self._lexical.scores(query))
         return select_documents(
             [
                 ScoredDocument(

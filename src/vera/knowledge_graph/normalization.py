@@ -1,6 +1,6 @@
 import re
 
-from vera.domain.enums import ClaimStatus, EvidenceStatus, SourceType
+from vera.domain.enums import EvidenceStatus, SourceType
 from vera.domain.evidence import Evidence
 from vera.knowledge_graph.models import Entity, Relation
 
@@ -86,5 +86,4 @@ def relations(record: Evidence) -> list[Relation]:
                             field_path="metadata.cwes",
                         )
                     )
-    # Structured mappings do not satisfy the existing lexical quotation validator.
-    return [item.model_copy(update={"status": ClaimStatus.SYSTEM_INFERENCE}) for item in result]
+    return result

@@ -117,7 +117,6 @@ def _relevant_available(evidence: list[Evidence], limit: int) -> list[Evidence]:
             0 if item.source in LIVE_SOURCES else 1,
             -float(item.metadata.get("selection_score", item.metadata.get("retrieval_score", 0))),
             SOURCE_PRIORITY.get(item.source, 99),
-            1 if item.source == SourceType.CAG else 0,
         )
     )
     return selected[:limit]

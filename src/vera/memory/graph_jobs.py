@@ -20,15 +20,15 @@ def project_pending(
         if not rows:
             return projected
         for row in rows:
+            result = AnalysisResult.model_validate_json(row["result_json"])
             graph.project_run(
                 AnalysisRequest.model_validate_json(row["request_json"]),
-                AnalysisResult.model_validate_json(row["result_json"]),
+                result,
             )
             with memory._connect() as conn:
                 conn.execute(
                     "UPDATE graph_jobs SET projected = 1 WHERE run_id = ?", (row["run_id"],)
                 )
-                result = AnalysisResult.model_validate_json(row["result_json"])
                 result.metadata.setdefault("knowledge_graph", {})["projection"] = "complete"
                 conn.execute(
                     "UPDATE runs SET result_json = ? WHERE id = ?",
