@@ -28,7 +28,7 @@ def test_notebook_is_valid_python_and_keeps_expensive_actions_opt_in():
     joined = "\n".join(code)
     for guard in (
         "GPU_COUNT = 1", "RUN_FULL_TRAINING = False", "RUN_FINAL_TEST = False",
-        "EXPORT_FORMAT = None",
+        "EXPORT_FORMAT = None", "RUN_SMOKE = False", "RUN_BASELINE = False",
     ):
         assert guard in joined
     assert "--nproc_per_node=2" in joined
@@ -98,12 +98,13 @@ def test_download_cell_preserves_checkpoints_after_interrupted_training(
     smoke_report = smoke / "report.json"
     if has_smoke_report:
         smoke_report.write_text('{"passed": true}')
-    data = tmp_path / "input"
-    data.mkdir()
+    data = tmp_path / "input/data"
+    data.mkdir(parents=True)
     (data / "manifest.json").write_text("{}")
+    (data.parent / "quality-report.json").write_text("{}")
     namespace = {
         "FULL": full, "SMOKE": smoke, "WORK": work, "DATA": data,
-        "SMOKE_REPORT": smoke_report,
+        "SMOKE_REPORT": smoke_report, "BUNDLE": data.parent,
     }
     exec(compile(source, "kaggle-download-cell", "exec"), namespace)
     archive = tmp_path / "vera-results-full-1gpu.zip"
