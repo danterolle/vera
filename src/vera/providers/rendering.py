@@ -1,4 +1,3 @@
-from vera.domain.enums import EvidenceStatus
 from vera.domain.evidence import Claim, Evidence
 from vera.domain.reports import IncidentReport
 
@@ -41,7 +40,3 @@ def render_answer(
         )
         lines.append(f"- {message}")
     return "\n".join(lines)
-
-
-def available_evidence(evidence: list[Evidence]) -> list[Evidence]:
-    return [item for item in evidence if item.status == EvidenceStatus.AVAILABLE]

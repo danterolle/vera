@@ -36,7 +36,7 @@ flowchart LR
 - `retrieval`: curated knowledge, hybrid retrieval, feed normalization, and sync storage.
 - `sources`: read-only exact CVE clients with explicit unavailable results.
 - `stream`: normalized event parsing, restricted PCAP extraction, rules, and statistics.
-- `providers`: deterministic, OpenAI-compatible, Ollama, Unsloth, and Gemini generation.
+- `providers`: deterministic, OpenAI-compatible, Ollama, and Gemini generation.
 - `reasoning`: citation validation, bounded repair, and structured reflection.
 - `memory`: SQLite history, semantic memories, and pending-review decisions.
 - `workflow`: LangGraph state transitions and dependency wiring.

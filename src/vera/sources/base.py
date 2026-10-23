@@ -1,17 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Protocol
 
 import httpx
 
 from vera.domain.enums import EvidenceStatus, SourceType
 from vera.domain.evidence import Evidence, make_evidence
-
-
-class SourceAdapter(Protocol):
-    source: SourceType
-    url: str
-
-    def lookup(self, cve_id: str) -> Evidence: ...
 
 
 @dataclass(frozen=True)

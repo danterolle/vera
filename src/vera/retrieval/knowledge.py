@@ -4,7 +4,6 @@ from vera.domain.evidence import Evidence
 from vera.retrieval.resources import load_evidence_directory
 
 WORD_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]*", re.IGNORECASE)
-MINIMUM_SUPPORT_SCORE = 3.0
 SINGLE_TOKEN_TOPICS = {"cve", "cvss"}
 
 
