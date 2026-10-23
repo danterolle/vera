@@ -1,7 +1,7 @@
 import json
 
 from vera.training.arguments import assert_matching_recipe, recipe, training_arguments
-from vera.training.data import encode_record, file_hash, read_records
+from vera.training.data import encode_record, file_hash, read_records, verify_dataset
 from vera.training.runtime import language_model_class, load_model, save_environment, save_json
 
 
@@ -29,7 +29,22 @@ def _check_inputs(args, configuration: dict) -> None:
         raise FileExistsError("Use a fresh output directory or explicitly pass --resume")
 
 
+def check_dataset_suitability(mode: str, manifest: dict) -> None:
+    if mode == "train" and (
+        manifest.get("purpose") != "domain_sft"
+        or manifest.get("origin") == "synthetic_template"
+    ):
+        raise ValueError(
+            "Full training is blocked: the contract-bootstrap dataset is not a domain SFT dataset."
+        )
+
+
 def main() -> None:
+    args = training_arguments()
+    manifest = verify_dataset(args.data)
+    check_dataset_suitability(args.mode, manifest)
+    records = read_records(args.data, "train", 160 if args.mode == "smoke" else 0)
+    validation = read_records(args.data, "validation", 40 if args.mode == "smoke" else 0)
     FastLanguageModel = language_model_class()
     import torch
     from accelerate import PartialState
@@ -39,7 +54,6 @@ def main() -> None:
 
     from vera.training.callbacks import TrainingGuard
 
-    args = training_arguments()
     distributed = PartialState()
     configuration = recipe(args, file_hash(args.data / "manifest.json"))
     with distributed.main_process_first():
@@ -48,8 +62,6 @@ def main() -> None:
             args.output.mkdir(parents=True, exist_ok=True)
             save_json(args.output / "recipe.json", configuration)
             save_environment(args.output)
-    records = read_records(args.data, "train", 160 if args.mode == "smoke" else 0)
-    validation = read_records(args.data, "validation", 40 if args.mode == "smoke" else 0)
     model, tokenizer, hardware = load_model(args.max_length, args.rank)
     model.peft_config["default"].revision = configuration["revision"]
     FastLanguageModel.for_training(model)

@@ -11,7 +11,7 @@ from vera.training.build import build_dataset
 from vera.training.data import encode_record, read_records
 from vera.training.records import context_from_prompt
 from vera.training.scoring import score_answer
-from vera.training.train import _check_inputs
+from vera.training.train import _check_inputs, check_dataset_suitability
 
 
 @pytest.fixture
@@ -129,3 +129,31 @@ def test_resume_requires_optimizer_scheduler_and_rng_state(tmp_path, monkeypatch
                  "adapter_config.json", "adapter_model.safetensors"):
         (checkpoint / name).touch()
     _check_inputs(args, configuration)
+
+
+def test_full_training_rejects_bootstrap_even_if_its_metadata_is_relabeled():
+    for manifest in (
+        {"purpose": "contract_bootstrap", "origin": "synthetic_template"},
+        {"purpose": "domain_sft", "origin": "synthetic_template"},
+        {},
+    ):
+        with pytest.raises(ValueError, match="contract-bootstrap"):
+            check_dataset_suitability("train", manifest)
+    check_dataset_suitability("smoke", {"purpose": "contract_bootstrap"})
+
+
+def test_bootstrap_full_training_is_blocked_before_gpu_imports(tmp_path, monkeypatch):
+    data = tmp_path / "data"
+    build_dataset(data, counts={"train": 20, "validation": 20, "test": 20})
+    monkeypatch.setattr("sys.argv", [
+        "train", "--data", str(data), "--output", str(tmp_path / "out"),
+        "--mode", "train", "--smoke-report", "unused.json",
+    ])
+    monkeypatch.setattr(
+        "vera.training.train.language_model_class",
+        lambda: pytest.fail("GPU libraries must not be imported for unsuitable data"),
+    )
+    from vera.training.train import main
+
+    with pytest.raises(ValueError, match="contract-bootstrap"):
+        main()
