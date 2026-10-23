@@ -197,4 +197,4 @@ See [Knowledge Graph](docs/knowledge-graph.md), [Workflow Explorer](docs/workflo
 [local models](docs/local-model.md), [architecture](docs/architecture.md), and
 [data provenance](docs/data-provenance.md) for details and limits.
 
-[Kaggle fine-tuning](docs/fine-tuning.md) covers offline data preparation and Kaggle-only LoRA.
+The experimental [domain dataset](docs/domain-dataset.md) is retained separately from VERA's runtime.

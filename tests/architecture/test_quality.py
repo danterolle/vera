@@ -7,7 +7,6 @@ def test_authored_files_stay_below_two_hundred_lines() -> None:
         *root.glob("src/**/*"),
         *root.glob("tests/**/*"),
         *root.glob("docs/**/*"),
-        *root.glob("training/**/*"),
         root / "README.md",
         root / "pyproject.toml",
         root / ".env.example",
