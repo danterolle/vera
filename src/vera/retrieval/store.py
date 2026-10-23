@@ -59,10 +59,10 @@ class CorpusStore:
                 manifest_temp = manifest_path.with_name(
                     f".{manifest_path.name}.{token}.tmp"
                 )
+                staged.extend([(data_temp, data_path), (manifest_temp, manifest_path)])
                 data = "\n".join(item.model_dump_json() for item in batch.evidence) + "\n"
                 data_temp.write_text(data, encoding="utf-8")
                 manifest_temp.write_text(batch.manifest.model_dump_json(indent=2), encoding="utf-8")
-                staged.extend([(data_temp, data_path), (manifest_temp, manifest_path)])
             for temporary, target in staged:
                 temporary.replace(target)
         except OSError as exc:
