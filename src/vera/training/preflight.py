@@ -1,19 +1,22 @@
 import argparse
 import json
+from pathlib import Path
 
 from vera.training.arguments import MODEL, REVISION
 from vera.training.data import encode_record, read_records
+from vera.training.runtime import save_json
 
 
 def main() -> None:
-    from pathlib import Path
-
-    from transformers import AutoTokenizer
-
     parser = argparse.ArgumentParser(description="Check VERA data lengths without loading weights.")
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--max-length", type=int, default=2048)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.output is not None and args.output.exists():
+        parser.error("Use a new preflight output path")
+    from transformers import AutoTokenizer
+
     tokenizer = AutoTokenizer.from_pretrained(MODEL, revision=REVISION)
     report = {}
     for split in ("train", "validation", "test"):
@@ -28,6 +31,9 @@ def main() -> None:
             ),
         }
     print(json.dumps(report, indent=2))
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        save_json(args.output, report)
 
 
 if __name__ == "__main__":
