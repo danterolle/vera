@@ -10,9 +10,6 @@ from vera.training.scoring import score_answer
 
 
 def main() -> None:
-    FastLanguageModel = language_model_class()
-    import torch
-
     parser = argparse.ArgumentParser(
         description="Evaluate raw VERA answers without repair or fallback.",
     )
@@ -29,6 +26,9 @@ def main() -> None:
     if not 1 <= args.max_new_tokens <= 2048:
         parser.error("max-new-tokens must be between 1 and 2048")
     records = read_records(args.data, args.split, args.limit)
+    FastLanguageModel = language_model_class()
+    import torch
+
     model, tokenizer, hardware = load_model(
         args.max_length + args.max_new_tokens, adapter=args.adapter,
     )
