@@ -140,10 +140,9 @@ def serve(
     if not is_loopback(host):
         raise typer.BadParameter("Review-enabled VERA serves only on a loopback address")
     if open_browser:
-        browser_host = "127.0.0.1" if host in {"0.0.0.0", "::"} else host
+        browser_host = f"[{host}]" if ":" in host else host
         timer = threading.Timer(
-            0.8,
-            lambda: webbrowser.open(f"http://{browser_host}:{port}/graph"),
+            0.8, lambda: webbrowser.open(f"http://{browser_host}:{port}/graph"),
         )
         timer.daemon = True
         timer.start()
