@@ -77,7 +77,7 @@ function edgePath(source, target) {
 function drawEdge(scene, edge, nodes) {
   const source = nodes.get(edge.source);
   const target = nodes.get(edge.target);
-  if (!source || !target) return null;
+  if (!source || !target) return;
   const path = element("path", {
     d: edgePath(source, target),
     class: `edge${edge.active ? " active" : ""}`,
@@ -97,7 +97,6 @@ function drawEdge(scene, edge, nodes) {
       x: target.x, y: y + 3, class: `edge-label${edge.active ? " active" : ""}`
     });
   }
-  return path;
 }
 
 function drawNode(scene, node, onSelect) {
@@ -145,12 +144,12 @@ export function renderGraph(svg, data, onSelect) {
   const scene = element("g", { id: "graph-scene" });
   addBackground(scene);
   const nodes = new Map(data.nodes.map(node => [node.id, node]));
-  const edges = data.edges.map(edge => drawEdge(scene, edge, nodes)).filter(Boolean);
+  data.edges.forEach(edge => drawEdge(scene, edge, nodes));
   const groups = new Map(
     data.nodes.map(node => [node.id, drawNode(scene, node, onSelect)])
   );
   svg.append(scene);
-  return { scene, groups, edges };
+  return { groups };
 }
 
 export function iconFor(category) {

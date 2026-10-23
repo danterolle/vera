@@ -1,6 +1,6 @@
 import {positions} from "/assets/knowledge-layout.js";
 const NS = "http://www.w3.org/2000/svg";
-export function element(tag, attributes = {}, text = "") {
+function element(tag, attributes = {}, text = "") {
   const node = document.createElementNS(NS, tag);
   for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
   node.textContent = text;

@@ -17,7 +17,6 @@ const ROUTE_NODES = {
 };
 let topology;
 let corpus;
-let rendered;
 let loadVersion = 0;
 const analysis = initializeAnalysis(runId => {
   review.clear();
@@ -63,8 +62,7 @@ function pathPreview(data, route) {
         : active.has(edge.source) && active.has(edge.target) &&
           (edge.source !== "route" || edge.target === branch) &&
           (edge.target !== "generate" ||
-            edge.source === (react ? "react_decide" : branch) ||
-            edge.source === "validate")
+            edge.source === (react ? "react_decide" : branch))
     })),
     execution: null
   };
@@ -72,7 +70,7 @@ function pathPreview(data, route) {
 
 function draw(data, mode) {
   panels.reset();
-  rendered = renderGraph(svg, data, (node, group) => {
+  const rendered = renderGraph(svg, data, (node, group) => {
     const route = Object.keys(ROUTE_NODES).find(key => ROUTE_NODES[key] === node.id);
     if (route && mode !== "run") selectRoute(route);
     else panels.inspect(node, group, mode);

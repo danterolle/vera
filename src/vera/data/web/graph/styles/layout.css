@@ -2,7 +2,6 @@
   color-scheme: dark;
   --bg: #05070c;
   --panel: #0b1019;
-  --panel-raised: #101722;
   --border: #1d2838;
   --border-soft: #151e2b;
   --text: #f4f7fb;
@@ -69,17 +68,7 @@ h2 { margin-bottom: 0; font-size: 1.02rem; letter-spacing: -.015em; }
   text-transform: uppercase;
 }
 .header-actions { gap: 20px; }
-.runtime-state {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #a9b4c3;
-  font-size: .68rem;
-  font-weight: 750;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-.runtime-state i, .trace-state i {
+.trace-state i {
   width: 7px;
   height: 7px;
   border-radius: 50%;
