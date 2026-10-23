@@ -26,6 +26,7 @@ def build_dataset(
         "seed": seed,
         "system_prompt_sha256": fingerprint(SYSTEM_PROMPT),
         "origin": "synthetic_template",
+        "purpose": "contract_bootstrap",
         "human_reviewed": False,
         "license": "Upstream source terms apply; review before upload or redistribution.",
         "limitations": [

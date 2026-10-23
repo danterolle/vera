@@ -29,6 +29,7 @@ def audit_dataset(directory: Path) -> dict:
         "passed": True, "human_reviewed": False,
         "dataset_sha256": file_hash(directory / "manifest.json"),
         "scope": "Automated schema, quotes, sources, duplicates, split and stream coverage checks.",
+        "recommended_use": "Contract and pipeline smoke experiments, not expert domain training.",
         "limitations": [
             "Not expert annotation, a legal clearance, or proof of model quality.",
             "GPU compatibility and fine-tuned quality remain unverified until Kaggle execution.",
@@ -40,6 +41,7 @@ def audit_dataset(directory: Path) -> dict:
         tasks: Counter[str] = Counter()
         statuses: Counter[str] = Counter()
         streams: Counter[str] = Counter()
+        factual_texts: set[str] = set()
         for record in records:
             signature = semantic_fingerprint(record)
             if signature in seen:
@@ -53,6 +55,7 @@ def audit_dataset(directory: Path) -> dict:
             for claim in answer["claims"]:
                 statuses[claim["status"]] += 1
                 if claim["status"] == "supported_fact":
+                    factual_texts.add(claim["text"])
                     for citation in claim["citations"]:
                         evidence = registry[citation["evidence_id"]]
                         if not any(
@@ -80,5 +83,6 @@ def audit_dataset(directory: Path) -> dict:
         report["splits"][split] = {
             "examples": len(records), "tasks": dict(sorted(tasks.items())),
             "claim_statuses": dict(sorted(statuses.items())), "streams": dict(streams),
+            "unique_factual_texts": len(factual_texts),
         }
     return report
