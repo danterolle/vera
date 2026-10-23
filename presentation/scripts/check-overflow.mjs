@@ -7,12 +7,11 @@
  *
  * Usage: node scripts/check-overflow.mjs
  */
-import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import puppeteer from "puppeteer-core";
 
-const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const deckFile = path.resolve(here, "..", "index.html");
 
@@ -25,8 +24,6 @@ const CHROME_CANDIDATES = [
 ].filter(Boolean);
 
 const chromePath = CHROME_CANDIDATES.find((candidate) => existsSync(candidate));
-const puppeteer = require("puppeteer-core");
-
 const browser = await puppeteer.launch({
   executablePath: chromePath,
   headless: true,
@@ -49,20 +46,16 @@ try {
       const section = pdfPage.querySelector("section");
       const pageRect = pdfPage.getBoundingClientRect();
       const style = getComputedStyle(section);
-      const padTop = parseFloat(style.paddingTop);
       const padBottom = parseFloat(style.paddingBottom);
-      const padLeft = parseFloat(style.paddingLeft);
       const padRight = parseFloat(style.paddingRight);
 
       let bottom = 0;
       let right = 0;
-      let widest = 0;
       for (const child of section.children) {
         if (child.classList.contains("deck-footer")) continue;
         const rect = child.getBoundingClientRect();
         bottom = Math.max(bottom, rect.bottom);
         right = Math.max(right, rect.right);
-        widest = Math.max(widest, rect.width);
       }
 
       const contentBottom = pageRect.top + pageRect.height - padBottom;

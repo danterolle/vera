@@ -8,12 +8,11 @@
  * The script relies on reveal.js' built-in print mode (`?print-pdf`), which renders
  * every slide at the deck size and paginates them with CSS page breaks.
  */
-import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import puppeteer from "puppeteer-core";
 
-const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const deckDir = path.resolve(here, "..");
 
@@ -42,8 +41,6 @@ if (!chromePath) {
   console.error("Could not find a Chrome/Chromium binary. Pass --chrome <path> or set CHROME_PATH.");
   process.exit(1);
 }
-
-const puppeteer = require("puppeteer-core");
 
 const browser = await puppeteer.launch({
   executablePath: chromePath,
