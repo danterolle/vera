@@ -8,26 +8,12 @@ ASSETS = {
     "knowledge-layout.js": ("web/knowledge/layout.js", "text/javascript; charset=utf-8"),
     "knowledge-renderer.js": ("web/knowledge/renderer.js", "text/javascript; charset=utf-8"),
     "knowledge-inspector.js": ("web/knowledge/inspector.js", "text/javascript; charset=utf-8"),
-    "graph.css": ("web/graph/styles/layout.css", "text/css; charset=utf-8"),
-    "graph-ui.css": ("web/graph/styles/components.css", "text/css; charset=utf-8"),
-    "graph-svg.css": ("web/graph/styles/diagram.css", "text/css; charset=utf-8"),
-    "graph-analysis.css": ("web/graph/styles/analysis.css", "text/css; charset=utf-8"),
-    "graph-review.css": ("web/graph/styles/review.css", "text/css; charset=utf-8"),
-    "graph.js": ("web/graph/scripts/app.js", "text/javascript; charset=utf-8"),
-    "graph-analysis.js": ("web/graph/scripts/analysis.js", "text/javascript; charset=utf-8"),
-    "graph-analysis-report.js": (
-        "web/graph/scripts/analysis-report.js", "text/javascript; charset=utf-8"
-    ),
-    "graph-review.js": ("web/graph/scripts/review.js", "text/javascript; charset=utf-8"),
-    "graph-review-request.js": (
-        "web/graph/scripts/review-request.js", "text/javascript; charset=utf-8"
-    ),
-    "graph-review-render.js": (
-        "web/graph/scripts/review-render.js", "text/javascript; charset=utf-8"
-    ),
-    "graph-panels.js": ("web/graph/scripts/panels.js", "text/javascript; charset=utf-8"),
-    "graph-renderer.js": ("web/graph/scripts/renderer.js", "text/javascript; charset=utf-8"),
-    "graph-viewport.js": ("web/graph/scripts/viewport.js", "text/javascript; charset=utf-8"),
+    "chat.css": ("web/chat/style.css", "text/css; charset=utf-8"),
+    "chat.js": ("web/chat/app.js", "text/javascript; charset=utf-8"),
+    "chat-render.js": ("web/chat/render.js", "text/javascript; charset=utf-8"),
+    "chat-store.js": ("web/chat/store.js", "text/javascript; charset=utf-8"),
+    "routes.js": ("web/shared/routes.js", "text/javascript; charset=utf-8"),
+    "viewport.js": ("web/shared/viewport.js", "text/javascript; charset=utf-8"),
 }
 
 
@@ -39,8 +25,9 @@ def load_asset(name: str) -> Response:
     return Response(content, media_type=media_type)
 
 
-def load_graph_page(*, knowledge: bool = False) -> Response:
-    folder = "knowledge" if knowledge else "graph"
+def load_page(folder: str) -> Response:
+    if folder not in {"chat", "knowledge"}:
+        raise ValueError("Unknown page")
     content = resource(f"web/{folder}/index.html").read_text(encoding="utf-8")
     headers = {
         "Content-Security-Policy": (

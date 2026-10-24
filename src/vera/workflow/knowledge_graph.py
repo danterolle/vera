@@ -19,7 +19,9 @@ def graph_metadata(state: GraphState) -> dict:
 
 
 def persist_result(runtime: Runtime, state: GraphState, result: AnalysisResult) -> None:
-    graph = runtime.knowledge_graph
+    graph = (
+        runtime.knowledge_graph if state["resource_plan"].intent == "cybersecurity" else None
+    )
     if graph is not None:
         result.metadata["knowledge_graph"]["projection"] = "pending"
     runtime.memory.save(state["request"], result, graph_projection=graph is not None)

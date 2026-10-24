@@ -61,6 +61,8 @@ def record_key(record: Evidence) -> str:
 def put_record(conn, record: Evidence) -> str | None:
     if record.source == SourceType.MEMORY:
         return None
+    if record.source == SourceType.WEB and not record.metadata.get("learning_validated"):
+        return None
     payload = record_payload(record)
     key = record_key(record)
     merge_node(

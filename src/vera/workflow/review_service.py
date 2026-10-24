@@ -6,12 +6,14 @@ from typing import Any
 
 from langgraph.types import Command
 
-from vera.domain.reports import AnalysisResult
+from vera.domain.enums import ClaimStatus
+from vera.domain.reports import AnalysisResult, RunMetrics
 from vera.domain.review import ReviewDecision, ReviewRecord, ReviewStatus
 from vera.domain.state import GraphState
 from vera.errors import ReviewUnavailable
 from vera.memory.review_decisions import ReviewDecisions
 from vera.memory.reviews import ReviewStore
+from vera.workflow.knowledge_graph import graph_metadata
 from vera.workflow.runtime import Runtime
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,8 @@ class ReviewService:
         state: GraphState = snapshot.values
         return ReviewRecord(
             run_id=run_id,
+            session_id=state["request"].session_id,
+            created_at=state.get("request_received_at", snapshot.created_at),
             status=ReviewStatus.PENDING,
             version=version,
             reasons=state["review_reasons"],
@@ -58,6 +62,26 @@ class ReviewService:
             can_revise=self.runtime.provider.external and state.get("revision_count", 0) < 2,
             feedback_history=history,
             error=state.get("revision_error"),
+            metadata={
+                "provider": self.runtime.provider.name,
+                "model": (
+                    self.runtime.settings.llm_model if self.runtime.provider.external else None
+                ),
+                "provider_fallback": state["provider_fallback"],
+                "origin": state["request"].origin,
+                "intent": state["resource_plan"].intent,
+                "resource_plan": state["resource_plan"].model_dump(mode="json"),
+                "knowledge_graph": graph_metadata(state),
+            },
+            metrics=RunMetrics(
+                latency_ms=state.get("active_ms", 0), model_calls=state["model_calls"],
+                tool_calls=state["tool_calls"], retrieved_documents=len(state["evidence"]),
+                source_coverage=(
+                    sum(claim.status == ClaimStatus.SUPPORTED_FACT and bool(claim.citations)
+                        for claim in state["draft"].claims)
+                    / max(1, len(state["draft"].claims))
+                ),
+            ),
         )
 
     def register(self, run_id: str) -> ReviewRecord:
@@ -74,7 +98,7 @@ class ReviewService:
                 }
             )
         if record and record.status == ReviewStatus.PENDING:
-            self.from_snapshot(
+            return self.from_snapshot(
                 run_id, version=record.version, history=record.feedback_history
             )
         if record and record.status == ReviewStatus.ERROR:

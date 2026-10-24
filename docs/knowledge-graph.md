@@ -49,7 +49,7 @@ The default view draws direct semantic connections and combines repeated support
 same relationship. The toolbar sets the relationship limit, opens **Overview**, and toggles
 **Sources & assertions** to display Assertion/SourceRecord provenance nodes.
 This is a custom local SVG frontend backed by the Kuzu API, not Kuzu Explorer.
-The [Workflow Explorer](workflow-explorer.md) at `/graph` runs questions and displays execution.
+The [Chat](chat.md) at `/chat` runs questions and presents answers, sources, and human review.
 Viewing a built database does not enable graph retrieval by itself.
 
 Read-only HTTP endpoints:

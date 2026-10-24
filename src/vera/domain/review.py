@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from vera.domain.enums import Route
 from vera.domain.evidence import Evidence
-from vera.domain.reports import GeneratedAnswer, IncidentReport, ReflectionReport
+from vera.domain.reports import GeneratedAnswer, IncidentReport, ReflectionReport, RunMetrics
 
 
 class ReviewStatus(StrEnum):
@@ -51,3 +51,7 @@ class ReviewRecord(BaseModel):
     feedback_history: list[str]
     error: str | None = None
     retry_decision: ReviewDecision | None = None
+    metadata: dict = Field(default_factory=dict)
+    metrics: RunMetrics | None = None
+    session_id: str | None = None
+    created_at: str | None = None

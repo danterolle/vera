@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from vera.domain.enums import Route
@@ -12,6 +14,11 @@ class ResourcePlan(BaseModel):
     use_stream: bool = False
     cve_ids: list[str] = Field(default_factory=list)
     technique_ids: list[str] = Field(default_factory=list)
+    web_query: str | None = Field(default=None, max_length=512)
+    intent: Literal["social", "cybersecurity", "out_of_scope", "clarification"] = "cybersecurity"
+    resolved_query: str | None = Field(default=None, max_length=1000)
+    subject: str | None = Field(default=None, max_length=160)
+    search_query: str | None = Field(default=None, max_length=300)
     reasons: list[str] = Field(default_factory=list)
 
     @field_validator("cve_ids", "technique_ids")

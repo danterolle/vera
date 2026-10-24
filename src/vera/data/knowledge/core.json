@@ -36,6 +36,20 @@
   },
   {
     "source": "cag",
+    "title": "Cyber attack",
+    "url": "https://csrc.nist.gov/glossary/term/cyber_attack",
+    "content": "Any kind of malicious activity that attempts to collect, disrupt, deny, degrade, or destroy information system resources or the information itself.",
+    "metadata": {"keywords": ["cyber attack", "cyberattack", "cyberattacco", "attacco informatico", "malicious activity"], "graph_entities": [{"id": "concept:cyber-attack", "name": "Cyber attack", "aliases": ["cyberattack", "cyberattacco", "attacco informatico"]}]}
+  },
+  {
+    "source": "cag",
+    "title": "MITRE ATT&CK",
+    "url": "https://attack.mitre.org/",
+    "content": "MITRE ATT&CK® is a globally-accessible knowledge base of adversary tactics and techniques based on real-world observations. The ATT&CK knowledge base is used as a foundation for the development of specific threat models and methodologies in the private sector, in government, and in the cybersecurity product and service community.",
+    "metadata": {"keywords": ["mitre att&ck", "att&ck", "adversary tactics", "techniques", "threat models", "framework"], "graph_entities": [{"id": "concept:mitre-attack", "name": "MITRE ATT&CK", "aliases": ["ATT&CK", "MITRE ATT&CK framework", "adversary tactics and techniques"]}]}
+  },
+  {
+    "source": "cag",
     "title": "Evidence and inference policy",
     "url": "https://csrc.nist.gov/pubs/ai/100/1/final",
     "content": "VERA treats retrieved records and observed events as evidence, while correlations, intent attribution, and impact estimates remain system inferences unless an authoritative source directly supports them.",

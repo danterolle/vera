@@ -93,7 +93,9 @@ For **option B**, the model ID is `vera-qwen3.5-4b`. `openai` selects the compat
 protocol; requests go to the local endpoint above. If Bionic requires authentication, set
 `VERA_LLM_API_KEY` as well. Restart VERA whenever you change `.env`.
 Live sources are disabled here for repeatable local tests; local Qwen and Kuzu still work.
-Set `VERA_LIVE_SOURCES=true` separately when you want authoritative online CVE lookups.
+Set `VERA_LIVE_SOURCES=true` separately for online CVE lookups and live ATT&CK research.
+The keyless lookup covers exact ATT&CK names/aliases and IDs; optional general web search
+uses `VERA_WEB_SEARCH_API_KEY` (Brave Search). See [online research](docs/chat.md#online-research).
 
 ## 4. Build the graph and start VERA
 
@@ -112,12 +114,14 @@ The model server and VERA are separate processes; `vera serve` does not start Qw
 | Address | Purpose |
 | --- | --- |
 | <http://127.0.0.1:8000/docs> | Submit requests with POST `/v1/analyze`, **Try it out**, **Execute** |
-| <http://127.0.0.1:8000/graph> | Ask a question, preview routes, or inspect saved executions |
+| <http://127.0.0.1:8000/chat> | Chat with VERA and review drafts inside the conversation |
 | <http://127.0.0.1:8000/knowledge-graph> | Explore domain entities, relationships, and sources |
 | <http://127.0.0.1:8000/health> | Inspect configured provider, model, and graph enablement |
 
-The `/graph` question form shows completed reports or unpublished pending reviews; see
-[Human review](docs/human-review.md). Previews do not run. Use API for events, CLI for PCAP.
+The root `/` opens `/chat`; old `/graph` bookmarks redirect there. The chat keeps separate
+conversations in this browser and restores reports and pending reviews from the local server.
+Human review appears inside the conversation with approve, revise, and reject actions; see
+[Chat](docs/chat.md) and [Human review](docs/human-review.md). Use API for events, CLI for PCAP.
 
 ## 5. Ask questions and verify the connection
 
@@ -136,8 +140,8 @@ In Swagger, the same request body is:
 Check `metadata.model` against your Qwen ID and `metadata.provider_fallback=false` to verify
 the model answered. Nonempty `metadata.knowledge_graph.cited_evidence_ids` shows graph
 evidence was cited. `/health` alone confirms configuration, not successful model inference.
-Refresh `/graph` and select the saved run to inspect its route. Read the complete answer in
-`answer`, or retrieve it later through GET `/v1/runs/<run_id>` or `vera history`.
+Open `/chat` to ask questions. Expand a response's sources and details to inspect its route,
+model, and cited evidence, or retrieve the report through GET `/v1/runs/<run_id>` or `vera history`.
 
 The CLI also uses `.env` and the running model server; it does not require `vera serve`:
 
@@ -173,7 +177,7 @@ uv run --extra knowledge-graph python scripts/check-local-model.py
 ## Routes and evidence
 
 The resource plan selects the route from the request and the available evidence; the branch
-table is in [Workflow Explorer](docs/workflow-explorer.md#reading-the-workflow). Claims
+table is in [Chat](docs/chat.md#routes-and-evidence). Claims
 distinguish `supported_fact` (quoted available evidence), `system_inference`, `unavailable`,
 and `simulated`; memory is not authoritative factual support.
 
@@ -193,7 +197,7 @@ Other provider adapters are Ollama and Gemini; settings are defined in `.env.exa
 [`Settings`](src/vera/config.py). Optional Sentence Transformers use the `embeddings` extra
 and `VERA_EMBEDDING_BACKEND=sentence-transformers` instead of the default hash backend.
 
-See [Knowledge Graph](docs/knowledge-graph.md), [Workflow Explorer](docs/workflow-explorer.md),
+See [Knowledge Graph](docs/knowledge-graph.md), [Chat](docs/chat.md),
 [local models](docs/local-model.md), [architecture](docs/architecture.md), and
 [data provenance](docs/data-provenance.md) for details and limits.
 

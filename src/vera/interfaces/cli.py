@@ -95,7 +95,7 @@ def analyze(
             if prompt_human:
                 prompt_review(engine, result)
             typer.echo(
-                f"Review required for {result.run_id}. Open /graph on the local VERA server "
+                f"Review required for {result.run_id}. Open /chat on the local VERA server "
                 f"or run: vera review {result.run_id}"
             )
             raise typer.Exit(code=2)
@@ -134,7 +134,7 @@ def serve(
     port: Annotated[int, typer.Option(help="Bind port.", min=1, max=65535)] = 8000,
     open_browser: Annotated[
         bool,
-        typer.Option("--open-browser", help="Open the local LangGraph visualization."),
+        typer.Option("--open-browser", help="Open the local VERA chat."),
     ] = False,
 ) -> None:
     if not is_loopback(host):
@@ -142,7 +142,7 @@ def serve(
     if open_browser:
         browser_host = f"[{host}]" if ":" in host else host
         timer = threading.Timer(
-            0.8, lambda: webbrowser.open(f"http://{browser_host}:{port}/graph"),
+            0.8, lambda: webbrowser.open(f"http://{browser_host}:{port}/chat"),
         )
         timer.daemon = True
         timer.start()

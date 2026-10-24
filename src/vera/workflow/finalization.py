@@ -5,10 +5,12 @@ from vera.domain.reports import AnalysisResult, RunMetrics
 from vera.domain.state import GraphState
 from vera.providers.rendering import render_answer
 from vera.workflow.knowledge_graph import graph_metadata, persist_result
+from vera.workflow.learning import validated_knowledge
 from vera.workflow.runtime import Runtime
 
 
 def finalize_result(runtime: Runtime, state: GraphState) -> dict:
+    evidence, learning = validated_knowledge(state)
     claims = state["draft"].claims
     factual = [claim for claim in claims if claim.status == ClaimStatus.SUPPORTED_FACT]
     assessable = [
@@ -29,6 +31,10 @@ def finalize_result(runtime: Runtime, state: GraphState) -> dict:
         "model": runtime.settings.llm_model if runtime.provider.external else None,
         "provider_fallback": state["provider_fallback"],
         "out_of_scope": state["draft"].out_of_scope,
+        "intent": state["resource_plan"].intent,
+        "session_id": state["request"].session_id,
+        "origin": state["request"].origin,
+        "knowledge_learning": learning,
         "embedding_backend": runtime.embedder.name,
         "route_reason": state["route_reason"],
         "resource_plan": state["resource_plan"].model_dump(mode="json"),
@@ -54,7 +60,7 @@ def finalize_result(runtime: Runtime, state: GraphState) -> dict:
             state["draft"].summary, claims, state["evidence"], state["incident"]
         ),
         claims=claims,
-        evidence=state["evidence"],
+        evidence=evidence,
         incident=state["incident"],
         reflection=state["reflection"],
         metrics=RunMetrics(

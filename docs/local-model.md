@@ -128,7 +128,7 @@ uv run --extra knowledge-graph python scripts/check-local-model.py
 The report is `.vera/local-model-checks.json`. Completed HTTP 200 results enter run history;
 HTTP 202 responses are unpublished reviews. The checker reports the pending `run_id`,
 `status`, and `reasons`, counts it as a failed autonomous answer, and exits nonzero.
-It never decides a review; use `/graph` or [Human review](human-review.md).
+It never decides a review; use `/chat` or [Human review](human-review.md).
 These checks exercise selected cases, not a general guarantee of model accuracy.
 The generation context includes source titles. Verified claim text repeats its source quote
 to avoid introducing identifiers absent from that quote. When the model declares a question
@@ -141,8 +141,8 @@ The measured model scope peaked around 100% CPU (one logical core), 3.4 GiB RAM,
 and zero swap; total NVIDIA usage peaked around 3 GiB with 99% utilization.
 Resource measurements are stored in `.vera/local-model-resources.json`.
 
-In `/graph`, refresh and select the saved execution to inspect its route and metrics.
-The complete answer is in the API/CLI result or `/v1/runs/<run_id>`.
+In `/chat`, expand the response's sources and details to inspect its route and model.
+The complete structured result remains available at `/v1/runs/<run_id>`.
 `/knowledge-graph` explores domain knowledge independently of model inference.
 
 ## Apple silicon: Qwen3.5-4B MTP Q6_K

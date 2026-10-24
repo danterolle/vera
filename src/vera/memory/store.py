@@ -51,7 +51,10 @@ class MemoryStore:
         self, request: AnalysisRequest, result: AnalysisResult, *, graph_projection: bool = False,
     ) -> None:
         created_at = result.created_at.isoformat()
-        memories = self._memory_texts(request, result)
+        memories = (
+            self._memory_texts(request, result)
+            if result.metadata.get("intent", "cybersecurity") == "cybersecurity" else []
+        )
         vectors = self.embedder.embed([text for _, text in memories])
         with self._connect() as connection:
             connection.execute(

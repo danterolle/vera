@@ -23,6 +23,7 @@ class SourceType(StrEnum):
     OWASP = "owasp"
     STREAM = "stream"
     MEMORY = "memory"
+    WEB = "web"
 
 
 class EvidenceStatus(StrEnum):

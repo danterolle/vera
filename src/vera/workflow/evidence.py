@@ -11,7 +11,7 @@ PROVENANCE_PRIORITY = {
 def deduplicate_evidence(evidence: list[Evidence]) -> list[Evidence]:
     best: dict[tuple[str, str], Evidence] = {}
     for item in evidence:
-        key = _cve_key(item)
+        key = _record_key(item)
         if key is None or item.status != EvidenceStatus.AVAILABLE:
             continue
         existing = best.get(key)
@@ -21,7 +21,7 @@ def deduplicate_evidence(evidence: list[Evidence]) -> list[Evidence]:
     emitted_keys = set()
     emitted_ids = set()
     for item in evidence:
-        key = _cve_key(item)
+        key = _record_key(item)
         if key is not None and item.status == EvidenceStatus.AVAILABLE:
             if key in emitted_keys:
                 continue
@@ -33,11 +33,14 @@ def deduplicate_evidence(evidence: list[Evidence]) -> list[Evidence]:
     return result
 
 
-def _cve_key(evidence: Evidence) -> tuple[str, str] | None:
+def _record_key(evidence: Evidence) -> tuple[str, str] | None:
     cve_id = evidence.metadata.get("cve_id")
-    if not cve_id:
-        return None
-    return evidence.source.value, str(cve_id)
+    if cve_id:
+        return evidence.source.value, str(cve_id)
+    external_id = evidence.metadata.get("external_id")
+    if external_id and "—" not in evidence.title and not evidence.metadata.get("graph_relations"):
+        return evidence.source.value, str(external_id)
+    return None
 
 
 def _priority(evidence: Evidence) -> tuple[int, float]:

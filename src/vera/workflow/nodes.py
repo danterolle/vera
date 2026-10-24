@@ -1,14 +1,19 @@
 import time
+from dataclasses import replace
+from datetime import UTC, datetime
 
+from vera.domain.plans import ResourcePlan
 from vera.domain.state import GraphState
 from vera.reasoning.reflection import reflect
 from vera.reasoning.validation import validate_and_repair
+from vera.retrieval.subjects import WEB_INTENT, research_query
 from vera.stream.detectors import detect_events
 from vera.stream.incident import build_incident
 from vera.stream.policy import DetectionPolicy
 from vera.stream.statistics import calculate_statistics
 from vera.workflow.finalization import finalize_result
-from vera.workflow.generation import generate_draft
+from vera.workflow.generation import best_evidence_claim, generate_draft
+from vera.workflow.interaction import interpret
 from vera.workflow.runtime import Runtime
 
 
@@ -37,6 +42,7 @@ class WorkflowNodes:
             request.session_id,
         )
         return {
+            "request_received_at": datetime.now(UTC).isoformat(),
             "started_at": time.perf_counter(),
             "active_ms": 0.0,
             "alerts": alerts,
@@ -62,18 +68,39 @@ class WorkflowNodes:
         }
 
     def route(self, state: GraphState) -> dict:
-        decision = self.runtime.router.select(
-            state["request"].query,
-            bool(state["request"].events),
-            state["alerts"],
-        )
+        request = state["request"]
+        interaction, calls, warnings = interpret(self.runtime, request)
+        decision = None
+        if interaction.intent == "cybersecurity":
+            decision = self.runtime.router.select(
+                interaction.search_query or interaction.resolved_query,
+                bool(request.events), state["alerts"], interpreted=True,
+            )
+            plan = decision.plan
+            if interaction.needs_current or WEB_INTENT.search(request.query):
+                plan = plan.model_copy(update={
+                    "use_rag": True, "use_tools": True,
+                    "web_query": interaction.search_query or research_query(
+                        request.query, request.conversation,
+                    ),
+                })
+        else:
+            plan = ResourcePlan(reasons=[f"Conversational intent: {interaction.intent}."])
+        plan = plan.model_copy(update={
+            "intent": interaction.intent, "subject": interaction.subject or None,
+            "resolved_query": interaction.resolved_query,
+            "search_query": interaction.search_query or None,
+        })
         return {
-            "route": decision.route,
-            "route_reason": decision.reason,
-            "resource_plan": decision.plan,
-            "model_calls": state["model_calls"] + decision.model_calls,
-            "warnings": state["warnings"] + decision.warnings,
-            "trace": state["trace"] + [f"route:{decision.route.value}:{decision.reason}"],
+            "route": plan.route,
+            "route_reason": " ".join(plan.reasons),
+            "resource_plan": plan,
+            "model_calls": state["model_calls"] + calls + (decision.model_calls if decision else 0),
+            "warnings": state["warnings"] + warnings + (decision.warnings if decision else []),
+            "trace": state["trace"] + [
+                f"intent:{interaction.intent}",
+                f"route:{plan.route.value}:{' '.join(plan.reasons)}",
+            ],
         }
 
     def generate(self, state: GraphState) -> dict:
@@ -106,9 +133,24 @@ class WorkflowNodes:
             repair=True,
             minimum_coverage=self.runtime.settings.grounding_min_coverage,
         )
+        errors = initial.errors
+        warnings = state["warnings"]
+        if errors:
+            claim = best_evidence_claim(state["evidence"])
+            if claim is not None:
+                final = replace(
+                    final,
+                    draft=final.draft.model_copy(update={"claims": [claim]}),
+                )
+                errors = []
+                warnings = [
+                    *warnings,
+                    "The model's claims failed validation; a verbatim evidence claim was used.",
+                ]
         return {
             "draft": final.draft,
-            "validation_errors": initial.errors,
+            "validation_errors": errors,
+            "warnings": warnings,
             "retry_generation": False,
             "trace": state["trace"] + [f"validation:errors={len(initial.errors)}"],
         }

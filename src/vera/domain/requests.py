@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 from ipaddress import ip_address
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class NetworkEvent(BaseModel):
@@ -37,6 +38,13 @@ class NetworkEvent(BaseModel):
         return value.upper()
 
 
+class ConversationMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=2000)
+
+
 class AnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -44,6 +52,14 @@ class AnalysisRequest(BaseModel):
     events: list[NetworkEvent] = Field(default_factory=list, max_length=100_000)
     session_id: str | None = Field(default=None, min_length=1, max_length=128)
     simulated: bool = False
+    conversation: list[ConversationMessage] = Field(default_factory=list, max_length=6)
+    origin: Literal["api", "chat"] = "api"
+
+    @model_validator(mode="after")
+    def bound_conversation(self) -> "AnalysisRequest":
+        if sum(len(message.content) for message in self.conversation) > 6000:
+            raise ValueError("conversation must not exceed 6000 characters")
+        return self
 
     @field_validator("query")
     @classmethod

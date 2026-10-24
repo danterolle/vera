@@ -13,6 +13,8 @@ CYBER_INTENT = re.compile(
 
 
 def review_reasons(state: GraphState) -> list[str]:
+    if state["resource_plan"].intent in {"social", "out_of_scope", "clarification"}:
+        return []
     reasons = []
     alerts = [
         alert for alert in state["alerts"]

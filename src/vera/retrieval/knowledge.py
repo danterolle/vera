@@ -4,7 +4,10 @@ from vera.domain.evidence import Evidence
 from vera.retrieval.resources import load_evidence_directory
 
 WORD_PATTERN = re.compile(r"[a-z0-9][a-z0-9._-]*", re.IGNORECASE)
-SINGLE_TOKEN_TOPICS = {"cve", "cvss"}
+SINGLE_TOKEN_TOPICS = {
+    "cve", "cvss", "cyberattacco", "cyberattack", "malware",
+    "ransomware", "phishing", "firewall",
+}
 
 
 class CuratedKnowledge:

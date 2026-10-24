@@ -1,6 +1,6 @@
 import {renderGraph} from "/assets/knowledge-renderer.js";
 import {inspect, resetInspector} from "/assets/knowledge-inspector.js";
-import {GraphViewport} from "/assets/graph-viewport.js";
+import {GraphViewport} from "/assets/viewport.js";
 const svg = document.querySelector("#graph"), statusLine = document.querySelector("#status");
 const input = document.querySelector("#entity"), suggestions = document.querySelector("#suggestions");
 const feedback = document.querySelector("#search-feedback"), empty = document.querySelector("#empty");

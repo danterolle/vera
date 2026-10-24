@@ -26,6 +26,7 @@ CHECKPOINT_MODELS = [
     ("vera.domain.reports", "RunMetrics"),
     ("vera.domain.reports", "StreamStatistics"),
     ("vera.domain.requests", "AnalysisRequest"),
+    ("vera.domain.requests", "ConversationMessage"),
     ("vera.domain.requests", "NetworkEvent"),
 ]
 

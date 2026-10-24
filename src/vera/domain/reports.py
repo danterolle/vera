@@ -50,7 +50,6 @@ class GeneratedAnswer(BaseModel):
     @model_validator(mode="after")
     def enforce_scope(self) -> "GeneratedAnswer":
         if self.out_of_scope:
-            self.summary = "VERA answers only cybersecurity questions."
             self.claims = []
         return self
 

@@ -11,7 +11,8 @@ from vera.domain.reports import AnalysisResult
 from vera.domain.requests import AnalysisRequest
 from vera.domain.review import ReviewRecord
 from vera.errors import ReviewUnavailable, VeraError
-from vera.interfaces.assets import load_asset, load_graph_page
+from vera.interfaces.assets import load_asset, load_page
+from vera.interfaces.conversations import conversation_history
 from vera.interfaces.local_access import permits_local_request
 from vera.interfaces.reviews import register_review_routes
 from vera.knowledge_graph.models import GraphStatus, GraphView
@@ -63,11 +64,11 @@ def create_app(
 
     @application.get("/", include_in_schema=False)
     def home() -> RedirectResponse:
-        return RedirectResponse(url="/graph")
+        return RedirectResponse(url="/chat")
 
     @application.get("/knowledge-graph", include_in_schema=False)
     def knowledge_page():
-        return load_graph_page(knowledge=True)
+        return load_page("knowledge")
 
     @application.get("/v1/knowledge-graph/status", response_model=GraphStatus)
     def knowledge_status() -> GraphStatus:
@@ -121,9 +122,13 @@ def create_app(
             response.status_code = 202
         return outcome
 
+    @application.get("/chat", include_in_schema=False)
+    def chat_page():
+        return load_page("chat")
+
     @application.get("/graph", include_in_schema=False)
-    def graph_page():
-        return load_graph_page()
+    def legacy_graph_page() -> RedirectResponse:
+        return RedirectResponse(url="/chat")
 
     @application.get("/assets/{name}", include_in_schema=False)
     def graph_asset(name: str):
@@ -142,6 +147,10 @@ def create_app(
     @application.get("/v1/corpus", response_model=CorpusStatus)
     def corpus_status() -> CorpusStatus:
         return engine.runtime.corpus.status()
+
+    @application.get("/v1/conversations")
+    def conversations() -> list[dict]:
+        return conversation_history(engine)
 
     @application.get("/v1/runs", response_model=list[AnalysisResult])
     def list_runs(limit: int = Query(default=20, ge=1, le=100)) -> list[AnalysisResult]:

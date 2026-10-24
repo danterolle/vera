@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     db_path: Path = Path(".vera/vera.db")
     corpus_dir: Path = Path(".vera/corpus")
     live_sources: bool = True
+    web_search_enabled: bool = True
+    web_search_api_key: SecretStr | None = None
     request_timeout_seconds: float = Field(default=8.0, ge=1.0, le=30.0)
     source_workers: int = Field(default=5, ge=1, le=10)
     max_feed_bytes: int = Field(default=80 * 1024 * 1024, ge=1024, le=150 * 1024 * 1024)
@@ -59,7 +61,7 @@ class Settings(BaseSettings):
     def model_call_limit(self) -> int:
         if self.max_model_calls is not None:
             return self.max_model_calls
-        return self.max_react_steps + 3 if self.react_enabled else 2
+        return self.max_react_steps + 3 if self.react_enabled else 4
 
     @property
     def generation_attempt_limit(self) -> int:

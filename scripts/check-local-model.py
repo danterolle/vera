@@ -118,7 +118,7 @@ def main() -> None:
     if not all(item["passed"] for item in reports):
         pending = [item["run_id"] for item in reports if item["human_review_required"]]
         detail = (
-            f" Human review required for {', '.join(pending)}; open /graph."
+            f" Human review required for {', '.join(pending)}; open /chat."
             if pending else ""
         )
         raise SystemExit(

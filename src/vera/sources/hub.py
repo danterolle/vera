@@ -4,8 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 import httpx
 
 from vera.config import Settings
-from vera.domain.enums import SourceType
-from vera.domain.evidence import Evidence
+from vera.domain.enums import EvidenceStatus, SourceType
+from vera.domain.evidence import Evidence, make_evidence
 from vera.errors import SourceError
 from vera.sources.base import SourceLookup, unavailable_evidence
 from vera.sources.cisa import CisaKevSource
@@ -13,6 +13,7 @@ from vera.sources.cve_org import CveOrgSource
 from vera.sources.epss import EpssSource
 from vera.sources.nvd import NvdSource
 from vera.sources.osv import OsvSource
+from vera.sources.web import WebResearch
 
 SOURCE_URLS = {
     SourceType.NVD: "https://services.nvd.nist.gov/rest/json/cves/2.0",
@@ -119,6 +120,20 @@ class SourceHub:
             headers={"User-Agent": "VERA/0.1 (+https://github.com/)"},
             follow_redirects=True,
         )
+
+    def research(self, query: str, *, limit: int, topic: str | None = None) -> SourceLookup:
+        if not self.settings.live_sources or not self.settings.web_search_enabled:
+            detail = "Online research is disabled by configuration; no HTTP request was made."
+            return SourceLookup([
+                make_evidence(
+                    SourceType.WEB, f"Online research: {query[:200]}", detail,
+                    status=EvidenceStatus.UNAVAILABLE,
+                )
+            ], 0, [detail])
+        with self._make_client() as client:
+            return WebResearch(client, _secret(self.settings.web_search_api_key)).lookup(
+                query, limit, topic=topic,
+            )
 
 
 def _secret(value: object | None) -> str | None:

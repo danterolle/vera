@@ -2,6 +2,7 @@ from typing import Protocol
 
 from vera.domain.enums import Route
 from vera.domain.evidence import Evidence
+from vera.domain.plans import ResourcePlan
 from vera.domain.reports import DetectionAlert, GeneratedAnswer, StreamStatistics
 from vera.domain.requests import AnalysisRequest
 
@@ -20,4 +21,6 @@ class ModelProvider(Protocol):
         alerts: list[DetectionAlert],
         statistics: StreamStatistics,
         feedback: list[str],
+        *,
+        plan: ResourcePlan | None = None,
     ) -> GeneratedAnswer: ...

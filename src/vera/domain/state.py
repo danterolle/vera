@@ -17,6 +17,7 @@ from vera.domain.requests import AnalysisRequest
 
 class GraphState(TypedDict, total=False):
     request: AnalysisRequest
+    request_received_at: str
     run_id: str
     started_at: float
     active_ms: float

@@ -9,18 +9,21 @@ from vera.errors import ProviderError
 from vera.providers.base import ModelProvider
 from vera.retrieval.cve import extract_cve_ids
 from vera.retrieval.knowledge import CuratedKnowledge
+from vera.retrieval.subjects import WEB_INTENT, research_query
 
 CONCEPT_PATTERN = re.compile(
     r"^(what (?:is|are)|define|explain|describe|how (?:does|do|is|are)|"
     r"why (?:is|are|does)|can you explain|could you explain|tell me about|"
-    r"che cos['’]?[eè]|cos['’]?[eè]|come funziona|perch[eé]|"
+    r"che cos['’]?[eè]|cos['’]?[eè]|cosa [eè]|come funziona|perch[eé]|"
     r"definisci|descrivi|spiega(?:mi)?|puoi spiegare)\b",
     re.IGNORECASE,
 )
 ATTACK_PATTERN = re.compile(r"\b(mitre|att&ck|t\d{4}(?:\.\d{3})?|technique)\b", re.IGNORECASE)
 TECHNIQUE_PATTERN = re.compile(r"\bT\d{4}(?:\.\d{3})?\b", re.IGNORECASE)
 CURRENT_PATTERN = re.compile(
-    r"\b(current|latest|recent|today|epss|kev|nvd|osv|exploited|attuale|recente)\b",
+    r"\b(current|latest|recent|today|now|news|novit[àa]|notizie|aggiornament[oi]|"
+    r"ultim[oeia]|nuov[oeia]|attual[ei]|recent[ei]|incidente|attacco|campagna|breach|"
+    r"epss|kev|nvd|osv|exploited)\b",
     re.IGNORECASE,
 )
 
@@ -51,6 +54,8 @@ class Router:
         query: str,
         has_events: bool,
         alerts: list[DetectionAlert],
+        *,
+        interpreted: bool = False,
     ) -> RouteDecision:
         cve_ids = sorted(
             set(extract_cve_ids(query))
@@ -61,9 +66,10 @@ class Router:
             | {alert.technique_id for alert in alerts if alert.technique_id}
         )
         reasons = []
-        use_tools = bool(cve_ids)
+        web_request = bool(WEB_INTENT.search(query))
         attack_request = bool(ATTACK_PATTERN.search(query))
         current_request = bool(CURRENT_PATTERN.search(query))
+        use_tools = bool(cve_ids) or web_request or current_request
         use_rag = use_tools or bool(alerts) or attack_request or current_request
         if alerts:
             reasons.append("Deterministic event rules produced alerts.")
@@ -71,6 +77,8 @@ class Router:
             reasons.append("A normalized event stream was supplied.")
         if cve_ids:
             reasons.append("Exact CVE identifiers require authoritative lookups.")
+        if web_request:
+            reasons.append("The user explicitly requested online research.")
         if technique_ids:
             reasons.append("ATT&CK identifiers require corpus retrieval.")
         elif attack_request:
@@ -83,6 +91,9 @@ class Router:
             use_stream=has_events or bool(alerts),
             cve_ids=cve_ids,
             technique_ids=technique_ids,
+            web_query=(
+                research_query(query) if web_request or current_request and not cve_ids else None
+            ),
             reasons=reasons,
         )
         if CONCEPT_PATTERN.search(query):
@@ -110,6 +121,11 @@ class Router:
             )
         if has_events or use_rag:
             return self._decision(plan)
+        if interpreted:
+            return self._decision(plan.model_copy(update={
+                "use_rag": not self.supports_cag(query),
+                "reasons": ["The conversation model resolved the question before routing."],
+            }))
         return self._ambiguous(query, plan)
 
     def _ambiguous(self, query: str, plan: ResourcePlan) -> RouteDecision:

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>VERA · Chat</title>
+  <link rel="stylesheet" href="/assets/chat.css">
+</head>
+<body>
+  <button id="sidebar-backdrop" class="backdrop" aria-label="Chiudi conversazioni" hidden></button>
+  <aside id="sidebar" class="sidebar" aria-label="Conversazioni">
+    <a class="brand" href="/chat" aria-label="VERA Chat"><span class="brand-mark">V</span> VERA</a>
+    <button id="new-chat" class="new-chat" type="button"><span aria-hidden="true">＋</span> Nuova chat</button>
+    <div class="history-heading"><span>Le tue chat</span>
+      <button id="refresh-reviews" class="icon-button" type="button" aria-label="Aggiorna richieste da rivedere" title="Aggiorna richieste da rivedere">↻</button>
+    </div>
+    <nav id="conversations" class="conversations" aria-label="Cronologia chat"></nav>
+    <div class="sidebar-footer">
+      <a href="/knowledge-graph"><span aria-hidden="true">◇</span> Knowledge Graph</a>
+      <a href="/docs"><span aria-hidden="true">↗</span> Documentazione API</a>
+      <p>Un contesto distinto per ogni chat</p>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <button id="sidebar-toggle" class="icon-button mobile-menu" aria-label="Apri conversazioni" aria-expanded="false" type="button">☰</button>
+      <div><span class="workspace-name">VERA <span class="local-label">Locale</span></span>
+        <p id="chat-title">Nuova chat</p></div>
+      <span id="model-label" class="model-label">Assistente per la cybersecurity</span>
+      <button id="review-count" class="review-count" type="button" aria-label="Apri richieste da rivedere" hidden></button>
+    </header>
+    <p id="app-notice" class="app-notice" role="status" hidden></p>
+    <div id="scroll-area" class="scroll-area">
+      <section id="welcome" class="welcome">
+        <div class="welcome-symbol" aria-hidden="true">V</div>
+        <h1>Come posso aiutarti?</h1>
+        <p>Parliamo di sicurezza informatica. Da dove vuoi iniziare?</p>
+        <div class="suggestions">
+          <button type="button" data-prompt="Spiega il principio di least privilege con una breve affermazione documentata."><span aria-hidden="true">◈</span><strong>Capire un concetto</strong><span>Il principio del minimo privilegio</span></button>
+          <button type="button" data-prompt="Spiega MITRE ATT&amp;CK T1059.001 e il suo rapporto con PowerShell. Usa una sola affermazione documentata."><span aria-hidden="true">⌘</span><strong>Esplorare una tecnica</strong><span>PowerShell e MITRE ATT&amp;CK</span></button>
+          <button type="button" data-prompt="Analizza CVE-2021-44228. Distingui gli snapshot locali dai dati aggiornati che non puoi consultare."><span aria-hidden="true">⌕</span><strong>Analizzare una vulnerabilità</strong><span>Fonti e informazioni disponibili</span></button>
+        </div>
+      </section>
+      <section id="messages" class="messages" aria-label="Messaggi della conversazione" aria-live="polite" aria-relevant="additions"></section>
+      <div id="conversation-end"></div>
+    </div>
+    <div class="composer-area">
+      <form id="composer" class="composer">
+        <label class="sr-only" for="message-input">Messaggio a VERA</label>
+        <textarea id="message-input" name="message" rows="1" maxlength="4000" placeholder="Scrivi a VERA…" required></textarea>
+        <div class="composer-bottom"><span id="composer-hint">Invio per inviare · Maiusc + Invio per andare a capo</span>
+          <button id="send-message" class="send-button" type="submit" aria-label="Invia messaggio" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
+          </button>
+        </div>
+      </form>
+      <p class="composer-note">VERA può commettere errori. Controlla le fonti; un alert non dimostra una compromissione.</p>
+    </div>
+  </main>
+  <script type="module" src="/assets/chat.js"></script>
+</body>
+</html>

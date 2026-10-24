@@ -1,8 +1,10 @@
-from vera.domain.enums import EvidenceStatus
+from vera.domain.enums import EvidenceStatus, SourceType
 from vera.domain.evidence import Evidence, make_evidence
 from vera.domain.state import GraphState
+from vera.errors import ProviderError
 from vera.knowledge_graph.retrieval import search_graph
 from vera.knowledge_graph.selection import combine_evidence
+from vera.retrieval.subjects import WEB_INTENT, concept_subject, names_subject, research_query
 from vera.stream.evidence import summarize_stream
 from vera.workflow.evidence import deduplicate_evidence
 from vera.workflow.runtime import Runtime
@@ -13,12 +15,19 @@ class ContextAcquirer:
         self.runtime = runtime
 
     def cag(self, state: GraphState) -> dict:
-        query = state["request"].query
+        if state["resource_plan"].intent != "cybersecurity":
+            return self._result(state, [], "conversation")
+        query = self._query(state)
         evidence = self.runtime.knowledge.search(query) + state["memory"]
-        return self._result(state, evidence, "cag")
+        subject = state["resource_plan"].subject or concept_subject(query)
+        if self._covered(evidence, subject):
+            return self._result(state, evidence, "cag")
+        # Curated knowledge has no record about the subject: escalate to local
+        # retrieval and bounded online research instead of answering from memory.
+        return self.rag(state)
 
     def rag(self, state: GraphState) -> dict:
-        query = state["request"].query
+        query = self._query(state)
         evidence = (
             self.runtime.knowledge.search(query)
             + self.runtime.corpus.search(query, self.runtime.settings.retrieval_k)
@@ -27,7 +36,7 @@ class ContextAcquirer:
         return self._result(state, evidence, "cag+rag", searched_query=query)
 
     def tools(self, state: GraphState) -> dict:
-        query = state["request"].query
+        query = self._query(state)
         local = (
             self.runtime.knowledge.search(query)
             + self.runtime.corpus.search(query, self.runtime.settings.retrieval_k)
@@ -35,7 +44,10 @@ class ContextAcquirer:
         )
         if self.runtime.settings.react_enabled:
             return self._result(state, local, "cag+rag", searched_query=query)
-        lookup = self.runtime.sources.lookup(state["resource_plan"].cve_ids)
+        lookup = self.runtime.sources.lookup(
+            state["resource_plan"].cve_ids,
+            limit=max(0, self.runtime.settings.max_tool_calls - state["tool_calls"]),
+        )
         return self._result(
             state,
             local + lookup.evidence,
@@ -59,7 +71,10 @@ class ContextAcquirer:
         cve_ids = state["resource_plan"].cve_ids
         expanded = f"{state['request'].query} {' '.join(technique_ids + cve_ids)}"
         lookup = (
-            None if self.runtime.settings.react_enabled else self.runtime.sources.lookup(cve_ids)
+            None if self.runtime.settings.react_enabled else self.runtime.sources.lookup(
+                cve_ids,
+                limit=max(0, self.runtime.settings.max_tool_calls - state["tool_calls"]),
+            )
         )
         evidence = (
             self.runtime.knowledge.search(expanded)
@@ -75,6 +90,16 @@ class ContextAcquirer:
             tool_calls=lookup.tool_calls if lookup else 0,
             warnings=lookup.warnings if lookup else [],
             searched_query=expanded,
+        )
+
+    @staticmethod
+    def _covered(evidence: list[Evidence], subject: str | None) -> bool:
+        return any(
+            item.status == EvidenceStatus.AVAILABLE
+            and item.source not in {SourceType.MEMORY, SourceType.STREAM}
+            and not item.metadata.get("fallback", False)
+            and (subject is None or names_subject(item, subject))
+            for item in evidence
         )
 
     @staticmethod
@@ -106,6 +131,77 @@ class ContextAcquirer:
             evidence = combine_evidence(graph.evidence, evidence)
             if graph.error:
                 warnings = [*(warnings or []), graph.error]
+        plan = state["resource_plan"]
+        subject = plan.subject or concept_subject(searched_query or "")
+        definition = bool(concept_subject(state["request"].query)) and bool(subject)
+        definition = definition and not state["request"].events
+        covered = self._covered(evidence, subject)
+        web_query = plan.web_query
+        if (plan.intent == "cybersecurity" and searched_query is not None
+                and not state["request"].events and not covered and web_query is None):
+            web_query = plan.search_query or subject or searched_query
+        research_trace = []
+        model_calls = state["model_calls"]
+        if web_query is not None:
+            lookup = self.runtime.sources.research(
+                web_query,
+                limit=max(
+                    0, self.runtime.settings.max_tool_calls - state["tool_calls"] - tool_calls,
+                ),
+                topic=subject,
+            )
+            online = lookup.evidence
+            candidates = [item for item in online if (
+                item.source == SourceType.WEB and item.status == EvidenceStatus.AVAILABLE
+            )]
+            assessor = getattr(self.runtime.provider, "assess_sources", None)
+            if candidates:
+                accepted = []
+                if assessor and (model_calls < self.runtime.settings.model_call_limit - 1
+                                 or state.get("revision_count", 0)):
+                    model_calls += 1
+                    try:
+                        accepted = assessor(
+                            plan.resolved_query or state["request"].query, candidates,
+                        )
+                    except ProviderError as exc:
+                        warnings = [*(warnings or []), f"Online source assessment failed: {exc}"]
+                assessed = []
+                for item in online:
+                    if item in candidates:
+                        if item.id in accepted:
+                            item = item.model_copy(update={"metadata": {
+                                **item.metadata, "scope_validated": True,
+                                "validated_topic": subject or item.metadata.get("research_subject"),
+                            }})
+                        else:
+                            item = item.model_copy(update={
+                                "status": EvidenceStatus.UNAVAILABLE,
+                                "content": (
+                                    "Online result was not validated as relevant "
+                                    "cybersecurity context."
+                                ),
+                                "metadata": {**item.metadata, "scope_validated": False},
+                            })
+                    assessed.append(item)
+                online = assessed
+                research_trace.append(f"research:validated_sources={len(accepted)}")
+            evidence = online + evidence
+            tool_calls += lookup.tool_calls
+            warnings = [*(warnings or []), *lookup.warnings]
+            reason = "Online research was requested or local topic coverage was missing."
+            plan = plan.model_copy(update={
+                "use_rag": True, "use_tools": True, "web_query": web_query,
+                "reasons": list(dict.fromkeys([*plan.reasons, reason])),
+            })
+            research_trace.append(f"research:http_requests={lookup.tool_calls}:query={web_query}")
+        if definition:
+            evidence = [item for item in evidence if (
+                names_subject(item, subject)
+                or item.status == EvidenceStatus.UNAVAILABLE
+                or item.source == SourceType.WEB
+                or item.metadata.get("fallback")
+            )]
         unique = deduplicate_evidence(evidence)
         graph_metadata = graph.model_dump() if graph else {
             "enabled": self.runtime.knowledge_graph is not None, "attempted": False,
@@ -120,12 +216,26 @@ class ContextAcquirer:
                 f"available={graph.available}:evidence={len(graph_metadata['retained_evidence_ids'])}"
             )
         return {
+            "route": plan.route,
+            "resource_plan": plan,
+            "route_reason": " ".join(plan.reasons),
             "evidence": unique,
             "knowledge_graph": graph_metadata,
             "tool_calls": state["tool_calls"] + tool_calls,
+            "model_calls": model_calls,
             "react_searches": state["react_searches"] + (
                 [searched_query] if searched_query is not None else []
             ),
-            "warnings": state["warnings"] + (warnings or []),
-            "trace": state["trace"] + trace,
+            "warnings": list(dict.fromkeys(state["warnings"] + (warnings or []))),
+            "trace": state["trace"] + trace + research_trace,
         }
+
+    @staticmethod
+    def _query(state: GraphState) -> str:
+        request = state["request"]
+        if state["resource_plan"].web_query is not None:
+            return state["resource_plan"].web_query
+        if WEB_INTENT.search(request.query):
+            return research_query(request.query, request.conversation)
+        plan = state["resource_plan"]
+        return plan.search_query or plan.resolved_query or request.query

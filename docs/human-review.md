@@ -12,19 +12,26 @@ analysis returns `202` and a `ReviewRecord` containing `status: "pending"`, `run
 `version`, reasons, the **unpublished** draft, evidence, incident context, reflection,
 warnings, and revision history. The draft does not appear in `/v1/runs`, run history,
 semantic memory, or knowledge-graph projection. The server does not retain an open request,
-model call, or worker while the reviewer decides. `/graph` lists pending reviews separately
-from recorded executions and shows the evidence and available actions.
+model call, or worker while the reviewer decides. `/chat` shows the unpublished draft in
+its conversation, with source details and a request for confirmation. Existing open reviews
+are recovered into the chat sidebar, including reviews created through the API or CLI.
 
 ## Decide locally
 
-Run `vera serve` on a loopback address and open `/graph`. Examine the draft and its cited
-quotes, evidence availability, alerts, and gaps. Approve to persist the report; reject
-with a reason to close the review without a saved run; or request revision with specific
-feedback. A revision invokes the configured external model once, then validates, reflects,
+Run `vera serve` on a loopback address and open `/chat`. Open a conversation marked
+**In attesa della tua verifica**. Expand **Esamina affermazioni, fonti e motivazioni** to
+inspect quotes, availability, alerts, and gaps. **Approva e salva** persists the report;
+**Rifiuta** asks for a reason and closes it without publishing; **Chiedi una modifica**
+opens a feedback field inside the message. A revision reacquires evidence and invokes the
+configured external model once, then validates, reflects,
 and **pauses again**, even if the new draft is well supported. At most two revision cycles
 are allowed per run. The deterministic provider does not use feedback and rejects automatic
 revision explicitly; approval and rejection remain available. A failed revision keeps the
 previous draft pending and exposes the model error instead of silently substituting output.
+Feedback such as **Cerca su internet** requests an online lookup about the original subject
+before generation, subject to live-source settings and the remaining tool-call budget.
+Online catalogs and the optional general-search connector are described in [Chat](chat.md).
+Pending reviews expose model/source metrics and provenance as well as completed reports.
 
 The same operations are available through the local API. `GET /v1/reviews` returns every
 open review, including ones needing an action retry:

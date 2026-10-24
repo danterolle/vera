@@ -60,7 +60,8 @@ src/vera/
     ├── corpus/      Bundled RAG documents
     ├── evaluation/  Controlled benchmark scenarios
     ├── samples/     Safe synthetic event streams
-    └── web/graph/   Workflow explorer HTML, styles, and scripts
+    ├── web/chat/    Conversation UI, local history, and inline human review
+    └── web/shared/  Route labels and the knowledge graph viewport
 ```
 
 ## Routing contract
@@ -122,11 +123,14 @@ remain explicit unavailable evidence.
 ## Workflow observability
 
 `VeraOrchestrator.get_topology()` reads nodes, conditional edges, and Mermaid output from the
-compiled LangGraph object. `/v1/graph` exposes that typed representation. `/graph` renders it
-with local HTML, CSS, and JavaScript under a restrictive content security policy; no diagram
-or execution data is sent to an external rendering service. A persisted run activates only
-its selected acquisition branch and records repeated generation and validation nodes.
-See [Workflow Explorer](workflow-explorer.md) for modes, interactions, and interpretation.
+compiled LangGraph object. `/v1/graph` retains that typed diagnostic representation.
+The primary interface is `/chat`, using local HTML, CSS, and JavaScript under a restrictive
+content security policy. Its messages distinguish published reports from pending reviews;
+source details expose model, route, evidence, and warnings without a workflow diagram.
+Browser history stores separate conversations and report references. Up to six recent user
+messages and completed response summaries (6,000 characters total) can accompany a request.
+They are untrusted conversational context, not authoritative evidence. Routing still uses
+the latest query rather than concatenating old questions. See [Chat](chat.md).
 
 ## Retrieval
 
@@ -188,4 +192,4 @@ assertion nodes preserve original source records. Structured mappings remain inf
 factual claims still require quotations accepted by the existing validator. Runtime
 metadata distinguishes attempted retrieval, retained evidence, and final citations.
 SQLite commits run projection jobs atomically with history; idempotent Kuzu projection
-retries failures. `/knowledge-graph` inspects domain data separately from `/graph`.
+retries failures. `/knowledge-graph` inspects domain data separately from `/chat`.
