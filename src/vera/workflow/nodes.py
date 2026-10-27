@@ -1,5 +1,4 @@
 import time
-from dataclasses import replace
 from datetime import UTC, datetime
 
 from vera.domain.plans import ResourcePlan
@@ -12,7 +11,7 @@ from vera.stream.incident import build_incident
 from vera.stream.policy import DetectionPolicy
 from vera.stream.statistics import calculate_statistics
 from vera.workflow.finalization import finalize_result
-from vera.workflow.generation import best_evidence_claim, generate_draft
+from vera.workflow.generation import generate_draft
 from vera.workflow.interaction import interpret
 from vera.workflow.runtime import Runtime
 
@@ -73,7 +72,7 @@ class WorkflowNodes:
         decision = None
         if interaction.intent == "cybersecurity":
             decision = self.runtime.router.select(
-                interaction.search_query or interaction.resolved_query,
+                f"{request.query}\n{interaction.search_query or interaction.resolved_query}",
                 bool(request.events), state["alerts"], interpreted=True,
             )
             plan = decision.plan
@@ -133,24 +132,9 @@ class WorkflowNodes:
             repair=True,
             minimum_coverage=self.runtime.settings.grounding_min_coverage,
         )
-        errors = initial.errors
-        warnings = state["warnings"]
-        if errors:
-            claim = best_evidence_claim(state["evidence"])
-            if claim is not None:
-                final = replace(
-                    final,
-                    draft=final.draft.model_copy(update={"claims": [claim]}),
-                )
-                errors = []
-                warnings = [
-                    *warnings,
-                    "The model's claims failed validation; a verbatim evidence claim was used.",
-                ]
         return {
             "draft": final.draft,
-            "validation_errors": errors,
-            "warnings": warnings,
+            "validation_errors": initial.errors,
             "retry_generation": False,
             "trace": state["trace"] + [f"validation:errors={len(initial.errors)}"],
         }

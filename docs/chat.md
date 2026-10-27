@@ -67,13 +67,13 @@ record mentioning PowerSploit does not define PowerSploit. `Cerca su internet Po
 forces a fresh lookup; a standalone `Cerca su internet` uses the last substantive user question.
 The same instruction in review feedback reacquires sources before revising the draft.
 
-The built-in, keyless lookup searches the **live MITRE ATT&CK software, enterprise-technique,
-and group catalogs for exact names/aliases or IDs**. It is not an unrestricted search engine.
-For general search, configure `VERA_WEB_SEARCH_API_KEY` with a Brave Search API key.
-Search results locate pages on a fixed list of primary-source hosts; VERA downloads at most
-two such pages and cites their text, never a search snippet. The built-in catalogs are tried
-first. A missing exact match, missing key, network failure, disabled access, or exhausted tool
-budget is reported as unavailable. A typo such as `powersplot` is not silently corrected.
+With a configured `VERA_WEB_SEARCH_API_KEY`, research first uses Brave Search.
+Keyless discovery uses DuckDuckGo to locate source URLs, followed by exact-name/alias/ID
+lookups in the live MITRE ATT&CK software, enterprise-technique and group catalogs.
+Search results locate pages on a fixed list of source hosts; VERA downloads at most two
+such pages and cites their text, never search snippets or Instant Answer abstracts.
+Catalog matching remains exact; general search results must pass relevance assessment.
+Network failures, disabled access, missing records and exhausted budgets remain unavailable.
 
 Research performs only bounded HTTPS GET requests, with per-request timeouts, a 2 MiB page
 limit, no redirects, and the run's shared tool-call budget. It does not execute downloaded

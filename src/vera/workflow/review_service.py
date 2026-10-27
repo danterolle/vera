@@ -37,13 +37,12 @@ class ReviewService:
     def is_waiting(snapshot: Any) -> bool:
         return any(task.interrupts for task in snapshot.tasks)
 
-    def from_snapshot(
-        self, run_id: str, *, version: int, history: list[str]
-    ) -> ReviewRecord:
+    def from_snapshot(self, run_id: str, *, version: int, history: list[str]) -> ReviewRecord:
         snapshot = self.snapshot(run_id)
         if not self.is_waiting(snapshot) or snapshot.values.get("run_id") != run_id:
             raise ReviewUnavailable("The pending review checkpoint is unavailable")
         state: GraphState = snapshot.values
+        provider = self.runtime.provider
         return ReviewRecord(
             run_id=run_id,
             session_id=state["request"].session_id,
@@ -63,10 +62,8 @@ class ReviewService:
             feedback_history=history,
             error=state.get("revision_error"),
             metadata={
-                "provider": self.runtime.provider.name,
-                "model": (
-                    self.runtime.settings.llm_model if self.runtime.provider.external else None
-                ),
+                "provider": provider.name,
+                "model": self.runtime.settings.llm_model if provider.external else None,
                 "provider_fallback": state["provider_fallback"],
                 "origin": state["request"].origin,
                 "intent": state["resource_plan"].intent,
@@ -183,9 +180,7 @@ class ReviewService:
         self.prune(previous.run_id)
         return result
 
-    def _rejected(
-        self, previous: ReviewRecord, decision: ReviewDecision
-    ) -> ReviewRecord:
+    def _rejected(self, previous: ReviewRecord, decision: ReviewDecision) -> ReviewRecord:
         record = previous.model_copy(
             update={
                 "status": ReviewStatus.REJECTED,

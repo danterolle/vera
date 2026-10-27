@@ -13,7 +13,14 @@ CYBER_INTENT = re.compile(
 
 
 def review_reasons(state: GraphState) -> list[str]:
-    if state["resource_plan"].intent in {"social", "out_of_scope", "clarification"}:
+    if (
+        state["resource_plan"].intent in {"social", "out_of_scope", "clarification"}
+        and not state["alerts"]
+        and not state["reflection"].validation_failures
+        and not state["reflection"].unsupported_claims
+        and not extract_cve_ids(state["request"].query)
+        and not CYBER_INTENT.search(state["request"].query)
+    ):
         return []
     reasons = []
     alerts = [
@@ -26,6 +33,8 @@ def review_reasons(state: GraphState) -> list[str]:
     reflection = state["reflection"]
     if reflection.unsupported_claims:
         reasons.append(f"{reflection.unsupported_claims} claim(s) lack verified support.")
+    elif reflection.validation_failures:
+        reasons.append(f"{reflection.validation_failures} claim(s) failed citation validation.")
     draft = state["draft"]
     query = state["request"].query
     cve_ids = extract_cve_ids(query)

@@ -1,114 +1,68 @@
-# Guida alla Configurazione della Ricerca Web in VERA
+# Configure bounded online research
 
-Questa guida spiega come abilitare e configurare le ricerche web in tempo reale in VERA, come ottenere gratuitamente la chiave API e come verificare il corretto funzionamento delle ricerche online da parte del modello.
+VERA uses online research only when both `VERA_LIVE_SOURCES` and
+`VERA_WEB_SEARCH_ENABLED` are enabled. It is a bounded evidence-acquisition step,
+not an unrestricted browser or a model-controlled search engine.
 
----
+## Providers
 
-## 1. Architettura della Ricerca Web in VERA
+With `VERA_WEB_SEARCH_API_KEY`, VERA first uses Brave Search to discover source URLs.
+Without usable Brave results, it tries DuckDuckGo URL discovery and exact lookups in
+MITRE ATT&CK software, enterprise-technique and group catalogs.
+Exact CVE requests separately use CVE.org, NVD, CISA KEV, FIRST EPSS and OSV.
 
-VERA implementa un sistema di acquisizione evidenze a più livelli per le informazioni online:
+Search snippets and Instant Answer abstracts are never accepted as source evidence.
+VERA retrieves the actual page from an allowlisted HTTPS host and retains its text,
+URL and HTTP provenance. At most two pages are retained. The model assesses whether
+general web pages concern the requested cybersecurity subject; failed or unavailable
+assessment makes those pages unavailable.
 
-1. **Brave Search API (Consigliato per indicizzazione web completa)**:
-   - Fornisce accesso diretto all'indice web globale di Brave.
-   - Permette di cercare notizie recenti, incidenti cyber attuali, analisi malware e campagne ransomware.
-   - Richiede una chiave API (`VERA_WEB_SEARCH_API_KEY`).
-2. **Fallback Web integrato (Senza chiave)**:
-   - Quando non è configurata alcuna chiave API, VERA utilizza un fallback basato sul motore pubblico DuckDuckGo e sui cataloghi ufficiali MITRE ATT&CK (software, gruppi, tecniche).
-   - Consente di estrarre evidenze e snippet anche in assenza di chiavi a pagamento o account esterni.
-3. **Lookup autoritativi per vulnerabilità (CVE)**:
-   - Con `VERA_LIVE_SOURCES=true`, VERA interroga direttamente e in tempo reale NVD (NIST), CISA KEV, CVE.org, FIRST EPSS e OSV.dev quando rileva identificatori CVE.
+All research requests are GET requests, share the run's tool budget and use configured
+timeouts. Responses are limited to 2 MiB. Redirects are not followed automatically;
+failed retrieval is explicit rather than replaced with a search snippet.
+These controls do not establish that every statement on an allowed host is correct.
 
----
+## Obtain and configure a Brave key
 
-## 2. Come Recuperare Gratuitamente la Chiave API di Brave Search
+Use the [Brave Search API portal](https://brave.com/search/api/) to create an account
+and obtain a search API key. Check its current plans, quotas and charges; VERA does not
+guarantee that a free plan is available.
 
-Brave offre un piano gratuito (**Free Tier**) che include **2.000 query al mese senza costi**.
-
-### Passaggi:
-1. **Registrazione**:
-   - Vai sul portale sviluppatori di Brave: [https://brave.com/search/api/](https://brave.com/search/api/)
-   - Clicca su **Get Started** o **Sign Up**.
-2. **Creazione dell'Account**:
-   - Inserisci la tua email e conferma il link di verifica ricevuto via email.
-3. **Selezione del Piano**:
-   - Nella sezione **Plans** o **Pricing**, seleziona il piano **Free** (chiamato *Data for AI / Web Search Free*).
-   - Il piano gratuito include fino a 2.000 chiamate/mese con rate limit di 1 richiesta al secondo.
-4. **Generazione della Chiave API**:
-   - Accedi alla dashboard delle chiavi: `https://api.search.brave.com/app/keys`
-   - Clicca su **Create New Key**.
-   - Assegna un nome (es. `VERA-local`) e copia la chiave generata (ha un formato alfanumerico tipo `BSA...`).
-
----
-
-## 3. Configurazione di VERA con la Chiave Web
-
-Apri il file `.env` presente nella cartella principale del progetto:
-
-```bash
-nano .env   # o tramite il tuo editor di testo preferito
-```
-
-Verifica e imposta le seguenti variabili:
+Store configuration in the local, ignored `.env`, never in a tracked file:
 
 ```dotenv
-# Abilita le sorgenti live online (CVE + Web)
 VERA_LIVE_SOURCES=true
-
-# Abilita la ricerca web
 VERA_WEB_SEARCH_ENABLED=true
-
-# Inserisci qui la chiave Brave Search ottenuta al punto 2
-VERA_WEB_SEARCH_API_KEY=BSA_INSERISCI_QUI_LA_TUA_CHIAVE
-
-# Opzionale: per permettere al modello di decidere autonomamente
-# se e quando cercare online durante il ciclo di pensiero (ReAct)
+VERA_WEB_SEARCH_API_KEY=REPLACE_WITH_YOUR_BRAVE_API_KEY
 VERA_REACT_ENABLED=false
 ```
 
-> **Nota**: Se modifichi `.env`, riavvia il server VERA per applicare le modifiche:
-> ```bash
-> systemctl --user restart vera-api.service
-> ```
-> oppure, se eseguito manualmente:
-> ```bash
-> uv run --extra knowledge-graph vera serve
-> ```
+Omit `VERA_WEB_SEARCH_API_KEY` to use only keyless discovery and catalogs.
+Restart the local VERA process after changing configuration:
 
----
+```bash
+uv run --extra knowledge-graph vera serve
+```
 
-## 4. Come Attivare la Ricerca nelle Conversazioni
+## Trigger research and inspect provenance
 
-VERA attiva la ricerca online in tre circostanze:
+Explicit online requests, requests for current information, and missing local subject
+coverage can activate research. A follow-up asking to search online can resolve the
+subject from the previous user question.
 
-1. **Richieste esplicite di ricerca online**:
-   - *"Cerca su internet le ultime notizie sul ransomware LockBit"*
-   - *"Cerca online cosa è successo con il disservizio CrowdStrike"*
-   - *"Fai una ricerca web sulle vulnerabilità zero-day più recenti"*
-2. **Richieste su novità, incidenti o dati recenti**:
-   - Termini come `ultimi`, `novità`, `notizie`, `aggiornamenti`, `recente`, `incidente` o `breach` attivano automaticamente la rotta con strumenti (`CAG_RAG_TOOL`).
-3. **Mancanza di copertura locale**:
-   - Se una domanda riguarda un tema di cybersecurity non presente nel Knowledge Graph o nel corpus locale, VERA espande automaticamente la query verso la ricerca web per colmare la lacuna.
+For example:
 
----
-
-## 5. Come Verificare il Funzionamento
-
-### Tramite l'Interfaccia Chat (`http://127.0.0.1:8000/chat`):
-1. Invia una domanda che richiede dati recenti, ad esempio:
-   > *"Cerca online le ultime novità sul ransomware LockBit."*
-2. Nella risposta, clicca su **Fonti e dettagli della risposta**:
-   - Vedrai le fonti con l'etichetta `Recuperata online` o `web`.
-   - Sarà visibile l'URL della pagina consultata (es. CISA, BleepingComputer, MITRE).
-   - Sarà elencata la chiamata `HTTP GET` con codice `200`.
-
-### Tramite Chiamata API:
 ```bash
 curl -fsS http://127.0.0.1:8000/v1/analyze \
   -H 'Content-Type: application/json' \
-  -d '{"query":"Cerca su internet informazioni sul ransomware LockBit","origin":"chat"}'
+  -d '{"query":"Search online for current information about LockBit.","origin":"chat"}'
 ```
 
-Nel payload JSON di ritorno:
-- `route` sarà `CAG_RAG_TOOL`.
-- `metadata.resource_plan.use_tools` sarà `true`.
-- In `evidence` saranno presenti elementi con `source: "web"`, `status: "available"` e `provenance: "live_api"`.
+Open `/chat` and expand the response's source details. Inspect `lookup_method`,
+`provenance`, retrieval time, source URL and actual HTTP requests. A selected tools route
+does not prove a network request happened: inspect `metrics.tool_calls`.
+An HTTP `202` response is an unpublished review, not a completed report.
+
+Missing source pages, rate limits, disabled access and depleted budgets remain explicit
+unavailable results. Stored graph records are cached evidence, not fresh online lookups.
+Approving a draft publishes it; approval does not independently verify its statements.

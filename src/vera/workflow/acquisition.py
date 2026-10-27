@@ -1,13 +1,12 @@
 from vera.domain.enums import EvidenceStatus, SourceType
-from vera.domain.evidence import Evidence, make_evidence
+from vera.domain.evidence import Evidence
 from vera.domain.state import GraphState
-from vera.errors import ProviderError
 from vera.knowledge_graph.retrieval import search_graph
 from vera.knowledge_graph.selection import combine_evidence
-from vera.retrieval.subjects import WEB_INTENT, concept_subject, names_subject, research_query
-from vera.stream.evidence import summarize_stream
-from vera.workflow.evidence import deduplicate_evidence
+from vera.retrieval.subjects import concept_subject, names_subject
+from vera.workflow.evidence import context_query, deduplicate_evidence, stream_evidence
 from vera.workflow.runtime import Runtime
+from vera.workflow.source_assessment import assess_online_sources
 
 
 class ContextAcquirer:
@@ -17,7 +16,7 @@ class ContextAcquirer:
     def cag(self, state: GraphState) -> dict:
         if state["resource_plan"].intent != "cybersecurity":
             return self._result(state, [], "conversation")
-        query = self._query(state)
+        query = context_query(state)
         evidence = self.runtime.knowledge.search(query) + state["memory"]
         subject = state["resource_plan"].subject or concept_subject(query)
         if self._covered(evidence, subject):
@@ -27,7 +26,7 @@ class ContextAcquirer:
         return self.rag(state)
 
     def rag(self, state: GraphState) -> dict:
-        query = self._query(state)
+        query = context_query(state)
         evidence = (
             self.runtime.knowledge.search(query)
             + self.runtime.corpus.search(query, self.runtime.settings.retrieval_k)
@@ -36,7 +35,7 @@ class ContextAcquirer:
         return self._result(state, evidence, "cag+rag", searched_query=query)
 
     def tools(self, state: GraphState) -> dict:
-        query = self._query(state)
+        query = context_query(state)
         local = (
             self.runtime.knowledge.search(query)
             + self.runtime.corpus.search(query, self.runtime.settings.retrieval_k)
@@ -61,7 +60,7 @@ class ContextAcquirer:
         query = f"{state['request'].query} incident response network traffic"
         evidence = (
             self.runtime.knowledge.search(query)
-            + [self._stream_evidence(state)]
+            + [stream_evidence(state)]
             + state["memory"]
         )
         return self._result(state, evidence, "stream")
@@ -79,7 +78,7 @@ class ContextAcquirer:
         evidence = (
             self.runtime.knowledge.search(expanded)
             + self.runtime.corpus.search(expanded, self.runtime.settings.retrieval_k)
-            + [self._stream_evidence(state)]
+            + [stream_evidence(state)]
             + (lookup.evidence if lookup else [])
             + state["memory"]
         )
@@ -100,19 +99,6 @@ class ContextAcquirer:
             and not item.metadata.get("fallback", False)
             and (subject is None or names_subject(item, subject))
             for item in evidence
-        )
-
-    @staticmethod
-    def _stream_evidence(state: GraphState) -> Evidence:
-        request = state["request"]
-        simulated = request.simulated or any(event.simulated for event in request.events)
-        content, metadata = summarize_stream(state["statistics"], state["alerts"])
-        return make_evidence(
-            source="stream",
-            title="Normalized event-stream analysis",
-            content=content,
-            status=EvidenceStatus.SIMULATED if simulated else EvidenceStatus.AVAILABLE,
-            metadata=metadata,
         )
 
     def _result(
@@ -150,42 +136,12 @@ class ContextAcquirer:
                 ),
                 topic=subject,
             )
-            online = lookup.evidence
-            candidates = [item for item in online if (
-                item.source == SourceType.WEB and item.status == EvidenceStatus.AVAILABLE
-            )]
-            assessor = getattr(self.runtime.provider, "assess_sources", None)
-            if candidates:
-                accepted = []
-                if assessor and (model_calls < self.runtime.settings.model_call_limit - 1
-                                 or state.get("revision_count", 0)):
-                    model_calls += 1
-                    try:
-                        accepted = assessor(
-                            plan.resolved_query or state["request"].query, candidates,
-                        )
-                    except ProviderError as exc:
-                        warnings = [*(warnings or []), f"Online source assessment failed: {exc}"]
-                assessed = []
-                for item in online:
-                    if item in candidates:
-                        if item.id in accepted:
-                            item = item.model_copy(update={"metadata": {
-                                **item.metadata, "scope_validated": True,
-                                "validated_topic": subject or item.metadata.get("research_subject"),
-                            }})
-                        else:
-                            item = item.model_copy(update={
-                                "status": EvidenceStatus.UNAVAILABLE,
-                                "content": (
-                                    "Online result was not validated as relevant "
-                                    "cybersecurity context."
-                                ),
-                                "metadata": {**item.metadata, "scope_validated": False},
-                            })
-                    assessed.append(item)
-                online = assessed
-                research_trace.append(f"research:validated_sources={len(accepted)}")
+            online, model_calls, assessment_warnings, accepted = assess_online_sources(
+                self.runtime, state, plan, lookup.evidence, subject=subject,
+            )
+            warnings = [*(warnings or []), *assessment_warnings]
+            if accepted is not None:
+                research_trace.append(f"research:validated_sources={accepted}")
             evidence = online + evidence
             tool_calls += lookup.tool_calls
             warnings = [*(warnings or []), *lookup.warnings]
@@ -229,13 +185,3 @@ class ContextAcquirer:
             "warnings": list(dict.fromkeys(state["warnings"] + (warnings or []))),
             "trace": state["trace"] + trace + research_trace,
         }
-
-    @staticmethod
-    def _query(state: GraphState) -> str:
-        request = state["request"]
-        if state["resource_plan"].web_query is not None:
-            return state["resource_plan"].web_query
-        if WEB_INTENT.search(request.query):
-            return research_query(request.query, request.conversation)
-        plan = state["resource_plan"]
-        return plan.search_query or plan.resolved_query or request.query

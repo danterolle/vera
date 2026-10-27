@@ -88,7 +88,7 @@ export function history(chat, beforeId) {
   const messages = [];
   for (const message of chat.entries) {
     if (message.id === beforeId) break;
-    if (message.role === "user" || message.kind === "result" || message.kind === "review" && message.live !== false) {
+    if (message.role === "user" || message.kind === "result") {
       const content = String(message.context || message.content || "").trim().slice(0, 1000);
       if (content) messages.push({ role: message.role, content });
     }

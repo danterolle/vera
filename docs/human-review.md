@@ -6,6 +6,8 @@ available record for that identifier), and out-of-scope decisions that conflict 
 cybersecurity request require human review. Supported offline CVE snapshots are not held
 merely because live APIs are disabled; genuinely unrelated questions also finish normally.
 Review triggers are deterministic checks, not a second model's opinion.
+Final citation-validation failures remain visible and require review. The workflow never
+replaces rejected model claims with an unrelated quotation to make the draft appear grounded.
 
 `POST /v1/analyze` still returns `200` and an `AnalysisResult` for ordinary analyses. A held
 analysis returns `202` and a `ReviewRecord` containing `status: "pending"`, `run_id`,

@@ -1,11 +1,40 @@
 from vera.domain.enums import EvidenceStatus
-from vera.domain.evidence import Evidence
+from vera.domain.evidence import Evidence, make_evidence
+from vera.domain.state import GraphState
+from vera.retrieval.subjects import IDENTIFIERS, WEB_INTENT, research_query
+from vera.stream.evidence import summarize_stream
 
 PROVENANCE_PRIORITY = {
     "live_api": 3,
     "synchronized_feed": 2,
     "bundled_snapshot": 1,
 }
+
+
+def context_query(state: GraphState) -> str:
+    request = state["request"]
+    plan = state["resource_plan"]
+    if plan.web_query is not None:
+        query = plan.web_query
+    elif WEB_INTENT.search(request.query):
+        query = research_query(request.query, request.conversation)
+    else:
+        query = plan.search_query or plan.resolved_query or request.query
+    identifiers = " ".join(dict.fromkeys(IDENTIFIERS.findall(request.query)))
+    return f"{query} {identifiers}".strip() if identifiers else query
+
+
+def stream_evidence(state: GraphState) -> Evidence:
+    request = state["request"]
+    simulated = request.simulated or any(event.simulated for event in request.events)
+    content, metadata = summarize_stream(state["statistics"], state["alerts"])
+    return make_evidence(
+        source="stream",
+        title="Normalized event-stream analysis",
+        content=content,
+        status=EvidenceStatus.SIMULATED if simulated else EvidenceStatus.AVAILABLE,
+        metadata=metadata,
+    )
 
 
 def deduplicate_evidence(evidence: list[Evidence]) -> list[Evidence]:

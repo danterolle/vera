@@ -3,7 +3,12 @@ import re
 from vera.domain.interaction import InteractionPlan
 from vera.domain.requests import AnalysisRequest
 from vera.errors import ProviderError
-from vera.retrieval.subjects import concept_subject, explicit_security_topic, research_query
+from vera.retrieval.subjects import (
+    IDENTIFIERS,
+    concept_subject,
+    explicit_security_topic,
+    research_query,
+)
 from vera.workflow.runtime import Runtime
 
 SOCIAL = re.compile(
@@ -25,7 +30,11 @@ def interpret(runtime: Runtime, request: AnalysisRequest) -> tuple[InteractionPl
                 prev_topic = msg.content.strip()[:100]
                 break
     subject = concept_subject(query) or (prev_topic if not concept_subject(request.query) else "")
-    search = f"{prev_topic} {query}".strip()[:300] if (prev_topic and not concept_subject(query)) else (subject or query)[:300]
+    search = (
+        f"{prev_topic} {query}".strip()[:300]
+        if prev_topic and not concept_subject(query)
+        else (subject or query)[:300]
+    )
     fallback = InteractionPlan(
         intent=(
             "social" if SOCIAL.fullmatch(request.query) and not request.events else "cybersecurity"
@@ -39,6 +48,8 @@ def interpret(runtime: Runtime, request: AnalysisRequest) -> tuple[InteractionPl
     if runtime.provider.external and planner:
         try:
             result = planner(request)
+            if IDENTIFIERS.search(request.query) and result.intent != "cybersecurity":
+                result = result.model_copy(update={"intent": "cybersecurity"})
             # A named topic, follow-up on previous context, or an explicit security identifier
             # needs evidence, not a generic clarification.
             if result.intent == "clarification" and (
@@ -51,7 +62,10 @@ def interpret(runtime: Runtime, request: AnalysisRequest) -> tuple[InteractionPl
                 result = result.model_copy(update={
                     "intent": "cybersecurity",
                     "subject": resolved_subject,
-                    "search_query": result.search_query or fallback.search_query or f"{resolved_subject} {query}"[:300],
+                    "search_query": (
+                        result.search_query or fallback.search_query
+                        or f"{resolved_subject} {query}"[:300]
+                    ),
                 })
             return result, 1, []
         except ProviderError as exc:

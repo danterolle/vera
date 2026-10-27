@@ -12,6 +12,11 @@ ASSETS = {
     "chat.js": ("web/chat/app.js", "text/javascript; charset=utf-8"),
     "chat-render.js": ("web/chat/render.js", "text/javascript; charset=utf-8"),
     "chat-store.js": ("web/chat/store.js", "text/javascript; charset=utf-8"),
+    "chat-elements.js": ("web/chat/elements.js", "text/javascript; charset=utf-8"),
+    "chat-details.js": ("web/chat/details.js", "text/javascript; charset=utf-8"),
+    "chat-records.js": ("web/chat/records.js", "text/javascript; charset=utf-8"),
+    "chat-history.js": ("web/chat/history.js", "text/javascript; charset=utf-8"),
+    "chat-decisions.js": ("web/chat/decisions.js", "text/javascript; charset=utf-8"),
     "routes.js": ("web/shared/routes.js", "text/javascript; charset=utf-8"),
     "viewport.js": ("web/shared/viewport.js", "text/javascript; charset=utf-8"),
 }
