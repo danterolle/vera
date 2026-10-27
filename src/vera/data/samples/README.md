@@ -15,6 +15,6 @@ simulated and is intended only for local defensive testing.
 Example:
 
 ```bash
-uv run vera analyze "Analyze this controlled replay" \
+uv run --extra knowledge-graph vera analyze "Analyze this controlled replay" \
   --events src/vera/data/samples/port-scan.jsonl --simulated --offline
 ```

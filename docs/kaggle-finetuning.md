@@ -1,140 +1,91 @@
-# Kaggle fine-tuning pilot
+# Kaggle pilot and dataset
 
-This is an experimental, standalone workflow for **Qwen/Qwen3.5-4B**.
-It does not change VERA's runtime, start training locally, publish data, or authorize deployment.
-The notebook and training utilities have not been executed on Kaggle T4 hardware.
-Memory fit, kernel support, throughput and quality improvement remain unverified.
+The standalone [notebook](../finetuning/kaggle.ipynb) targets structured cybersecurity
+answer generation with **Qwen/Qwen3.5-4B**.
+It has not been run on Kaggle T4 hardware: memory fit, kernel support, throughput and
+quality improvement remain unverified. It does not train social replies, intent
+interpretation, source assessment or ReAct decisions.
 
-## Current dataset compatibility
+## Dataset
 
-The chat integration changes the system prompt, conversation context and claim limit.
-The retained `vera-domain-v1.zip` predates that contract. The packager now intentionally
-rejects it: generate and review a new dataset version before preparing current-runtime inputs.
-The earlier local code bundle is retained as `vera-kaggle-training-pre-chat.zip` for
-traceability, not as a valid upload for the current chat application.
-This pilot targets structured cybersecurity answer generation. Conversational replies,
-intent interpretation, source assessment and ReAct decisions require separate examples
-and evaluation; they are not covered by this dataset contract.
+**The retained dataset is incompatible with the current chat prompt.**
+Packaging intentionally rejects it until a compatible candidate is prepared and reviewed.
+There is no supported dataset generator in this checkout.
 
-## Why this recipe is conservative
+`vera-domain-v1.zip` and its extracted copy in `.vera/datasets/vera-domain-v1/`
+are local, ignored artifacts. They contain 3,939 training, 528 validation and 522 test
+conversations, plus 252 controlled event replays. Targets combine pinned public
+MITRE ATT&CK and CISA KEV records with synthetic analyst scenarios, not expert SOC decisions.
+Upstream revisions, hashes and license notices are preserved in the archive.
 
-Two T4 GPUs have separate memory. DDP creates one model replica per GPU; it does not
-give each replica 32 GB. This recipe instead uses one Python process and distributes
-the text model's layers across both devices, without CPU or disk offload.
-It uses ordinary autograd, not an inference-only `no_grad` execution path.
+The original bytes remain unchanged. Its embedded generator instructions are historical,
+and its recorded system-prompt hash is inconsistent with the conversation text.
+`human_reviewed` and `training_authorized` remain false.
+The earlier code bundle is retained locally as `vera-kaggle-training-pre-chat.zip`;
+do not use it to train the current application.
 
-T4 does not provide native BF16 training. Qwen3.5's Gated DeltaNet layers also have
-documented FP16 gradient stability problems: Unsloth explicitly lists `qwen3_5`
-among architectures requiring its FP32 fallback. Its model-specific guide additionally
-discourages 4-bit QLoRA for this family.
+## Training approach
 
-Consequently this pilot uses the text-only `Qwen3_5ForCausalLM`, **FP32 LoRA**, eager
-attention, gradient checkpointing, batch size one and GPU model sharding.
-It is slower than a validated optimized implementation and may still run out of memory.
-An OOM or unsupported kernel is a failed compatibility experiment, not permission to
-silently truncate the dataset or switch to FP16.
+Two T4 GPUs have separate memory. This recipe uses one process with **FP32 LoRA
+and model sharding**, not DDP, BF16, FP16 or 4-bit QLoRA.
+T4 lacks native BF16 training; Qwen3.5 has documented FP16 gradient stability issues,
+and its model-specific guide discourages 4-bit QLoRA.
+The conservative path may still be too slow or run out of memory.
 
-## Prepare the two inputs locally
+The [model setup](../finetuning/vera_finetuning/model.py) pins the base revision
+and uses eager attention, gradient checkpointing, LoRA rank 8 and alpha 16.
+The pilot performs five updates including the longest input and largest target.
+A full experiment performs one epoch with accumulation 8; neither is an optimized recipe.
 
-The existing dataset ZIP is local and ignored by Git. A clone alone does not include it.
-From the repository root, with the regular VERA environment installed:
+## Prepare and run
+
+After obtaining a reviewed candidate matching the current runtime:
 
 ```bash
-uv run python finetuning/prepare.py
+uv run python finetuning/prepare.py --dataset /path/to/compatible/vera-domain-v1.zip
 ```
 
-The command rechecks the archive, all conversation prompts and grounded targets against
-the **currently checked-out runtime**, then writes:
+The command validates archive hashes, actual prompts and grounded targets, then writes
+`.vera/finetuning/vera-kaggle-training.zip`. It never trains, modifies the dataset,
+uploads data or overwrites an existing bundle.
 
-```text
-.vera/finetuning/vera-kaggle-training.zip
-```
+1. Import the notebook into Kaggle. Attach a private dataset containing the compatible
+   `vera-domain-v1.zip` and `vera-kaggle-training.zip`; these exact filenames are required.
+   Do not overwrite the retained original or upload credentials, databases or company telemetry.
+2. Select **GPU T4 x2**, enable Internet and run preflight. Every example must fit
+   2,048 tokens without truncation, with a verified assistant-only loss boundary.
+3. Read the warnings, set `ACKNOWLEDGE_CANDIDATE_DATA = True` and run the five-update pilot.
+   Non-finite loss or gradients stop execution. Retain any OOM/kernel traceback;
+   do not silently truncate examples or switch to unstable reduced precision.
+4. Inspect the report, memory peaks and duration before explicitly enabling
+   `RUN_FULL_TRAINING`. Save notebook outputs with Kaggle **Save Version**.
 
-The code bundle contains no dataset, credentials, database or model weights. Existing
-output files are not overwritten; choose another `--output` path when rebuilding.
-The notebook expects the uploaded code bundle to be named `vera-kaggle-training.zip`.
+The notebook installs dependencies in a separate environment and runs training in
+subprocesses. Downloads are public packages and the pinned model/tokenizer;
+no tracking service or automatic publishing is configured.
 
-The retained dataset's historical `system_prompt_sha256` does not match the actual
-conversation prompt. The packager reports this inconsistency rather than changing the
-original archive. It independently checks every actual system/user prompt against VERA
-and binds the code bundle to the archive's SHA-256. A successful preflight is not expert
-label approval. `human_reviewed` and `training_authorized` are not changed.
+## Outputs and acceptance
 
-If `chat` or another branch changes the runtime prompt or input format, do not train
-this dataset as though it matched that new contract. Rebuild and review the data first.
-
-## Run on Kaggle
-
-1. Create a private Kaggle dataset containing `vera-domain-v1.zip` and
-   `vera-kaggle-training.zip`. Do not upload `.env`, databases, company telemetry or models.
-2. Import [`finetuning/kaggle.ipynb`](../finetuning/kaggle.ipynb) as a notebook.
-   Select **GPU T4 x2**, enable Internet and attach the private dataset.
-3. Execute the input, environment and preflight cells. These check real tokenization
-   without loading model weights. Every example must fit 2,048 tokens without
-   truncation, and assistant-only loss boundaries must match the pinned chat template.
-4. Read the warnings, then set `ACKNOWLEDGE_CANDIDATE_DATA = True` in the pilot cell.
-   Run that cell. It loads the model on both GPUs and performs five optimizer updates,
-   including the longest input and largest target. Non-finite loss/gradients stop execution.
-5. Inspect `report.json`, GPU peaks and elapsed time. Only after a successful pilot,
-   explicitly set `RUN_FULL_TRAINING = True` to run one training epoch.
-   Keep Kaggle outputs using **Save Version**.
-
-Training dependencies are installed in a separate environment using the notebook's
-existing Torch installation when compatible. Heavy imports and training run in subprocesses;
-the notebook kernel does not need to import a newly installed Transformers version.
-Internet downloads only public packages and the pinned model/tokenizer. No tracking
-service or automatic upload is configured.
-
-## Settings and artifacts
-
-| Setting | Pilot | Full experiment |
-| --- | --- | --- |
-| Base revision | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` | Same |
-| Precision | FP32, no quantization | Same |
-| Parallelism | Single-process model sharding on GPU 0 and 1 | Same |
-| LoRA rank / alpha | 8 / 16 | Same |
-| Learning rate | `2e-5` | Same; an initial experiment, not an optimized choice |
-| Maximum sequence | 2,048, no truncation | Same |
-| Gradient accumulation | 1 | 8 |
-| Training duration | Five updates | One epoch |
-| Numerical validation | Four fixed validation examples | Same |
-| Checkpoints | End of pilot | Every 50 updates and at completion |
-
-Outputs include adapters, tokenizer, optimizer/RNG checkpoints and a report with
-actual package versions, memory peaks, durations, losses and data/contract hashes.
+Outputs include `report.json`, an `adapter/` directory and complete checkpoints.
+Reports record package versions, hashes, losses, duration and memory peaks.
+Four fixed validation losses are a numerical smoke check, not a quality benchmark.
 The test split is checked for integrity/token length, never used for training or selection.
-The five-update pilot does not establish improvement.
 
-To resume an interrupted full run, preserve a complete `checkpoint-*` directory,
-set `FULL_RESUME` to that directory, and choose a new `FULL_OUTPUT`.
-The checkpoint must match the model revision, data, prompt, mode and accumulation.
-A previous pilot is not a full-run resume checkpoint.
-
-If the run fails, retain the traceback and GPU information. Do not start a full epoch.
-If the conservative configuration cannot fit or is impractically slow, choose a
-different model/hardware or validate a specialized implementation as a separate experiment.
-
-## Evaluation and deployment
-
-The dataset is source-grounded synthetic data, not expert SOC decisions. Fine-tuning
-should target JSON compliance, relevant quotations, uncertainty and scope handling.
-It does not replace live vulnerability intelligence, retrieval, detectors or human review.
+A full run checkpoints every 50 updates and at completion. To resume, preserve a complete
+`checkpoint-*`, set `FULL_RESUME` and choose a new `FULL_OUTPUT`.
+Data, prompt, model revision, mode and accumulation must match.
 
 Compare base and adapted models with identical validation contexts and decoding settings.
-Measure JSON validity, factual quotation correctness, unrelated-evidence use, missing-data
-handling and scope behavior. Evaluate real VERA routes and review outcomes as well.
-Use the held-out test only after model/settings selection; do not promote an adapter
-merely because its training or four-example validation loss decreases.
+Check JSON, citations, relevance, missing-data behavior, scope and actual VERA review outcomes.
+Use the held-out test only after selection; decreasing loss is not deployment approval.
 
-The output is a **LoRA adapter**, not a deployable replacement for the existing MTP GGUF.
-Merge with the same pinned Hugging Face base, convert/quantize with a compatible llama.cpp
-release, and revalidate the final served artifact. Conversion and quality approval are
-separate steps, not performed automatically by this notebook.
+The output is a LoRA adapter, not a replacement MTP GGUF. Merge it with the same pinned
+Hugging Face base, convert with a compatible llama.cpp version, then revalidate the
+served artifact. Conversion and deployment are separate, manual steps.
 
-## Sources
+## References
 
-- [Qwen3.5 architecture and text-only loading](https://huggingface.co/docs/transformers/main/en/model_doc/qwen3_5)
-- [Official model checkpoint](https://huggingface.co/Qwen/Qwen3.5-4B)
-- [Unsloth Qwen3.5 training caveats](https://unsloth.ai/docs/models/qwen3.5/fine-tune)
-- [Unsloth FP32 architecture guard](https://github.com/unslothai/unsloth/blob/main/unsloth/models/loader.py)
-- [DDP replicates the model](https://unsloth.ai/docs/basics/multi-gpu-training-with-unsloth/ddp)
+- [Qwen3.5 text-only architecture and loading](https://huggingface.co/docs/transformers/main/en/model_doc/qwen3_5)
+- [Model checkpoint](https://huggingface.co/Qwen/Qwen3.5-4B)
+- [Model-specific training caveats](https://unsloth.ai/docs/models/qwen3.5/fine-tune)
+- [FP32 architecture guard](https://github.com/unslothai/unsloth/blob/main/unsloth/models/loader.py)

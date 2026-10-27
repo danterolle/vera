@@ -1,83 +1,15 @@
 ---
 name: vera-model-setup
 description: >-
-  Use this skill when setting up, testing, or troubleshooting the local LLM runtime (Qwen 3.5 4B, LM Studio,
-  Bionic, llama-server) and configuring OpenAI-compatible endpoints for VERA.
+  Configure or diagnose VERA's Qwen, LM Studio/Bionic and llama-server connections.
 ---
 
-# VERA Local Model Setup Skill
+# Local model setup
 
-This skill documents how to configure, start, and verify the local language model runtime required for VERA's generation and reasoning stages.
+Follow [local models](../../../docs/local-model.md); do not duplicate profile settings.
+The model server and VERA are separate processes, normally on ports 1234 and 8000.
+Obtain the exact model ID from `/v1/models`, not a display name or GGUF filename.
 
----
-
-## 1. Supported Model Profiles
-
-VERA is designed and benchmarked against small, highly-capable local models:
-
-| Platform | Recommended Model Profile | Quantization | Server Option |
-| :--- | :--- | :--- | :--- |
-| **Linux / NVIDIA (~6GB VRAM)** | `Qwen3.5-4B-GGUF` | `Q4_K_M` | LM Studio GUI or `scripts/start-local-model.sh` |
-| **Apple Silicon (M1/M2/M3/M4)** | `Qwen3.5-4B-MTP-GGUF` | `Q6_K` (MTP draft) | `llama-server` (MTP enabled) |
-| **CPU / Fallback** | Deterministic Engine | N/A | Built-in (`VERA_LLM_PROVIDER=deterministic`) |
-
----
-
-## 2. Starting the Model Server (Port 1234)
-
-Choose one of the following methods:
-
-### Method A: Linux Headless Script
-If running on Linux with NVIDIA drivers and LM Studio runtime installed:
-```bash
-bash scripts/start-local-model.sh
-```
-- Serves model as `vera-qwen3.5-4b` on `http://127.0.0.1:1234`.
-- Runs under cgroup memory and CPU limits (2 logical cores, 8GB RAM).
-
-### Method B: LM Studio / Bionic GUI
-1. Open LM Studio / Bionic.
-2. Load `Qwen3.5-4B-Q4_K_M.gguf`.
-3. In Developer/Local Server settings:
-   - Port: `1234`
-   - Context Length: `8192` tokens
-   - GPU Offload: Maximum layers
-   - Disable Thinking / reasoning mode if available
-4. Start the server.
-
----
-
-## 3. Verifying Endpoint & Model ID
-
-Run a curl query against the model server:
-```bash
-curl -fsS http://127.0.0.1:1234/v1/models
-```
-
-Identify the exact `id` field in the response (e.g. `vera-qwen3.5-4b` or `qwen3.5-4b`).
-
-Update `.env`:
-```dotenv
-VERA_LLM_PROVIDER=openai
-VERA_LLM_MODEL=vera-qwen3.5-4b
-VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
-VERA_LLM_RESPONSE_FORMAT=json_schema
-VERA_LLM_TIMEOUT_SECONDS=120
-VERA_LLM_MAX_OUTPUT_TOKENS=1024
-```
-
----
-
-## 4. End-to-End Verification with VERA
-
-Test that VERA communicates with the model and successfully generates cited claims:
-
-```bash
-# 1. Execute an analysis query
-uv run --extra knowledge-graph vera analyze "Explain PowerShell with one sourced claim." --offline --json
-```
-
-### Verification Checks:
-1. Check `metadata.model`: It must match your configured Qwen model ID.
-2. Check `metadata.provider_fallback`: Must be `false`. If `true`, the local model server timed out or returned an error, and VERA fell back to deterministic summaries.
-3. Check `claims`: Ensure the output contains structured claims with citations.
+Check `metadata.model`, `metadata.provider_fallback`, warnings and citations on an
+actual response. `/health` is configuration-only and HTTP `202` can be a valid held review.
+Keep credentials local and leave existing model files and runtime installations intact.
