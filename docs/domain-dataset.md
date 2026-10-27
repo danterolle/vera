@@ -1,8 +1,9 @@
 # Retained VERA domain dataset candidate
 
-The experimental fine-tuning code, Kaggle notebooks, installers and obsolete bootstrap
-datasets have been removed. This dataset is retained for a later evaluation of model
-selection and training requirements; it is not loaded by VERA at runtime.
+The earlier experimental fine-tuning code and obsolete bootstrap datasets were removed.
+This dataset is retained for model selection and training experiments; it is not loaded
+by VERA at runtime. A new, standalone [Kaggle pilot](kaggle-finetuning.md) checks the
+current runtime contract before permitting an explicitly acknowledged experiment.
 
 ## Preserved artifacts
 
@@ -65,4 +66,12 @@ No model was trained. It is not directly a DistilBERT classification dataset: in
 relevance or entailment tasks would need explicit task-specific labels and appropriate
 input lengths. An uncited document must not automatically be labeled irrelevant.
 
-There is currently no supported fine-tuning command or Kaggle workflow in this repository.
+The experimental Kaggle workflow does not establish T4 compatibility or authorize deployment.
+Its preflight independently compares actual prompts with the current runtime: the retained
+manifest's historical system-prompt hash is inconsistent with the conversation text.
+The original dataset archive remains unchanged.
+
+The integrated chat runtime also changes the system prompt and input fields. This retained
+single-turn candidate predates that contract, so packaging is intentionally blocked until
+a new dataset version is generated and reviewed. Do not reuse the pre-chat code bundle
+as if it were training the current application.

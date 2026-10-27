@@ -201,4 +201,4 @@ See [Knowledge Graph](docs/knowledge-graph.md), [Chat](docs/chat.md),
 [local models](docs/local-model.md), [architecture](docs/architecture.md), and
 [data provenance](docs/data-provenance.md) for details and limits.
 
-The experimental [domain dataset](docs/domain-dataset.md) is retained separately from VERA's runtime.
+See the [retained dataset](docs/domain-dataset.md) and [experimental Kaggle pilot](docs/kaggle-finetuning.md). The retained data predates the chat prompt and must be realigned and reviewed before training this runtime.
