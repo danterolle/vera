@@ -9,13 +9,13 @@ from vera.providers.prompts import generation_prompt
 from vera.reasoning.validation import validate_and_repair
 
 
-def validate_example(example: dict, minimum_coverage: float) -> None:
-    messages = example["messages"]
-    context, _ = json.JSONDecoder().raw_decode(messages[1]["content"].split("\n", 1)[1])
-    if context["conversational_intent"] != "cybersecurity":
-        raise ValueError(
-            "This pilot supports cybersecurity generation, not conversational profiles"
-        )
+def parse_context(example: dict) -> dict:
+    return json.JSONDecoder().raw_decode(
+        example["messages"][1]["content"].split("\n", 1)[1]
+    )[0]
+
+
+def context_evidence(context: dict) -> list[Evidence]:
     evidence = []
     for item in context["evidence"]:
         record = dict(item)
@@ -23,6 +23,17 @@ def validate_example(example: dict, minimum_coverage: float) -> None:
             key: record.pop(key) for key in ("provenance", "lookup_method")
         }
         evidence.append(Evidence.model_validate(record))
+    return evidence
+
+
+def validate_example(example: dict, minimum_coverage: float) -> None:
+    messages = example["messages"]
+    context = parse_context(example)
+    if context["conversational_intent"] != "cybersecurity":
+        raise ValueError(
+            "This pilot supports cybersecurity generation, not conversational profiles"
+        )
+    evidence = context_evidence(context)
     answer = GeneratedAnswer.model_validate_json(messages[2]["content"])
     outcome = validate_and_repair(
         answer, evidence, repair=False, minimum_coverage=minimum_coverage,
