@@ -50,10 +50,14 @@ def main() -> None:
     contract["validated_examples"] = count
     contract["warnings"] = warnings
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    files = ("__init__.py", "data.py", "preflight.py", "model.py", "checkpoints.py", "train.py")
+    files = (
+        "__init__.py", "data.py", "preflight.py", "model.py", "checkpoints.py", "train.py",
+        "evaluation.py",
+    )
     with ZipFile(args.output, "x", compression=ZIP_DEFLATED) as archive:
         for name in files:
             archive.write(root / "finetuning/vera_finetuning" / name, f"vera_finetuning/{name}")
+        archive.write(root / "finetuning/evaluate.py", "evaluate.py")
         archive.write(root / "finetuning/requirements-kaggle.txt", "requirements-kaggle.txt")
         archive.write(root / "LICENSE", "LICENSE")
         archive.writestr("runtime-contract.json", json.dumps(contract, indent=2) + "\n")
