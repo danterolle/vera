@@ -39,6 +39,10 @@ The [model setup](../finetuning/vera_finetuning/model.py) pins the base revision
 and uses eager attention, gradient checkpointing, LoRA rank 8 and alpha 16.
 The pilot performs five updates including the longest input and largest target.
 A full experiment performs one epoch with accumulation 8; neither is an optimized recipe.
+For an intermediate experiment, `--max-steps` stops a full-mode run after a bounded number
+of updates, `--validation-every` records validation loss during training and
+`--validation-examples` controls the fixed validation sample. These runs write
+`metrics.jsonl` so the curve survives outside the notebook log.
 
 ## Prepare and run
 
@@ -66,7 +70,10 @@ uploads data or overwrites an existing bundle.
    Non-finite loss or gradients stop execution. Retain any OOM/kernel traceback;
    do not silently truncate examples or switch to unstable reduced precision.
 4. Inspect the report, memory peaks and duration before explicitly enabling
-   `RUN_FULL_TRAINING`. Save notebook outputs with Kaggle **Save Version**.
+   `RUN_FULL_TRAINING`. For a bounded preview set `MAX_STEPS` (for example 50),
+   keep `VALIDATION_EVERY` enabled and set `RUN_BEHAVIORAL_EVAL = True` to generate
+   base/adapter answers on a stratified validation sample. Save notebook outputs
+   with Kaggle **Save Version**.
 
 The notebook installs dependencies in a separate environment and runs training in
 subprocesses. It avoids `ensurepip` and targets the environment with the image's existing pip.
@@ -78,10 +85,29 @@ no tracking service or automatic publishing is configured.
 
 ## Outputs and acceptance
 
-Outputs include `report.json`, an `adapter/` directory and complete checkpoints.
-Reports record package versions, hashes, losses, duration and memory peaks.
-Four fixed validation losses are a numerical smoke check, not a quality benchmark.
+Outputs include `report.json`, `metrics.jsonl`, an `adapter/` directory and complete
+checkpoints. `metrics.jsonl` appends train, validation and end events, including updates
+written before a timeout. Reports record package versions, hashes, losses, validation
+history, duration and memory peaks.
+Fixed validation losses are a numerical smoke check, not a quality benchmark.
 The test split is checked for integrity/token length, never used for training or selection.
+
+For behavioral evidence, the notebook can run `evaluate.py` after training. It generates
+base and adapter answers on a deterministic stratified sample of the validation split and
+writes `answers.jsonl`. Download that file and run the local scorer, which uses VERA's
+production `GeneratedAnswer` and `validate_and_repair` contract:
+
+```bash
+uv run python finetuning/score.py --dataset /path/to/vera-domain-v1.zip \
+  --contract /path/to/runtime-contract.json \
+  --answers /path/to/answers.jsonl --output /path/to/scores.json
+```
+
+The score report compares JSON validity, schema validity, `out_of_scope` decisions,
+claim-status behavior (unavailable and simulated cases), citation failures, exact
+quote use and memory-citation violations by task. This measures behavior on supplied
+evidence, not latent cybersecurity knowledge. Use the test split only after selecting
+a configuration.
 
 A full run checkpoints every 50 updates and at completion. To resume, preserve a complete
 `checkpoint-*`, set `FULL_RESUME` and choose a new `FULL_OUTPUT`.
