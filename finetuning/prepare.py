@@ -17,6 +17,7 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description="Build a reviewed, data-free Kaggle code bundle")
     parser.add_argument("--dataset", type=Path, default=root / "vera-domain-v1.zip")
+    parser.add_argument("--max-length", type=int, choices=range(2048, 3073, 256), default=2048)
     parser.add_argument(
         "--output", type=Path, default=root / ".vera/finetuning/vera-kaggle-training.zip",
     )
@@ -33,6 +34,7 @@ def main() -> None:
         "system_prompt": SYSTEM_PROMPT,
         "system_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
         "max_claims": MAX_CLAIMS,
+        "max_length": args.max_length,
         "source_revision": subprocess.check_output(
             ["git", "-C", str(root), "rev-parse", "HEAD"], text=True,
         ).strip(),

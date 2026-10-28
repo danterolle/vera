@@ -20,9 +20,11 @@ def main() -> None:
     tokenizer = AutoTokenizer.from_pretrained(
         MODEL_ID, revision=MODEL_REVISION, trust_remote_code=False,
     )
-    _, tokens = tokenize_splits(tokenizer, splits)
+    _, tokens = tokenize_splits(tokenizer, splits, contract["max_length"])
     report = {
         "model": MODEL_ID, "revision": MODEL_REVISION, "tokens": tokens,
+        "max_length": contract["max_length"],
+        "input_storage": "directory" if args.dataset.is_dir() else "archive",
         "warnings": warnings, "weights_loaded": False, "training_started": False,
         "assistant_only_loss_boundary_verified": True,
     }

@@ -24,7 +24,10 @@ def restore_checkpoint(optimizer, resume: Path, expected: dict) -> dict:
     import torch
 
     progress = json.loads((resume / "progress.json").read_text())
-    for key in ("archive_sha256", "system_prompt_sha256", "mode", "accumulation", "model_revision"):
+    for key in (
+        "archive_sha256", "system_prompt_sha256", "mode", "accumulation", "model_revision",
+        "max_length",
+    ):
         if progress[key] != expected[key]:
             raise ValueError(f"Checkpoint configuration mismatch: {key}")
     state = torch.load(resume / "training-state.pt", map_location="cpu", weights_only=True)

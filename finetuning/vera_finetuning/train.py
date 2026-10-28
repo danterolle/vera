@@ -59,12 +59,17 @@ def main() -> None:
     import torch
     from transformers import AutoTokenizer
 
+    packages = {
+        name: version(name)
+        for name in ("torch", "transformers", "peft", "accelerate", "torchao")
+    }
+    print(json.dumps({"packages": packages}), flush=True)
     contract = json.loads(args.contract.read_text())
     splits, warnings = load_candidate(args.dataset, contract)
     for warning in warnings:
         print(f"WARNING: {warning}", flush=True)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
-    encoded, tokens = tokenize_splits(tokenizer, splits)
+    encoded, tokens = tokenize_splits(tokenizer, splits, contract["max_length"])
     examples = encoded["train"]
     if args.pilot:
         longest = sorted(examples, key=lambda row: len(row["input_ids"]), reverse=True)
@@ -81,6 +86,7 @@ def main() -> None:
         "archive_sha256": contract["archive_sha256"],
         "system_prompt_sha256": contract["system_prompt_sha256"],
         "model_revision": MODEL_REVISION,
+        "max_length": contract["max_length"],
         "mode": "pilot" if args.pilot else "full",
         "accumulation": accumulation, "steps": 0, "next_index": 0,
     }
@@ -127,9 +133,7 @@ def main() -> None:
         "training_seconds": round(time.monotonic() - started, 2),
         "peak_allocated_gib": [torch.cuda.max_memory_allocated(i) / 1024**3 for i in range(2)],
         "devices": {str(key): str(value) for key, value in model.hf_device_map.items()},
-        "packages": {
-            name: version(name) for name in ("torch", "transformers", "peft", "accelerate")
-        },
+        "packages": packages,
         "tokens": tokens, "warnings": warnings, "loss_history": history,
         "test_used_for_selection": False, "deployment_authorized": False,
     }
