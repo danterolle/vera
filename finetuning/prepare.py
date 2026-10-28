@@ -25,9 +25,11 @@ def main() -> None:
         parser.error("The output already exists; choose a new --output path")
     with ZipFile(args.dataset) as archive:
         manifest_hash = hashlib.sha256(archive.read("manifest.json")).hexdigest()
+        package_hash = hashlib.sha256(archive.read("package.json")).hexdigest()
     contract = {
         "model": MODEL_ID, "model_revision": MODEL_REVISION,
         "archive_sha256": digest(args.dataset), "manifest_sha256": manifest_hash,
+        "package_sha256": package_hash,
         "system_prompt": SYSTEM_PROMPT,
         "system_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
         "max_claims": MAX_CLAIMS,

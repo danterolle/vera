@@ -1,5 +1,7 @@
 import hashlib
 import json
+from collections.abc import Callable
+from contextlib import ExitStack
 from itertools import combinations
 from pathlib import Path
 from zipfile import ZipFile
@@ -14,51 +16,76 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def load_candidate(archive_path: Path, contract: dict) -> tuple[dict, list[str]]:
-    if digest(archive_path) != contract["archive_sha256"]:
-        raise ValueError("The dataset archive differs from the locally reviewed package")
-    warnings = []
-    with ZipFile(archive_path) as archive:
-        names = archive.namelist()
+def read_package(archive_path: Path) -> tuple[dict, dict, dict[str, bytes]]:
+    with ExitStack() as resources:
+        read: Callable[[str], bytes]
+        if archive_path.is_dir():
+            members = list(archive_path.rglob("*"))
+            if any(item.is_symlink() for item in members):
+                raise ValueError("Dataset contents must not contain symbolic links")
+            paths = [item for item in members if item.is_file()]
+            names = [item.relative_to(archive_path).as_posix() for item in paths]
+            size = sum(item.stat().st_size for item in paths)
+
+            def read_file(name: str) -> bytes:
+                return (archive_path / name).read_bytes()
+
+            read = read_file
+        else:
+            archive = resources.enter_context(ZipFile(archive_path))
+            names = [item.filename for item in archive.infolist() if not item.is_dir()]
+            size = sum(item.file_size for item in archive.infolist())
+            read = archive.read
         if len(names) != len(set(names)) or len(names) > 256:
             raise ValueError("The archive contains duplicate names or too many files")
-        if sum(item.file_size for item in archive.infolist()) > 128 * 1024 * 1024:
+        if any(Path(name).is_absolute() or ".." in Path(name).parts for name in names):
+            raise ValueError("Dataset filenames must stay within the package")
+        if size > 128 * 1024 * 1024:
             raise ValueError("The uncompressed dataset exceeds the 128 MiB limit")
-        package = json.loads(archive.read("package.json"))
+        if "package.json" not in names:
+            raise ValueError("The dataset package manifest is missing")
+        package_bytes = read("package.json")
+        package = json.loads(package_bytes)
         declared_files = set(package["files"]) | {"package.json"}
-        actual_files = {item.filename for item in archive.infolist() if not item.is_dir()}
-        if actual_files != declared_files:
+        if set(names) != declared_files:
             raise ValueError("The archive contains undeclared or missing package files")
-        manifest_bytes = archive.read("manifest.json")
-        manifest = json.loads(manifest_bytes)
-        manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
-        if manifest_hash != contract["manifest_sha256"]:
-            raise ValueError("The dataset manifest differs from the reviewed contract")
         if package["purpose"] != "domain_sft_candidate":
             raise ValueError("Expected a VERA domain SFT candidate")
-        if manifest.get("human_reviewed") is not True:
-            warnings.append("The targets are synthetic and have not been reviewed by an expert.")
-        if package.get("training_authorized") is not True:
-            warnings.append(
-                "This archive does not authorize training; explicit consent is required."
-            )
+        files = {name: read(name) for name in package["files"]}
+        files["package.json"] = package_bytes
         for name, expected in package["files"].items():
-            if hashlib.sha256(archive.read(name)).hexdigest() != expected:
+            if hashlib.sha256(files[name]).hexdigest() != expected:
                 raise ValueError(f"Dataset checksum mismatch: {name}")
-        if manifest["system_prompt_sha256"] != contract["system_prompt_sha256"]:
-            warnings.append(
-                "The historical manifest's prompt hash is inconsistent; actual prompts "
-                "must match the independently captured runtime contract."
-            )
-        splits = {
-            split: [
-                json.loads(line)
-                for name in sorted(names)
-                if name.startswith(f"{split}/") and name.endswith(".jsonl")
-                for line in archive.read(name).decode().splitlines() if line.strip()
-            ]
-            for split in SPLITS
-        }
+    return package, json.loads(files["manifest.json"]), files
+
+
+def load_candidate(archive_path: Path, contract: dict) -> tuple[dict, list[str]]:
+    if archive_path.is_file() and digest(archive_path) != contract["archive_sha256"]:
+        raise ValueError("The dataset archive differs from the locally reviewed package")
+    package, manifest, files = read_package(archive_path)
+    if hashlib.sha256(files["package.json"]).hexdigest() != contract["package_sha256"]:
+        raise ValueError("The dataset package differs from the reviewed contract")
+    if hashlib.sha256(files["manifest.json"]).hexdigest() != contract["manifest_sha256"]:
+        raise ValueError("The dataset manifest differs from the reviewed contract")
+    warnings = []
+    if manifest.get("human_reviewed") is not True:
+        warnings.append("The targets are synthetic and have not been reviewed by an expert.")
+    if package.get("training_authorized") is not True:
+        warnings.append("This archive does not authorize training; explicit consent is required.")
+    if manifest["system_prompt_sha256"] != contract["system_prompt_sha256"]:
+        warnings.append(
+            "The historical manifest's prompt hash is inconsistent; actual prompts "
+            "must match the independently captured runtime contract."
+        )
+    splits = {
+        split: [
+            json.loads(line)
+            for name in sorted(files)
+            if name.startswith(f"{split}/") and name.endswith(".jsonl")
+            for line in files[name].decode().splitlines() if line.strip()
+        ]
+        for split in SPLITS
+    }
     group_sets = {}
     factual_sets = {}
     for split, examples in splits.items():
