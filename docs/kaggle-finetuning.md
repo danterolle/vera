@@ -2,15 +2,18 @@
 
 The standalone [notebook](../finetuning/kaggle.ipynb) targets structured cybersecurity
 answer generation with **Qwen/Qwen3.5-4B**.
-It has not been run on Kaggle T4 hardware: memory fit, kernel support, throughput and
-quality improvement remain unverified. It does not train social replies, intent
-interpretation, source assessment or ReAct decisions.
+A five-update FP32 pilot completed on two Kaggle T4 GPUs, peaking at 9.91 and 10.15 GiB
+of PyTorch-allocated VRAM. This establishes initial execution compatibility, not
+quality improvement or full-epoch reliability. It does not train social replies,
+intent interpretation, source assessment or ReAct decisions.
 
 ## Dataset
 
 **The retained dataset is incompatible with the current chat prompt.**
 Packaging intentionally rejects it until a compatible candidate is prepared and reviewed.
-There is no supported dataset generator in this checkout.
+`finetuning/align.py` can rebuild a compatible copy of its prompts while preserving
+targets, sources and splits. This is mechanical alignment, not new label generation
+or expert review.
 
 `vera-domain-v1.zip` and its extracted copy in `.vera/datasets/vera-domain-v1/`
 are local, ignored artifacts. They contain 3,939 training, 528 validation and 522 test
@@ -30,7 +33,7 @@ Two T4 GPUs have separate memory. This recipe uses one process with **FP32 LoRA
 and model sharding**, not DDP, BF16, FP16 or 4-bit QLoRA.
 T4 lacks native BF16 training; Qwen3.5 has documented FP16 gradient stability issues,
 and its model-specific guide discourages 4-bit QLoRA.
-The conservative path may still be too slow or run out of memory.
+Full-epoch cost and memory fit for other workloads remain unverified.
 
 The [model setup](../finetuning/vera_finetuning/model.py) pins the base revision
 and uses eager attention, gradient checkpointing, LoRA rank 8 and alpha 16.
@@ -39,12 +42,17 @@ A full experiment performs one epoch with accumulation 8; neither is an optimize
 
 ## Prepare and run
 
-After obtaining a reviewed candidate matching the current runtime:
+To create a separate aligned candidate without model inference:
 
 ```bash
-uv run python finetuning/prepare.py --dataset /path/to/compatible/vera-domain-v1.zip
+uv run --with transformers==5.17.0 --with 'jinja2>=3.1,<4' python finetuning/align.py \
+  --output .vera/finetuning/aligned/vera-domain-v1.zip
+uv run python finetuning/prepare.py \
+  --dataset .vera/finetuning/aligned/vera-domain-v1.zip --max-length 2560
 ```
 
+Use the token budget reported by alignment; this runtime's retained candidate needs
+2,560 tokens. No examples are truncated or removed. The original archive is untouched.
 The command validates archive hashes, actual prompts and grounded targets, then writes
 `.vera/finetuning/vera-kaggle-training.zip`. It never trains, modifies the dataset,
 uploads data or overwrites an existing bundle.
@@ -53,7 +61,7 @@ uploads data or overwrites an existing bundle.
    `vera-domain-v1.zip` and `vera-kaggle-training.zip`; these exact filenames are required.
    Do not overwrite the retained original or upload credentials, databases or company telemetry.
 2. Select **GPU T4 x2**, enable Internet and run preflight. Every example must fit
-   2,048 tokens without truncation, with a verified assistant-only loss boundary.
+   the declared token budget without truncation, with a verified assistant-only loss boundary.
 3. Read the warnings, set `ACKNOWLEDGE_CANDIDATE_DATA = True` and run the five-update pilot.
    Non-finite loss or gradients stop execution. Retain any OOM/kernel traceback;
    do not silently truncate examples or switch to unstable reduced precision.
@@ -61,7 +69,11 @@ uploads data or overwrites an existing bundle.
    `RUN_FULL_TRAINING`. Save notebook outputs with Kaggle **Save Version**.
 
 The notebook installs dependencies in a separate environment and runs training in
-subprocesses. Downloads are public packages and the pinned model/tokenizer;
+subprocesses. It avoids `ensurepip` and targets the environment with the image's existing pip.
+Dependencies, code and base-model caches stay in a temporary runtime, outside saved outputs.
+ZIPs and Kaggle-extracted directories are supported; package and per-file hashes verify
+extracted contents. Subprocesses share `RUN_TIME_LIMIT_SECONDS` (1,800 by default).
+Downloads are public packages and the pinned model/tokenizer;
 no tracking service or automatic publishing is configured.
 
 ## Outputs and acceptance
