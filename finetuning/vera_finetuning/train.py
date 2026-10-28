@@ -49,6 +49,9 @@ def main() -> None:
     mode.add_argument("--pilot", action="store_true")
     mode.add_argument("--full", action="store_true")
     parser.add_argument("--acknowledge-candidate-data", action="store_true")
+    parser.add_argument("--max-steps", type=int)
+    parser.add_argument("--validation-every", type=int, default=0)
+    parser.add_argument("--validation-examples", type=int, default=4)
     args = parser.parse_args()
     if not args.acknowledge_candidate_data:
         parser.error("Review the synthetic dataset warnings and explicitly acknowledge them first")
@@ -56,6 +59,14 @@ def main() -> None:
         parser.error("Resume requires a complete checkpoint, not only an adapter directory")
     if args.output.exists():
         parser.error("Choose a new output directory; existing experiments are never overwritten")
+    if args.max_steps is not None and args.max_steps < 1:
+        parser.error("--max-steps must be a positive integer")
+    if args.pilot and args.max_steps is not None:
+        parser.error("--max-steps is only supported with --full")
+    if args.validation_every < 0:
+        parser.error("--validation-every must not be negative")
+    if args.validation_examples < 1:
+        parser.error("--validation-examples must be positive")
     import torch
     from transformers import AutoTokenizer
 
@@ -82,6 +93,12 @@ def main() -> None:
         random.Random(3407).shuffle(examples)
     accumulation = 1 if args.pilot else 8
     args.output.mkdir(parents=True)
+    metrics = args.output / "metrics.jsonl"
+
+    def record_metric(payload: dict) -> None:
+        with metrics.open("a") as stream:
+            stream.write(json.dumps(payload) + "\n")
+
     progress = {
         "archive_sha256": contract["archive_sha256"],
         "system_prompt_sha256": contract["system_prompt_sha256"],
@@ -95,13 +112,21 @@ def main() -> None:
     optimizer = torch.optim.AdamW(trainable, lr=2e-5, weight_decay=0.01, foreach=False)
     if args.resume:
         progress = restore_checkpoint(optimizer, args.resume, progress)
-    selected_validation = encoded["validation"][:4]
+    selected_validation = encoded["validation"][:args.validation_examples]
     before = validation_loss(model, selected_validation)
+    validation_history = [
+        {"step": progress["steps"], "loss": before, "examples": len(selected_validation)}
+    ]
+    record_metric({"event": "validation", **validation_history[0]})
     for index in range(2):
         torch.cuda.reset_peak_memory_stats(index)
     started = time.monotonic()
     history = []
+    stop_reason = "epoch"
     for start in range(progress["next_index"], len(examples), accumulation):
+        if args.max_steps is not None and progress["steps"] >= args.max_steps:
+            stop_reason = "max_steps"
+            break
         group = examples[start:start + accumulation]
         optimizer.zero_grad(set_to_none=True)
         losses = []
@@ -118,18 +143,45 @@ def main() -> None:
         progress.update(steps=progress["steps"] + 1, next_index=start + len(group))
         record = {"step": progress["steps"], "loss": sum(losses) / len(losses)}
         history.append(record)
+        record_metric({"event": "train", **record})
         print(json.dumps(record), flush=True)
+        if args.validation_every and progress["steps"] % args.validation_every == 0:
+            point = {
+                "step": progress["steps"],
+                "loss": validation_loss(model, selected_validation),
+                "examples": len(selected_validation),
+            }
+            validation_history.append(point)
+            record_metric({"event": "validation", **point})
+            print(json.dumps({"step": point["step"], "validation_loss": point["loss"]}),
+                  flush=True)
         if progress["steps"] % 50 == 0:
             save_checkpoint(model, tokenizer, optimizer, args.output, progress)
     if progress["steps"] % 50:
         save_checkpoint(model, tokenizer, optimizer, args.output, progress)
-    after = validation_loss(model, selected_validation)
+    if validation_history[-1]["step"] == progress["steps"]:
+        after = validation_history[-1]["loss"]
+    else:
+        after = validation_loss(model, selected_validation)
+        point = {
+            "step": progress["steps"],
+            "loss": after,
+            "examples": len(selected_validation),
+        }
+        validation_history.append(point)
+        record_metric({"event": "validation", **point})
+    record_metric({"event": "end", "step": progress["steps"], "reason": stop_reason})
     model.save_pretrained(args.output / "adapter", safe_serialization=True)
     tokenizer.save_pretrained(args.output / "adapter")
     report = {
         **progress, "model": MODEL_ID, "dtype": "float32", "parallelism": "model_parallel",
         "baseline_or_resume_validation_loss": before, "final_validation_loss": after,
         "validation_examples": [item["id"] for item in selected_validation],
+        "validation_every": args.validation_every,
+        "validation_history": validation_history,
+        "max_steps": args.max_steps,
+        "stopped_at_max_steps": stop_reason == "max_steps",
+        "metrics_file": str(metrics),
         "training_seconds": round(time.monotonic() - started, 2),
         "peak_allocated_gib": [torch.cuda.max_memory_allocated(i) / 1024**3 for i in range(2)],
         "devices": {str(key): str(value) for key, value in model.hf_device_map.items()},
