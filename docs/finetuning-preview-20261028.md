@@ -108,6 +108,16 @@ earlier, used the status vocabulary and kept memory out of factual claims.
 These are contract-level defects, not missing domain facts. They are the first targets
 for another bounded run.
 
+## Next stage
+
+The next stages resume from the latest complete checkpoint and evaluate at 410, 660,
+910 and 1,160 optimizer updates (0.83, 1.34, 1.85 and 2.35 epochs). `train.py` accepts
+`--epochs`; each epoch is reshuffled deterministically, and `--max-steps` remains an
+absolute target. Every stage keeps the same dataset, prompt, model revision,
+accumulation, validation sample and evaluation sample. A stage stops early if the
+answer-contract metrics plateau or regress; reaching a step target is not a goal by
+itself. The test split remains untouched until a configuration is selected.
+
 ## Limitations
 
 - Thirty-three examples and one seed: the confidence interval on every rate is wide.

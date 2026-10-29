@@ -38,11 +38,13 @@ Full-epoch cost and memory fit for other workloads remain unverified.
 The [model setup](../finetuning/vera_finetuning/model.py) pins the base revision
 and uses eager attention, gradient checkpointing, LoRA rank 8 and alpha 16.
 The pilot performs five updates including the longest input and largest target.
-A full experiment performs one epoch with accumulation 8; neither is an optimized recipe.
-For an intermediate experiment, `--max-steps` stops a full-mode run after a bounded number
-of updates, `--validation-every` records validation loss during training and
-`--validation-examples` controls the fixed validation sample. These runs write
-`metrics.jsonl` so the curve survives outside the notebook log.
+A full experiment performs `--epochs` passes (default 1) with accumulation 8; each
+epoch is reshuffled deterministically, and a resume continues from the saved epoch and
+data cursor. Neither recipe is optimized. For an intermediate experiment, `--max-steps`
+stops a full-mode run after a bounded absolute number of updates, `--validation-every`
+records validation loss during training and `--validation-examples` controls the fixed
+validation sample. These runs write `metrics.jsonl` so the curve survives outside the
+notebook log.
 
 ## Prepare and run
 

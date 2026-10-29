@@ -39,6 +39,24 @@ def validation_loss(model, examples) -> float:
     return sum(losses) / len(losses)
 
 
+def epoch_examples(examples, epoch, seed=3407):
+    ordered = list(examples)
+    if seed is not None:
+        random.Random(seed + epoch).shuffle(ordered)
+    return ordered
+
+
+def training_batches(examples, start_index, start_epoch, epochs, accumulation, seed=3407):
+    """Yield (epoch, index, group), reshuffling deterministically between epochs."""
+    for epoch in range(start_epoch, epochs):
+        ordered = epoch_examples(examples, epoch, seed)
+        index = start_index if epoch == start_epoch else 0
+        while index < len(ordered):
+            group = ordered[index:index + accumulation]
+            yield epoch, index, group
+            index += len(group)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Explicit, single-process FP32 LoRA experiment")
     parser.add_argument("--dataset", type=Path, required=True)
@@ -50,6 +68,7 @@ def main() -> None:
     mode.add_argument("--full", action="store_true")
     parser.add_argument("--acknowledge-candidate-data", action="store_true")
     parser.add_argument("--max-steps", type=int)
+    parser.add_argument("--epochs", type=int, default=1)
     parser.add_argument("--validation-every", type=int, default=0)
     parser.add_argument("--validation-examples", type=int, default=4)
     args = parser.parse_args()
@@ -61,8 +80,12 @@ def main() -> None:
         parser.error("Choose a new output directory; existing experiments are never overwritten")
     if args.max_steps is not None and args.max_steps < 1:
         parser.error("--max-steps must be a positive integer")
+    if args.epochs < 1:
+        parser.error("--epochs must be a positive integer")
     if args.pilot and args.max_steps is not None:
         parser.error("--max-steps is only supported with --full")
+    if args.pilot and args.epochs != 1:
+        parser.error("--pilot supports exactly one epoch")
     if args.validation_every < 0:
         parser.error("--validation-every must not be negative")
     if args.validation_examples < 1:
@@ -89,8 +112,6 @@ def main() -> None:
         )
         selected = {row["id"]: row for row in [longest[0], largest_target, *longest]}
         examples = list(selected.values())[:5]
-    else:
-        random.Random(3407).shuffle(examples)
     accumulation = 1 if args.pilot else 8
     args.output.mkdir(parents=True)
     metrics = args.output / "metrics.jsonl"
@@ -105,13 +126,14 @@ def main() -> None:
         "model_revision": MODEL_REVISION,
         "max_length": contract["max_length"],
         "mode": "pilot" if args.pilot else "full",
-        "accumulation": accumulation, "steps": 0, "next_index": 0,
+        "accumulation": accumulation, "steps": 0, "next_index": 0, "epoch": 0,
     }
     model = build_model(args.resume)
     trainable = [parameter for parameter in model.parameters() if parameter.requires_grad]
     optimizer = torch.optim.AdamW(trainable, lr=2e-5, weight_decay=0.01, foreach=False)
     if args.resume:
         progress = restore_checkpoint(optimizer, args.resume, progress)
+        progress.setdefault("epoch", 0)
     selected_validation = encoded["validation"][:args.validation_examples]
     before = validation_loss(model, selected_validation)
     validation_history = [
@@ -122,12 +144,15 @@ def main() -> None:
         torch.cuda.reset_peak_memory_stats(index)
     started = time.monotonic()
     history = []
-    stop_reason = "epoch"
-    for start in range(progress["next_index"], len(examples), accumulation):
+    stop_reason = "epochs"
+    batches = training_batches(
+        examples, progress["next_index"], progress["epoch"], args.epochs, accumulation,
+        seed=None if args.pilot else 3407,
+    )
+    for epoch, start, group in batches:
         if args.max_steps is not None and progress["steps"] >= args.max_steps:
             stop_reason = "max_steps"
             break
-        group = examples[start:start + accumulation]
         optimizer.zero_grad(set_to_none=True)
         losses = []
         for example in group:
@@ -140,8 +165,10 @@ def main() -> None:
         if not torch.isfinite(norm).item():
             raise RuntimeError("Non-finite gradient norm; the experiment must not continue")
         optimizer.step()
-        progress.update(steps=progress["steps"] + 1, next_index=start + len(group))
-        record = {"step": progress["steps"], "loss": sum(losses) / len(losses)}
+        progress.update(
+            steps=progress["steps"] + 1, next_index=start + len(group), epoch=epoch,
+        )
+        record = {"step": progress["steps"], "epoch": epoch, "loss": sum(losses) / len(losses)}
         history.append(record)
         record_metric({"event": "train", **record})
         print(json.dumps(record), flush=True)
@@ -180,6 +207,8 @@ def main() -> None:
         "validation_every": args.validation_every,
         "validation_history": validation_history,
         "max_steps": args.max_steps,
+        "epochs": args.epochs,
+        "stop_reason": stop_reason,
         "stopped_at_max_steps": stop_reason == "max_steps",
         "metrics_file": str(metrics),
         "training_seconds": round(time.monotonic() - started, 2),
