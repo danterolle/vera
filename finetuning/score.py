@@ -109,12 +109,14 @@ def summarize(rows: list[dict]) -> dict:
 
     expected_unavailable = [row for row in rows if row.get("unavailable_expected")]
     expected_simulated = [row for row in rows if row.get("simulated_expected")]
+    valid = [row for row in rows if row.get("schema_valid")]
     supported = sum(row.get("supported_claims", 0) for row in rows)
     exact = sum(row.get("exact_quote_claims", 0) for row in rows)
     return {
         "examples": len(rows),
         "json_valid_rate": rate("json_valid"),
         "schema_valid_rate": rate("schema_valid"),
+        "schema_valid_examples": len(valid),
         "scope_accuracy": rate("out_of_scope_correct"),
         "mean_status_recall": mean_of("status_recall"),
         "unavailable_presence_rate": (
@@ -125,7 +127,9 @@ def summarize(rows: list[dict]) -> dict:
             mean(bool(row.get("simulated_present")) for row in expected_simulated)
             if expected_simulated else None
         ),
-        "citation_failure_rate": rate("citation_failures"),
+        "citation_failure_rate": (
+            mean(bool(row["citation_failures"]) for row in valid) if valid else None
+        ),
         "mean_validation_failures": mean_of("validation_failures"),
         "exact_quote_rate": exact / supported if supported else None,
         "memory_citation_violations": sum(
