@@ -107,7 +107,8 @@ The score report compares JSON validity, schema validity, `out_of_scope` decisio
 claim-status behavior (unavailable and simulated cases), citation failures, exact
 quote use and memory-citation violations by task. This measures behavior on supplied
 evidence, not latent cybersecurity knowledge. Use the test split only after selecting
-a configuration.
+a configuration. A completed preview with its charts and residual failures is recorded
+in [the 2026-10-28 experiment report](finetuning-preview-20261028.md).
 
 A full run checkpoints every 50 updates and at completion. To resume, preserve a complete
 `checkpoint-*`, set `FULL_RESUME` and choose a new `FULL_OUTPUT`.
