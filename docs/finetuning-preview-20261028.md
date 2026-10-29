@@ -30,6 +30,11 @@ It does not measure cybersecurity knowledge, and it is not a knowledge-distillat
 | Validation loss | 16 fixed examples every 20 updates |
 | Hardware | 2 x Nvidia T4, 11 GiB cap per GPU |
 
+The training mix is skewed: `vulnerability_triage` supplies 1,332 examples and
+`graph_evidence` 584, while eight tasks supply about 240 each and `stream_triage` 108.
+The evaluation is stratified, three examples per task, so rare-task behavior carries
+the same weight as the largest task.
+
 The 80-update bound was fixed before the run; it was not selected on validation
 results. The test split was neither trained on nor used for selection.
 
