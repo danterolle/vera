@@ -75,6 +75,7 @@ automated test suite or a guarantee of model accuracy.
 - [Local models](docs/local-model.md)
 - [Kaggle pilot and retained dataset](docs/kaggle-finetuning.md)
 - [Fine-tuning preview: answer-contract behavior](docs/finetuning-preview-20261028.md)
+- [Fine-tuning run: step 400 and the perturbed evaluation](docs/finetuning-run-20261101.md)
 
 The Kaggle pilot is experimental. The retained dataset predates the chat prompt
 and is rejected until a compatible dataset is prepared and reviewed.

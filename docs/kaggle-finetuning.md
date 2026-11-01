@@ -111,6 +111,9 @@ quote use and memory-citation violations by task. This measures behavior on supp
 evidence, not latent cybersecurity knowledge. Use the test split only after selecting
 a configuration. A completed preview with its charts and residual failures is recorded
 in [the 2026-10-28 experiment report](finetuning-preview-20261028.md).
+The resumed run to step 400, together with the 40-case perturbed evaluation that tests
+generalization beyond the training templates, is recorded in
+[the 2026-11-01 run report](finetuning-run-20261101.md).
 
 A full run checkpoints every 50 updates and at completion. To resume, preserve a complete
 `checkpoint-*`, set `FULL_RESUME` and choose a new `FULL_OUTPUT`.
