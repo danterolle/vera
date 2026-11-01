@@ -27,6 +27,11 @@ and its recorded system-prompt hash is inconsistent with the conversation text.
 The earlier code bundle is retained locally as `vera-kaggle-training-pre-chat.zip`;
 do not use it to train the current application.
 
+User-facing prose follows `Settings.response_language` (`VERA_RESPONSE_LANGUAGE`,
+default `English`) rather than the input message language. This value is supplied to
+generation and conversation prompts; evidence quotations remain verbatim in their
+source language.
+
 ## Training approach
 
 Two T4 GPUs have separate memory. This recipe uses one process with **FP32 LoRA
@@ -120,20 +125,23 @@ fixed loss-monitoring sample, prepare a deterministic, task-balanced pack:
 
 ```bash
 uv run python finetuning/prepare_eval_pack.py \
-  --dataset .vera/finetuning/v2-eval-20261101/aligned/vera-domain-v2-candidate.zip \
-  --contract .vera/finetuning/v2-eval-20261101/bundle/runtime-contract.json \
+  --dataset .vera/finetuning/v3-english-20261102b/aligned/vera-domain-v3-english-candidate.zip \
+  --contract .vera/finetuning/v3-english-20261102b/bundle/runtime-contract.json \
   --previous-answers .vera/finetuning/kaggle-preview-20261028-103035/resume-results/vera-eval-resume-20261029-104525/answers.jsonl \
+  --previous-dataset .vera/finetuning/v2-eval-20261101/aligned/vera-domain-v2-candidate.zip \
+  --previous-contract .vera/finetuning/v2-eval-20261101/bundle/runtime-contract.json \
   --exclude-loss-sample 24 \
   --per-task 20 \
   --seed 20261102 \
-  --output .vera/finetuning/v2-eval-20261101/evaluation-pack-repro
+  --max-new-tokens 768 \
+  --output .vera/finetuning/v3-english-20261102b/evaluation-pack-20-per-task
 ```
 
 The 220-case selection (20 per task) reports exact-target overlap and duplicates:
 40 targets are seen in training and 38 rows duplicate a target within the pack. A
-smaller 110-case selection (10 per task) has completed an inference-only Kaggle
-comparison of base and step-400 adapter. Its results and limitations are in the
-[2026-11-01 run report](finetuning-run-20261101.md). These are larger
+smaller 110-case v2 selection was run on Kaggle under the previous language-mirroring
+prompt; it does not evaluate the new English-only policy. The v3 English-only 110-case
+pack is prepared locally, with no new GPU run or training yet. Both selections are
 validation slices, not independent tests; they do not change targets, authorize training
 or use the held-out test split. Prompt alignment preserves all targets, so this candidate
 is not ready for training until labels are reviewed and corrected. Use a fresh output

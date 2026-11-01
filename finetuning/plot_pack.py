@@ -85,7 +85,7 @@ def overall_chart(path: Path, scores: dict) -> None:
     figure, axis = plt.subplots(figsize=(8.6, 4.7))
     heading(
         figure,
-        "Current-prompt validation: base vs step-400 adapter",
+        "Paired validation: base vs step-400 adapter",
         "110 paired synthetic examples; status and citation rates use schema-valid answers",
     )
     for offset, model, color, label in (

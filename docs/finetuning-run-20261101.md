@@ -5,6 +5,11 @@ This page continues [the 2026-10-28 preview](finetuning-preview-20261028.md). It
 a second training stage, the validation and test results, and a 40-case perturbed set
 built to check whether the adapter learned answer rules or only the reference templates.
 
+**Policy update (2026-11-02):** VERA's configured response language now defaults to
+English regardless of the user's language. The language-mirroring results in this
+historical report do not measure the new contract; evidence quotations remain verbatim
+in their original language.
+
 The raw answers, checkpoints and generated set stay under `.vera/`, which Git ignores;
 only this report and the tooling under `finetuning/perturb/` are versioned.
 
@@ -145,10 +150,11 @@ After runtime normalization, both models pass all six `scope` cases; the apparen
 validation is clean on 22/40 base answers and 36/40 adapter answers, although the
 combined behavioral-and-grounding comparison is not statistically conclusive.
 
-### What the adapter lost
+### What the adapter lost under the previous language-mirroring policy
 
-On Kaggle, with the FP32 base, `language` and `multiturn` are perfect for the base and
-not for the adapter:
+These results were scored while the runtime required answers in the latest user's
+language. Under that old metric, the FP32 base passed `language` and `multiturn`; the
+adapter did not:
 
 - Italian question about `CVE-2026-81578`: the base answers in Italian with the record
   content; the adapter answers *"No supplied authoritative evidence concerns
@@ -157,17 +163,20 @@ not for the adapter:
   adapter falls back to *"No configured authoritative source concerns this local
   applicability question."*
 
-This is the expected forgetting from a monolingual dataset with no conversations, mixed
-only into a small adapter. It is also the clearest argument against more epochs on the
-same data.
+The Italian CVE case shows that neither model met the new combined requirement:
+the base answered in the wrong language, while the adapter answered in English but
+missed available evidence. The follow-up result still indicates a multi-turn weakness.
+More epochs on the same monolingual, non-conversational data are not the remedy.
 
-### Language: the local rerun
+### Language: historical mirror-language probe
 
-The `language` family was re-run locally on the Q6_K server, with and without the F16
-LoRA, to separate "the adapter cannot follow the language rule" from "the adapter is
-monolingual". Eight cases: the four Italian questions above, four twins where only the
-query language changes (same evidence and route, English wording), plus the
-`unavailable` and `scope` rules asked in Italian.
+This probe used the previous contract, which asked VERA to mirror the latest question's
+language. It is retained for historical context, but its Italian-answer expectation is
+obsolete now that `VERA_RESPONSE_LANGUAGE` defaults to English.
+
+The family was re-run locally on the Q6_K server with and without the F16 LoRA. Eight
+cases: four Italian questions, four English twins with the same evidence and route, and
+the `unavailable` and `scope` rules asked in Italian.
 
 | Cases | Base | Adapter |
 | --- | ---: | ---: |
@@ -176,37 +185,42 @@ query language changes (same evidence and route, English wording), plus the
 | `unavailable` rule with an Italian question | 0/1 | **1/1** |
 | `scope` rule with an Italian question | 0/1 | 0/1 |
 
-Three conclusions:
+Under the old contract:
 
-1. The adapter is not broken on language, it is **monolingual**. With an English target
-   it passes 4/4; with an Italian one it answers in English. The rule it learned is
-   "answer in English", not "mirror the question".
-2. The local base fails the Italian cases too (0/4). The 4/4 above belongs to the FP32
-   base; on Q6_K neither model mirrors the language, so at this precision the Italian
-   delta is not an adapter regression.
-3. The `unavailable` rule transfers to Italian input even though the answer stays
-   English. What the adapter learned is the decision, not the output language.
+1. The old score only checked answer language, not whether the Italian question was
+   understood. On the Kaggle CVE case, the base gave the record in Italian; the adapter
+   answered in English but incorrectly refused despite relevant evidence.
+2. Both local Q6_K variants answered in English and passed the English twins. The FP32
+   base's earlier 4/4 Italian result was specific to that provider/precision.
+3. The adapter transferred the `unavailable` decision to Italian input, even while
+   answering in English.
+
+The old Italian-answer expectation is obsolete, but that does not make the adapter's
+Italian-query refusal correct. Under English-only output, evaluate language, query
+understanding, evidence use and grounding together. These outputs predate the configured
+prompt and are not acceptance evidence for the new contract.
 
 The two `scope` failures are unrelated to language. Both models return
 `out_of_scope: true` with a claim in raw JSON; VERA's Pydantic normalizer removes it,
 so both pass this policy check in the application contract.
 
-This family is also the weakest of the seven as an instruction-following test. The cases
-inherit the dataset's system prompt, which never asks the model to mirror the language.
-The runtime prompt does, so under the prompt VERA actually sends the expectation is
-explicit instead of implicit.
+This family inherits the dataset's historical prompt and is not an acceptance test for
+the English-only configuration.
 
 ### The prompt the adapter was trained on is not the prompt VERA sends
 
-The dataset ships a 1,722-character system prompt; the current one in
-`src/vera/providers/prompts.py` is 3,604 characters. They are not the same contract:
+The dataset shipped a 1,722-character system prompt; the VERA runtime prompt used for
+this run was 3,604 characters. They were not the same contract:
 
-| Dataset prompt | Current prompt |
+| Dataset prompt | Runtime prompt used in this run |
 | --- | --- |
 | "at most three summary sentences and three short claims" | "thorough, comprehensive ... at least one and up to six supported_fact claims" |
 | no language rule | "Answer in the language of the latest question (Italian when the user writes in Italian)" |
 | no conversation rules | conversation continuity and follow-up resolution |
 | `conversation` absent | `current_subject` and `conversational_intent` supplied |
+
+The 2026-11-02 English-only setting postdates this run; its prompts and metrics must be
+re-evaluated before they are treated as the current contract.
 
 The target statistics match the old prompt, not the new one:
 
@@ -247,8 +261,9 @@ What is solid:
 - The raw 40-case score favors the adapter by nine passes, but the paired test is not
   conclusive (`p = 0.078`); after runtime normalization the net difference is three
   passes (`p = 0.607`).
-- Language and multi-turn remain clear regressions in this probe: the FP32 base scores
-  4/4 in each, while the adapter scores 0/4 and 2/4.
+- The language-only comparison used the superseded mirror-language policy; Italian
+  queries must now be scored jointly for English output and correct evidence use.
+  Multi-turn was 4/4 for the FP32 base and 2/4 for the adapter, but needs a fresh run.
 - The adapter reproduces the reference byte for byte on all 33 validation examples.
 - The splits are disjoint: no training id appears in validation or test (`train ∩
   validation = 0`, `train ∩ test = 0`).
@@ -284,7 +299,9 @@ evaluation only, not a training-ready dataset.
 
 The 110-case pack completed on Kaggle with the step-400 adapter; the 220-case pack has
 not been run. Preflight passed, all 220 paired generations completed, and no training
-was started. The table uses VERA's real `GeneratedAnswer` and citation validator:
+was started. It used the v2 prompt, before the English-only response setting was added.
+The table uses VERA's real `GeneratedAnswer` and citation validator, but does not
+validate the updated language contract:
 
 | Metric | Base | Adapter 400 |
 | --- | ---: | ---: |
@@ -311,9 +328,9 @@ limit on 18 answers; all 18 were invalid JSON, with 11 additional schema-invalid
 
 This is a strong result on this synthetic validation set, not deployment evidence:
 20 targets overlap training and 18 rows duplicate another target, and no expert rated
-answer quality. The prior perturbed probe still found Italian-language and multi-turn
-regressions; this pack does not measure either. Keep the adapter experimental and fix
-the targets, language coverage and conversation examples before considering retraining.
+answer quality. This pack does not test Italian-query understanding or the new
+English-only contract; multi-turn also needs a fresh probe. Keep the adapter experimental
+and review the targets before considering retraining.
 
 Regenerate the SVG charts from the retained scores and pack report with:
 
@@ -323,6 +340,27 @@ uv run --extra analysis python finetuning/plot_pack.py \
   --pack-report .vera/finetuning/v2-eval-20261101/evaluation-pack-10-per-task/report.json \
   --output docs/images/finetuning-run-20261101
 ```
+
+## English-only response contract (2026-11-02)
+
+`VERA_RESPONSE_LANGUAGE` is now the central setting and defaults to `English`; the
+prompt no longer switches languages based on query wording. Verbatim evidence quotes
+remain in their source language so citation validation is preserved. The v2 Kaggle
+results above predate this change and do not evaluate the new language contract.
+
+An English-only v3 candidate was mechanically aligned and validated locally. It changes
+prompts only (`assistant_targets_changed: 0`) and remains unauthorized for training.
+New 110- and 220-case packs are prepared; they exclude the 33 prior behavioral examples
+by their parent IDs and the 24 fixed loss rows. The 110-case pack has 20 exact-target
+overlaps and 18 duplicate rows; the 220-case pack has 40 and 38. No new Kaggle inference
+or training has been started. The candidate and packs are under
+`.vera/finetuning/v3-english-20261102b/`. The prior Kaggle charts/results above remain
+historical; they were not generated under this new prompt contract.
+
+A fresh 40-case perturbation set is also generated from the v3 prompts at
+`.vera/finetuning/v3-english-20261102b/perturbed-english-only.jsonl`. Its Italian
+queries check the configured English response; no model answers have been generated or
+scored for it yet.
 
 ## Verdict
 
@@ -334,13 +372,14 @@ uv run --extra analysis python finetuning/plot_pack.py \
    already equals the target, so additional passes can only add memorization.
 3. The limit is the dataset, not the training budget. It is monolingual, has no
    conversations, uses templated targets and quotes whole evidence payloads.
-4. The perturbed set is the most reusable artifact. It is a regression gate for the next
-   model: do not promote an adapter that scores below the base on `language` or
-   `multiturn`.
+4. The perturbed set is the most reusable artifact. Regenerate its Italian-query cases
+   to check English output, evidence use and grounding together; retain the multi-turn
+   regression gate.
 5. The dominant defect is distribution, not budget: the dataset carries a retired
    1,722-character system prompt and a terse target contract, while the runtime prompt
-   is 3,604 characters and asks for long, language-mirroring answers. Realigning the
-   data is worth more than any further epoch on the current one.
+   used in this run was 3,604 characters and asked for language-mirroring answers.
+   The new `VERA_RESPONSE_LANGUAGE` default is English; realign the data before
+   another training run.
 
 ## Serve the adapter locally
 
@@ -410,34 +449,40 @@ identical with, the Kaggle ones. The runtime contract keeps
 `training_authorized: false` and `deployment_authorized: false`; serving it locally for
 experiments is fine, promoting it is not.
 
-## Reproduce
+## Reproduce the English-only probe
 
-Rebuild the perturbed set from the retained training split:
+The 2026-11-01 perturbed answers used a language-mirroring prompt and are historical.
+Build a new set from the aligned English-only candidate; its Italian questions
+deliberately check that VERA still answers in the configured language:
 
 ```bash
+uv run python - <<'PY'
+from pathlib import Path
+from zipfile import ZipFile
+
+archive = Path(".vera/finetuning/v3-english-20261102b/aligned/vera-domain-v3-english-candidate.zip")
+destination = Path(".vera/finetuning/v3-english-20261102b/extracted/train/part-000.jsonl")
+destination.parent.mkdir(parents=True, exist_ok=True)
+with ZipFile(archive) as source:
+    destination.write_bytes(source.read("train/part-000.jsonl"))
+PY
 uv run python -m finetuning.perturb.build \
-  --dataset .vera/datasets/vera-domain-v1/train \
-  --output .vera/finetuning/perturbed.jsonl
+  --dataset .vera/finetuning/v3-english-20261102b/extracted/train \
+  --output .vera/finetuning/v3-english-20261102b/perturbed-english-only.jsonl \
+  --seed 20261102
 ```
 
-Upload the generated file as a private Kaggle dataset and run the
-`danterolle/vera-perturbed-runner-20261101` kernel with the stage-2 bundle and the
-step-400 adapter attached. It generates base and adapter answers in one process, with
-the adapter disabled for the base pass, and writes `perturbed-answers.jsonl`.
-
-Score the downloaded answers:
+The set is prepared locally; no new model answers or training run have been generated.
+When answers are available, score them against the same candidate and contract:
 
 ```bash
 PYTHONPATH=finetuning uv run python -m perturb.score \
-  --answers .vera/finetuning/review-20261101/answers/perturbed-answers.jsonl \
-  --set .vera/finetuning/perturbed.jsonl \
-  --dataset .vera/finetuning/v2-eval-20261101/aligned/vera-domain-v2-candidate.zip \
-  --contract .vera/finetuning/v2-eval-20261101/bundle/runtime-contract.json \
-  --output .vera/finetuning/scores-perturbed-production-20261101.json
+  --answers .vera/finetuning/v3-english-20261102b/perturbed-answers.jsonl \
+  --set .vera/finetuning/v3-english-20261102b/perturbed-english-only.jsonl \
+  --dataset .vera/finetuning/v3-english-20261102b/aligned/vera-domain-v3-english-candidate.zip \
+  --contract .vera/finetuning/v3-english-20261102b/bundle/runtime-contract.json \
+  --output .vera/finetuning/v3-english-20261102b/scores-perturbed-english-only.json
 ```
-
-The generator is deterministic for a given seed (default `20261101`) and fails instead
-of silently writing a partial set.
 
 ## Artifacts
 
