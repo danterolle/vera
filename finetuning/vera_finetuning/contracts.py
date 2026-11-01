@@ -20,7 +20,7 @@ def context_evidence(context: dict) -> list[Evidence]:
     for item in context["evidence"]:
         record = dict(item)
         record["metadata"] = {
-            key: record.pop(key) for key in ("provenance", "lookup_method")
+            key: record.pop(key) for key in ("provenance", "lookup_method") if key in record
         }
         evidence.append(Evidence.model_validate(record))
     return evidence
