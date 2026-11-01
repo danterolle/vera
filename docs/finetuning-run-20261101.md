@@ -101,7 +101,8 @@ contract requires.
 
 Forty cases in seven families. Each family rewrites a real training example so that only
 one property changes, then checks that property instead of comparing to a reference
-string. The generator lives in `finetuning/perturb/`.
+string. The generator lives in `finetuning/perturb/`. The table below is the original
+raw-output score: it checks emitted JSON before applying VERA's Pydantic normalization.
 
 | Family | Cases | Property under test | Base | Adapter 400 |
 | --- | ---: | --- | ---: | ---: |
@@ -117,16 +118,37 @@ string. The generator lives in `finetuning/perturb/`.
 Valid JSON: base 32/40, adapter 36/40. Every case also requires a valid VERA schema,
 so a malformed answer never counts as a pass.
 
+### Rescored through VERA's runtime contract
+
+The raw `scope` check undercounted the base: its six answers set `out_of_scope: true`,
+but retained a claim. `GeneratedAnswer` normalizes these into VERA's out-of-scope
+response with no claims. The production-aware scorer now reports both raw and normalized
+behavior, then applies the real citation validator:
+
+| Metric | Base | Adapter 400 |
+| --- | ---: | ---: |
+| Raw property checks | 19/40 | 28/40 |
+| Property checks after Pydantic normalization | 25/40 | 28/40 |
+| Normalized property pass and no citation errors | 22/40 | 28/40 |
+| Citation-clean answers | 22/40 | 36/40 |
+
+Paired exact tests do not establish an adapter advantage on this small synthetic set:
+the normalized comparison is 9 adapter-only passes versus 6 base-only passes
+(`p = 0.607`); requiring both the property and clean citations gives 12 versus 6
+(`p = 0.238`). Treat these as descriptive results, not evidence of generalization.
+
 ### What the adapter learned
 
-`scope`, `unavailable` and `injection` move from 0/6 to 6/6. The base answered
-out-of-scope questions as security questions, treated missing records as facts and
-followed one injection note; the adapter refuses, labels the claims and ignores the
-instructions. These are behaviors the base did not have, not phrasing differences.
+After runtime normalization, both models pass all six `scope` cases; the apparent
+0/6-to-6/6 gain was a scorer artifact. The remaining probe shows real differences:
+`unavailable` moves from 0/6 to 6/6, and `injection` from 5/6 to 6/6. Citation
+validation is clean on 22/40 base answers and 36/40 adapter answers, although the
+combined behavioral-and-grounding comparison is not statistically conclusive.
 
 ### What the adapter lost
 
-On `language` and `multiturn` the base is perfect and the adapter is not:
+On Kaggle, with the FP32 base, `language` and `multiturn` are perfect for the base and
+not for the adapter:
 
 - Italian question about `CVE-2026-81578`: the base answers in Italian with the record
   content; the adapter answers *"No supplied authoritative evidence concerns
@@ -138,6 +160,68 @@ On `language` and `multiturn` the base is perfect and the adapter is not:
 This is the expected forgetting from a monolingual dataset with no conversations, mixed
 only into a small adapter. It is also the clearest argument against more epochs on the
 same data.
+
+### Language: the local rerun
+
+The `language` family was re-run locally on the Q6_K server, with and without the F16
+LoRA, to separate "the adapter cannot follow the language rule" from "the adapter is
+monolingual". Eight cases: the four Italian questions above, four twins where only the
+query language changes (same evidence and route, English wording), plus the
+`unavailable` and `scope` rules asked in Italian.
+
+| Cases | Base | Adapter |
+| --- | ---: | ---: |
+| 4 Italian questions, Italian answer expected | 0/4 | 0/4 |
+| 4 English twins, English answer expected | **4/4** | **4/4** |
+| `unavailable` rule with an Italian question | 0/1 | **1/1** |
+| `scope` rule with an Italian question | 0/1 | 0/1 |
+
+Three conclusions:
+
+1. The adapter is not broken on language, it is **monolingual**. With an English target
+   it passes 4/4; with an Italian one it answers in English. The rule it learned is
+   "answer in English", not "mirror the question".
+2. The local base fails the Italian cases too (0/4). The 4/4 above belongs to the FP32
+   base; on Q6_K neither model mirrors the language, so at this precision the Italian
+   delta is not an adapter regression.
+3. The `unavailable` rule transfers to Italian input even though the answer stays
+   English. What the adapter learned is the decision, not the output language.
+
+The two `scope` failures are unrelated to language. Both models return
+`out_of_scope: true` with a claim in raw JSON; VERA's Pydantic normalizer removes it,
+so both pass this policy check in the application contract.
+
+This family is also the weakest of the seven as an instruction-following test. The cases
+inherit the dataset's system prompt, which never asks the model to mirror the language.
+The runtime prompt does, so under the prompt VERA actually sends the expectation is
+explicit instead of implicit.
+
+### The prompt the adapter was trained on is not the prompt VERA sends
+
+The dataset ships a 1,722-character system prompt; the current one in
+`src/vera/providers/prompts.py` is 3,604 characters. They are not the same contract:
+
+| Dataset prompt | Current prompt |
+| --- | --- |
+| "at most three summary sentences and three short claims" | "thorough, comprehensive ... at least one and up to six supported_fact claims" |
+| no language rule | "Answer in the language of the latest question (Italian when the user writes in Italian)" |
+| no conversation rules | conversation continuity and follow-up resolution |
+| `conversation` absent | `current_subject` and `conversational_intent` supplied |
+
+The target statistics match the old prompt, not the new one:
+
+- median summary: **14 words**, p90 16;
+- **97.2%** of targets have three sentences or fewer;
+- **1,445 of 3,939** training examples (36.7%) share a single summary string per task
+  (`scope_boundary`, `memory_only`, `current_status`, `risk_comparison`);
+- `vulnerability_triage` has 1,332 examples and always exactly three claims.
+
+So the adapter reproduces a retired answer contract with high fidelity. That is the
+mechanism behind the project-suite regression measured locally: one factual claim
+against 17, source coverage 0.30 against 0.71, grounding 0.33 against 0.77. The adapter
+is not ignoring the evidence; it is answering briefly, with canned sentences, because
+that is what it was trained to do. Extra epochs on this data would sharpen that fit, not
+correct it.
 
 ### The alert count
 
@@ -160,7 +244,11 @@ a larger output budget during evaluation.
 What is solid:
 
 - Base and adapter saw identical prompts and decoding settings.
-- The gaps are large and coherent: 6/6 against 0/6, 4/4 against 0/4.
+- The raw 40-case score favors the adapter by nine passes, but the paired test is not
+  conclusive (`p = 0.078`); after runtime normalization the net difference is three
+  passes (`p = 0.607`).
+- Language and multi-turn remain clear regressions in this probe: the FP32 base scores
+  4/4 in each, while the adapter scores 0/4 and 2/4.
 - The adapter reproduces the reference byte for byte on all 33 validation examples.
 - The splits are disjoint: no training id appears in validation or test (`train ∩
   validation = 0`, `train ∩ test = 0`).
@@ -178,10 +266,70 @@ What to treat with caution:
   targets and `deployment_authorized: false`. This adapter is an experiment, not a
   deployable model.
 
+## Expanded validation pack
+
+A mechanically aligned v2 archive and balanced validation selections were prepared
+without training. Alignment changed prompts only: **zero assistant targets changed**.
+The 220-case selection contains 20 examples for each of the 11 tasks; 40 targets also
+occur in training, and 38 selected rows duplicate another target. The smaller 110-case
+selection contains 20 training-target overlaps and 18 duplicate rows. Both exclude the
+previous 33 behavioral cases and the 24 fixed loss-monitoring examples, and their source
+groups/entities are disjoint from training. The test split was not used.
+
+![Target overlap and duplicate counts in the 110-case validation pack](images/finetuning-run-20261101/target-overlap.svg)
+
+These are broader validation samples, not independent test data. The v2 archive still
+contains synthetic, unreviewed targets from the retired answer contract; it is for
+evaluation only, not a training-ready dataset.
+
+The 110-case pack completed on Kaggle with the step-400 adapter; the 220-case pack has
+not been run. Preflight passed, all 220 paired generations completed, and no training
+was started. The table uses VERA's real `GeneratedAnswer` and citation validator:
+
+| Metric | Base | Adapter 400 |
+| --- | ---: | ---: |
+| Valid JSON | 92/110 (83.6%) | 110/110 (100%) |
+| Valid VERA schema | 81/110 (73.6%) | 110/110 (100%) |
+| Correct scope decision | 79/110 (71.8%) | 110/110 (100%) |
+| Mean claim-status recall, schema-valid answers | 0.679 | 0.995 |
+| Unavailable presence, schema-valid cases where expected | 24.1% | 100% |
+| Answers with citation-validation failures, schema-valid | 32.1% | 0.9% |
+| Memory citation violations | 10 | 0 |
+| Mean output tokens | 494 | 214 |
+| Mean generation seconds per answer | 43.9 | 22.4 |
+
+![Base versus adapter metrics on the paired 110-case validation pack](images/finetuning-run-20261101/overall.svg)
+
+A stricter derived pass (valid schema, correct scope, all expected statuses, and no
+validator errors) is 36/110 for the base and 108/110 for the adapter. On the 90 rows
+whose exact target does not occur in training, it is 31/90 versus 88/90. The adapter's
+two remaining failures are one non-verbatim quote in `graph_evidence` and one missing
+`system_inference` status in `vulnerability_triage`. The base reached the 768-token
+limit on 18 answers; all 18 were invalid JSON, with 11 additional schema-invalid answers.
+
+![Schema-valid answers by task, out of ten examples](images/finetuning-run-20261101/schema-by-task.svg)
+
+This is a strong result on this synthetic validation set, not deployment evidence:
+20 targets overlap training and 18 rows duplicate another target, and no expert rated
+answer quality. The prior perturbed probe still found Italian-language and multi-turn
+regressions; this pack does not measure either. Keep the adapter experimental and fix
+the targets, language coverage and conversation examples before considering retraining.
+
+Regenerate the SVG charts from the retained scores and pack report with:
+
+```bash
+uv run --extra analysis python finetuning/plot_pack.py \
+  --scores .vera/finetuning/v2-eval-20261101/kaggle-results/vera-eval-v2-110/results/scores.json \
+  --pack-report .vera/finetuning/v2-eval-20261101/evaluation-pack-10-per-task/report.json \
+  --output docs/images/finetuning-run-20261101
+```
+
 ## Verdict
 
 1. Fine-tuning for answer shape and grounding works: JSON conformity, scope, missing
-   evidence and injection resistance improve sharply and reproducibly.
+   evidence and injection resistance improve on these synthetic probes, but scope was
+   already enforced by the base model's runtime normalizer and the paired evidence is
+   too small to establish generalization.
 2. More epochs on the same data would not help. At 0.81 epoch every validation answer
    already equals the target, so additional passes can only add memorization.
 3. The limit is the dataset, not the training budget. It is monolingual, has no
@@ -189,6 +337,78 @@ What to treat with caution:
 4. The perturbed set is the most reusable artifact. It is a regression gate for the next
    model: do not promote an adapter that scores below the base on `language` or
    `multiturn`.
+5. The dominant defect is distribution, not budget: the dataset carries a retired
+   1,722-character system prompt and a terse target contract, while the runtime prompt
+   is 3,604 characters and asks for long, language-mirroring answers. Realigning the
+   data is worth more than any further epoch on the current one.
+
+## Serve the adapter locally
+
+The adapter is a PEFT LoRA on `Qwen/Qwen3.5-4B` revision `851bf6e8` (rank 8, alpha 16,
+`lora_dropout` 0, seven projection modules). It is 20 MB; the base model is not merged
+and not duplicated.
+
+The weights live under `.vera/finetuning/adapter-step400/`, which Git ignores:
+`adapter_model.safetensors` (PEFT) and `vera-step400-lora-f16.gguf` (converted LoRA).
+
+Convert the PEFT adapter once with the llama.cpp script at the revision used for the
+local run (`8642541b2`):
+
+```bash
+python convert_lora_to_gguf.py .vera/finetuning/adapter-step400 \
+  --outfile .vera/finetuning/adapter-step400/vera-step400-lora-f16.gguf \
+  --outtype f16
+```
+
+The converter reads the base model config from the Hugging Face hub; `--base` accepts a
+local directory with `config.json` and `tokenizer.json` when working offline.
+
+Serve base and adapter from one server process:
+
+```bash
+llama-server -m .vera/models/qwen3.5-4b-mtp/Qwen3.5-4B-Q6_K.gguf \
+  --lora .vera/finetuning/adapter-step400/vera-step400-lora-f16.gguf \
+  -ngl 99 -fa on --ctx-size 8192 --parallel 1 \
+  --reasoning off --reasoning-budget 0 \
+  --host 127.0.0.1 --port 1234 --alias vera-qwen3.5-4b-step400
+```
+
+Confirm the adapter is active, and dial it at runtime:
+
+```bash
+curl -s http://127.0.0.1:1234/lora-adapters
+curl -s -X POST http://127.0.0.1:1234/lora-adapters \
+  -H 'Content-Type: application/json' -d '[{"id":0,"scale":0.5}]'
+```
+
+`scale` 0 is the base model, 1 is the full adapter. Restart with `--lora` and no
+`--lora-scale` entry in `/lora-adapters` means no adapter is loaded, which is easy to
+misread as "the adapter does nothing".
+
+Point VERA at the alias:
+
+```dotenv
+VERA_LLM_PROVIDER=openai
+VERA_LLM_MODEL=vera-qwen3.5-4b-step400
+VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
+VERA_LLM_TIMEOUT_SECONDS=600
+```
+
+In Python, without converting to GGUF:
+
+```python
+from peft import PeftModel
+from transformers import AutoModelForCausalLM
+
+base = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3.5-4B", revision="851bf6e8")
+model = PeftModel.from_pretrained(base, ".vera/finetuning/adapter-step400")
+```
+
+Loading the LoRA on a quantized GGUF is not the same as merging and then quantizing: it
+changes numerics slightly and is why the local figures above are close to, but not
+identical with, the Kaggle ones. The runtime contract keeps
+`training_authorized: false` and `deployment_authorized: false`; serving it locally for
+experiments is fine, promoting it is not.
 
 ## Reproduce
 
@@ -208,10 +428,12 @@ the adapter disabled for the base pass, and writes `perturbed-answers.jsonl`.
 Score the downloaded answers:
 
 ```bash
-uv run python -m finetuning.perturb.score \
-  --answers .vera/finetuning/perturbed-answers.jsonl \
+PYTHONPATH=finetuning uv run python -m perturb.score \
+  --answers .vera/finetuning/review-20261101/answers/perturbed-answers.jsonl \
   --set .vera/finetuning/perturbed.jsonl \
-  --output .vera/finetuning/scores-perturbed.json
+  --dataset .vera/finetuning/v2-eval-20261101/aligned/vera-domain-v2-candidate.zip \
+  --contract .vera/finetuning/v2-eval-20261101/bundle/runtime-contract.json \
+  --output .vera/finetuning/scores-perturbed-production-20261101.json
 ```
 
 The generator is deterministic for a given seed (default `20261101`) and fails instead
@@ -226,12 +448,16 @@ Local, Git-ignored, under `.vera/finetuning/`:
 - `scores-perturbed.json`
 - step-160 and step-400 `report.json`, `metrics.jsonl`, validation and test answers,
   and the complete checkpoint directories
+- 110-case inference-only results under
+  `.vera/finetuning/v2-eval-20261101/kaggle-results/vera-eval-v2-110/`
 
 Private Kaggle resources:
 
 - training kernel `danterolle/vera-stage4-train-20261030` (160 -> 400 plus validation)
 - test-evaluation kernel `danterolle/vera-stage3-test-eval-20261030`
 - perturbed runner `danterolle/vera-perturbed-runner-20261101`
+- inference-only validation kernel `danterolle/vera-v2-eval-110-base-vs-adapter`
+- evaluation inputs `danterolle/vera-eval-v2-110-inputs-20261101`
 - datasets `danterolle/vera-checkpoint-160-20261030`,
   `danterolle/vera-checkpoint-400-20261101`
   (adapter, optimizer state and data cursor, so `--epochs 2` can resume)
