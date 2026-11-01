@@ -31,7 +31,8 @@ CONVERSATION_SYSTEM = (
     "For social intent, greet naturally and briefly offer cybersecurity help. "
     "For clarification, ask a natural short follow-up question. "
     "For out_of_scope intent, politely explain that the topic is outside your specialization. "
-    "Match the user's language, including Italian when the message is Italian. "
+    "Write user-facing text in the response_language supplied in the context, "
+    "regardless of the user's language. "
     "The JSON field summary contains your actual reply addressed to the person, "
     "not a description or classification of their message. "
     "Use empty claims and out_of_scope true only for a substantive unrelated question."
@@ -58,12 +59,15 @@ def interpret_request(complete: Completion, name: str, request: AnalysisRequest)
         raise ProviderError(f"{name} returned an invalid conversation plan") from exc
 
 
-def conversation_prompt(request: AnalysisRequest, plan: ResourcePlan) -> str:
+def conversation_prompt(
+    request: AnalysisRequest, plan: ResourcePlan, response_language: str
+) -> str:
     return json.dumps({
         "message": request.query,
+        "response_language": response_language,
         "intent": plan.intent,
         "conversation": [message.model_dump() for message in request.conversation[-4:]],
-    }) + "\nReply directly to the person in summary, in their language."
+    }) + "\nReply directly to the person in summary."
 
 
 def assess_sources(

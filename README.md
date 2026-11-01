@@ -20,6 +20,8 @@ VERA_LLM_PROVIDER=deterministic VERA_LIVE_SOURCES=false \
 
 This starts without a model server or live lookups. The deterministic provider
 extracts findings from evidence; it does not provide open-ended model reasoning.
+User-facing responses default to English; `VERA_RESPONSE_LANGUAGE` is the central
+setting, while evidence quotations remain verbatim in their source language.
 The copy preserves an existing `.env`.
 
 | Address | Purpose |

@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     llm_provider: Literal["deterministic", "ollama", "openai", "gemini"] = "deterministic"
     llm_model: str = "llama3.1:8b"
     llm_base_url: str = "http://localhost:11434"
+    response_language: str = Field(default="English", min_length=2, max_length=32)
     llm_timeout_seconds: float = Field(default=120.0, ge=1.0, le=600.0)
     llm_response_format: Literal["json_object", "json_schema"] = "json_object"
     llm_reasoning_effort: Literal["none", "low", "medium", "high"] | None = None

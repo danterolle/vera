@@ -65,6 +65,8 @@ normalized fields rather than raw packets to the model.
 Model/tool calls, timeouts and input sizes are bounded by `Settings`. Optional ReAct
 can choose local corpus searches and exact CVE lookups, not arbitrary URLs or commands.
 The initial model-call budget defaults to four; ReAct resolves its budget separately.
+User-facing prose follows `VERA_RESPONSE_LANGUAGE` (default: English), not the query
+language. Evidence quotations remain verbatim in their source language.
 
 SQLite stores completed runs, memories, review decisions and LangGraph checkpoints.
 Pending drafts are durable but unpublished until approved. Human revisions are

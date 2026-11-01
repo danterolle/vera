@@ -26,12 +26,14 @@ class DeterministicProvider:
     ) -> GeneratedAnswer:
         if plan and plan.intent != "cybersecurity":
             messages = {
-                "social": "Ciao! Sono VERA: posso aiutarti con domande di cybersecurity.",
+                "social": "Hello! I'm VERA. I can help with cybersecurity questions.",
                 "out_of_scope": (
-                    "Questo argomento esula dalla mia specializzazione. "
-                    "Posso aiutarti con la cybersecurity."
+                    "That topic is outside my specialization. "
+                    "I can help with cybersecurity."
                 ),
-                "clarification": "Mi dai qualche dettaglio in più su ciò che vuoi sapere?",
+                "clarification": (
+                    "Could you provide a little more detail about what you'd like to know?"
+                ),
             }
             return GeneratedAnswer(
                 summary=messages[plan.intent], claims=[],

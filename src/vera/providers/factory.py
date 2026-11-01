@@ -15,6 +15,7 @@ def build_provider(settings: Settings) -> ModelProvider:
             settings.llm_model,
             settings.gemini_api_key.get_secret_value(),
             settings.llm_timeout_seconds,
+            settings.response_language,
         )
     api_key = (
         settings.llm_api_key.get_secret_value() if settings.llm_api_key is not None else None
@@ -28,4 +29,5 @@ def build_provider(settings: Settings) -> ModelProvider:
         settings.llm_response_format,
         settings.llm_reasoning_effort,
         settings.llm_max_output_tokens,
+        response_language=settings.response_language,
     )

@@ -26,9 +26,10 @@ from vera.providers.schema import MAX_CLAIMS, answer_schema
 class HttpModelProvider:
     external = True
 
-    def __init__(self, name: str, model: str) -> None:
+    def __init__(self, name: str, model: str, response_language: str) -> None:
         self.name = name
         self.model = model
+        self.response_language = response_language
 
     def classify(self, query: str) -> Route:
         schema = {
@@ -63,12 +64,13 @@ class HttpModelProvider:
         plan: ResourcePlan | None = None,
     ) -> GeneratedAnswer:
         prompt = generation_prompt(
-            request, route, evidence, alerts, statistics, feedback, plan=plan,
+            request, route, evidence, alerts, statistics, feedback,
+            response_language=self.response_language, plan=plan,
         )
         system = SYSTEM_PROMPT
         if plan is not None and plan.intent != "cybersecurity":
             system = CONVERSATION_SYSTEM
-            prompt = conversation_prompt(request, plan)
+            prompt = conversation_prompt(request, plan, self.response_language)
         schema = answer_schema(evidence, plan)
         content = self._complete(prompt, system, schema)
         try:
@@ -112,8 +114,10 @@ class OpenAICompatibleProvider(HttpModelProvider):
         response_format: str = "json_object",
         reasoning_effort: str | None = None,
         max_output_tokens: int = 1024,
+        *,
+        response_language: str,
     ) -> None:
-        super().__init__(name, model)
+        super().__init__(name, model, response_language)
         normalized_url = base_url.rstrip("/")
         suffix = "/chat/completions" if normalized_url.endswith("/v1") else "/v1/chat/completions"
         self.endpoint = f"{normalized_url}{suffix}"
@@ -156,8 +160,10 @@ class OpenAICompatibleProvider(HttpModelProvider):
 
 
 class GeminiProvider(HttpModelProvider):
-    def __init__(self, model: str, api_key: str, timeout: float) -> None:
-        super().__init__("gemini", model)
+    def __init__(
+        self, model: str, api_key: str, timeout: float, response_language: str,
+    ) -> None:
+        super().__init__("gemini", model, response_language)
         self.endpoint = (
             f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         )
