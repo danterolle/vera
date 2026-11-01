@@ -1,3 +1,4 @@
+import hashlib
 import json
 import random
 import re
@@ -5,7 +6,7 @@ import time
 from contextlib import nullcontext
 
 from vera_finetuning.data import MODEL_ID, MODEL_REVISION, load_candidate
-from vera_finetuning.model import load_base_model
+from vera_finetuning.inference import load_base_model
 
 
 def extract_json(text: str) -> dict | None:
@@ -73,7 +74,24 @@ def generate(model, tokenizer, example: dict, max_new_tokens: int) -> tuple[str,
 def run(args) -> None:
     contract = json.loads(args.contract.read_text())
     splits, warnings = load_candidate(args.dataset, contract)
-    examples = select_examples(splits, args.split, args.per_task, args.seed)
+    if args.selection is None:
+        examples = select_examples(splits, args.split, args.per_task, args.seed)
+    else:
+        selection = json.loads(args.selection.read_text())
+        if (
+            selection["dataset_sha256"] != contract["archive_sha256"]
+            or selection["split"] != args.split
+        ):
+            raise ValueError("The evaluation pack does not match this dataset and split")
+        by_id = {example["id"]: example for example in splits[args.split]}
+        selected_ids = selection["selected_ids"]
+        if len(selected_ids) != len(set(selected_ids)):
+            raise ValueError("The evaluation pack contains duplicate example IDs")
+        if set(selected_ids) - by_id.keys():
+            raise ValueError("The evaluation pack references unknown examples")
+        examples = [by_id[identifier] for identifier in selected_ids]
+        if selection["seed"] != args.seed or selection["per_task"] != args.per_task:
+            raise ValueError("The evaluation command seed/sample size differs from the pack")
     if not examples:
         raise ValueError(f"No examples selected from the {args.split} split")
     for warning in warnings:
@@ -90,6 +108,10 @@ def run(args) -> None:
         "split": args.split,
         "per_task": args.per_task,
         "seed": args.seed,
+        "selection_sha256": (
+            hashlib.sha256(args.selection.read_bytes()).hexdigest()
+            if args.selection is not None else None
+        ),
         "max_new_tokens": args.max_new_tokens,
         "examples": len(examples),
         "tasks": sorted({example["task"] for example in examples}),

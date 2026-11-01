@@ -115,6 +115,36 @@ The resumed run to step 400, together with the 40-case perturbed evaluation that
 generalization beyond the training templates, is recorded in
 [the 2026-11-01 run report](finetuning-run-20261101.md).
 
+For a larger validation comparison that excludes earlier behavioral cases and the
+fixed loss-monitoring sample, prepare a deterministic, task-balanced pack:
+
+```bash
+uv run python finetuning/prepare_eval_pack.py \
+  --dataset .vera/finetuning/v2-eval-20261101/aligned/vera-domain-v2-candidate.zip \
+  --contract .vera/finetuning/v2-eval-20261101/bundle/runtime-contract.json \
+  --previous-answers .vera/finetuning/kaggle-preview-20261028-103035/resume-results/vera-eval-resume-20261029-104525/answers.jsonl \
+  --exclude-loss-sample 24 \
+  --per-task 20 \
+  --seed 20261102 \
+  --output .vera/finetuning/v2-eval-20261101/evaluation-pack-repro
+```
+
+The 220-case selection (20 per task) reports exact-target overlap and duplicates:
+40 targets are seen in training and 38 rows duplicate a target within the pack. A
+smaller 110-case selection (10 per task) has completed an inference-only Kaggle
+comparison of base and step-400 adapter. Its results and limitations are in the
+[2026-11-01 run report](finetuning-run-20261101.md). These are larger
+validation slices, not independent tests; they do not change targets, authorize training
+or use the held-out test split. Prompt alignment preserves all targets, so this candidate
+is not ready for training until labels are reviewed and corrected. Use a fresh output
+directory because the packer never overwrites an existing selection.
+
+For inference-only comparison, `finetuning/kaggle_eval.py` runs preflight followed by
+base/adapter generation on a private Kaggle T4 x2 kernel. Its uploaded code bundle contains
+only dataset, inference and evaluation modules; it does not include the training entrypoint.
+The script writes answers and preflight output under `/kaggle/working`, while dependencies
+and model caches stay under `/kaggle/temp`.
+
 A full run checkpoints every 50 updates and at completion. To resume, preserve a complete
 `checkpoint-*`, set `FULL_RESUME` and choose a new `FULL_OUTPUT`.
 Data, prompt, model revision, mode and accumulation must match.

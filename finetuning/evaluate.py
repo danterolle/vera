@@ -14,6 +14,7 @@ def main() -> None:
     parser.add_argument("--adapter", type=Path)
     parser.add_argument("--split", choices=("train", "validation", "test"), default="validation")
     parser.add_argument("--per-task", type=int, default=3)
+    parser.add_argument("--selection", type=Path, help="use a precomputed leakage-audited pack")
     parser.add_argument("--max-new-tokens", type=int, default=768)
     parser.add_argument("--seed", type=int, default=3407)
     args = parser.parse_args()
