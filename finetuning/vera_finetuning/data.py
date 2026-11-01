@@ -100,6 +100,12 @@ def load_candidate(archive_path: Path, contract: dict) -> tuple[dict, list[str]]
                 raise ValueError(
                     "Dataset/runtime prompt drift: rebuild and review the dataset before training"
                 )
+            if "response_language" in contract:
+                context, _ = json.JSONDecoder().raw_decode(
+                    messages[1]["content"].split("\n", 1)[1]
+                )
+                if context.get("response_language") != contract["response_language"]:
+                    raise ValueError(f"Dataset response-language drift: {example['id']}")
             target = json.loads(messages[-1]["content"])
             if set(target) != {"summary", "claims", "out_of_scope"}:
                 raise ValueError(f"Unexpected target schema: {example['id']}")

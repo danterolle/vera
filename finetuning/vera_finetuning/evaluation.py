@@ -92,6 +92,12 @@ def run(args) -> None:
         examples = [by_id[identifier] for identifier in selected_ids]
         if selection["seed"] != args.seed or selection["per_task"] != args.per_task:
             raise ValueError("The evaluation command seed/sample size differs from the pack")
+        if (
+            selection.get("max_new_tokens", args.max_new_tokens) != args.max_new_tokens
+            or selection.get("response_language", contract.get("response_language"))
+            != contract.get("response_language")
+        ):
+            raise ValueError("The evaluation decoding/language settings differ from the pack")
     if not examples:
         raise ValueError(f"No examples selected from the {args.split} split")
     for warning in warnings:
@@ -108,6 +114,7 @@ def run(args) -> None:
         "split": args.split,
         "per_task": args.per_task,
         "seed": args.seed,
+        "response_language": contract.get("response_language"),
         "selection_sha256": (
             hashlib.sha256(args.selection.read_bytes()).hexdigest()
             if args.selection is not None else None

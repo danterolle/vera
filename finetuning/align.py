@@ -30,15 +30,26 @@ def main() -> None:
 
     parent_hash = digest(args.dataset)
     _, manifest, files = read_package(args.dataset)
+    source_revision = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    source_worktree_dirty = bool(subprocess.check_output(
+        ["git", "-C", str(root), "status", "--porcelain"], text=True,
+    ).strip())
     source_rows = rows(files, "sources")
     sources = {item["id"]: item for item in source_rows}
     if len(sources) != len(source_rows):
         raise ValueError("Duplicate source ledger IDs")
-    coverage = Settings(_env_file=None).grounding_min_coverage
+    settings = Settings(_env_file=None)
     splits = {}
     for split in SPLITS:
         originals = rows(files, split)
-        splits[split] = [align_example(item, sources, coverage) for item in originals]
+        splits[split] = [
+            align_example(
+                item, sources, settings.grounding_min_coverage, settings.response_language,
+            )
+            for item in originals
+        ]
         if len(splits[split]) != manifest["splits"][split]["examples"]:
             raise ValueError(f"Split size changed unexpectedly: {split}")
         print(f"Validated {split}: {len(splits[split])} examples", flush=True)
@@ -54,12 +65,12 @@ def main() -> None:
         "human_reviewed": False, "training_authorized": False,
         "alignment": {
             "method": "canonical_runtime_prompt",
+            "response_language": settings.response_language,
             "parent_archive_sha256": parent_hash,
             "assistant_targets_changed": 0, "source_records_changed": 0,
             "split_assignments_changed": 0,
-            "runtime_revision": subprocess.check_output(
-                ["git", "-C", str(root), "rev-parse", "HEAD"], text=True,
-            ).strip(),
+            "runtime_revision": source_revision,
+            "runtime_worktree_dirty": source_worktree_dirty,
         },
     })
     args.output.parent.mkdir(parents=True, exist_ok=True)

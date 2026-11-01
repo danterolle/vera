@@ -11,6 +11,8 @@ import copy
 import json
 import random
 
+from vera.config import Settings
+
 from .context import PromptContext, set_question
 
 Case = tuple[str, PromptContext, dict, dict]
@@ -127,7 +129,7 @@ def missing_evidence(
 def italian_question(
     by_task: dict[str, list[PromptContext]], rng: random.Random, limit: int = 4
 ) -> list[Case]:
-    """Ask in Italian: every training question is in English."""
+    """Ask in Italian and check the configured response language."""
 
     pool = by_task["vulnerability_triage"] + by_task["local_applicability"]
     rng.shuffle(pool)
@@ -137,7 +139,10 @@ def italian_question(
             continue
         data = copy.deepcopy(context.data)
         set_question(data, ITALIAN_QUESTION.format(cve=context.cves[0]))
-        cases.append(("language", context, data, {"kind": "language", "lang": "it"}))
+        cases.append((
+            "language", context, data,
+            {"kind": "language", "lang": Settings(_env_file=None).response_language},
+        ))
         if len(cases) == limit:
             break
     return _require(cases, limit, "language")

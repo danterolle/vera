@@ -26,7 +26,9 @@ def context_evidence(context: dict) -> list[Evidence]:
     return evidence
 
 
-def validate_example(example: dict, minimum_coverage: float) -> None:
+def validate_example(
+    example: dict, minimum_coverage: float, response_language: str
+) -> None:
     messages = example["messages"]
     context = parse_context(example)
     if context["conversational_intent"] != "cybersecurity":
@@ -51,7 +53,7 @@ def validate_example(example: dict, minimum_coverage: float) -> None:
         request, Route(context["route"]), evidence,
         [DetectionAlert.model_validate(item) for item in context["alerts"]],
         StreamStatistics.model_validate(context["statistics"]),
-        context["feedback"], plan=plan,
+        context["feedback"], response_language=response_language, plan=plan,
     )
     if rebuilt != messages[1]["content"]:
         raise ValueError(

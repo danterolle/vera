@@ -30,19 +30,48 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--per-task", type=int, default=20)
     parser.add_argument("--seed", type=int, default=20261102)
+    parser.add_argument("--max-new-tokens", type=int, default=768)
     parser.add_argument("--previous-answers", type=Path, action="append", default=[])
+    parser.add_argument("--previous-dataset", type=Path)
+    parser.add_argument("--previous-contract", type=Path)
     parser.add_argument("--exclude-loss-sample", type=int, default=24)
     args = parser.parse_args()
-    if args.per_task < 1 or args.exclude_loss_sample < 0:
-        parser.error("Sample sizes must be non-negative and --per-task must be positive")
+    if args.per_task < 1 or args.exclude_loss_sample < 0 or args.max_new_tokens < 1:
+        parser.error(
+            "--per-task and --max-new-tokens must be positive; exclusions cannot be negative"
+        )
     if args.output.exists():
         parser.error("Choose a new output directory; existing evaluation packs are immutable")
     for path in args.previous_answers:
         if not path.is_file():
             parser.error(f"Previous-answer artifact does not exist: {path}")
+    if bool(args.previous_dataset) != bool(args.previous_contract):
+        parser.error("--previous-dataset and --previous-contract must be supplied together")
     contract = json.loads(args.contract.read_text())
     splits, warnings = load_candidate(args.dataset, contract)
     previous_ids = set().union(*(load_excluded(path) for path in args.previous_answers))
+    previous_parent_ids = set()
+    if args.previous_dataset:
+        previous_contract = json.loads(args.previous_contract.read_text())
+        previous_splits, _ = load_candidate(args.previous_dataset, previous_contract)
+        previous_parent_by_id = {
+            row["id"]: row.get("alignment", {}).get("parent_id", row["id"])
+            for row in previous_splits["validation"]
+        }
+        unmatched_ids = previous_ids - previous_parent_by_id.keys()
+        if unmatched_ids:
+            raise ValueError(
+                f"Previous answers contain IDs absent from the previous validation "
+                f"dataset: {len(unmatched_ids)}"
+            )
+        previous_parent_ids = {previous_parent_by_id[item] for item in previous_ids}
+    elif previous_ids and not previous_ids.intersection(
+        row["id"] for row in splits["validation"]
+    ):
+        raise ValueError(
+            "Previous answers use IDs from another aligned dataset; pass its "
+            "--previous-dataset and --previous-contract to map parent IDs"
+        )
     excluded_parent_ids = {
         row.get("alignment", {}).get("parent_id", row["id"])
         for row in splits["validation"][:args.exclude_loss_sample]
@@ -50,6 +79,7 @@ def main() -> None:
     candidates = [
         row for row in splits["validation"]
         if row["id"] not in previous_ids
+        and row.get("alignment", {}).get("parent_id", row["id"]) not in previous_parent_ids
         and row.get("alignment", {}).get("parent_id", row["id"]) not in excluded_parent_ids
     ]
     grouped = {}
@@ -96,9 +126,11 @@ def main() -> None:
     selection = {
         "dataset_sha256": digest(args.dataset),
         "split": "validation", "seed": args.seed, "per_task": args.per_task,
+        "max_new_tokens": args.max_new_tokens,
+        "response_language": contract.get("response_language"),
         "excluded_prior_behavioral_ids": sum(
             row["id"] in previous_ids
-            or row.get("alignment", {}).get("parent_id", row["id"]) in previous_ids
+            or row.get("alignment", {}).get("parent_id", row["id"]) in previous_parent_ids
             for row in splits["validation"]
         ),
         "excluded_fixed_loss_sample_parent_ids": len(excluded_parent_ids),

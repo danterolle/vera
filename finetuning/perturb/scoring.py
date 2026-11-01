@@ -37,7 +37,7 @@ def language(text: str) -> str:
     english = sum(word in ENGLISH for word in words)
     if italian == english:
         return "?"
-    return "it" if italian > english else "en"
+    return "Italian" if italian > english else "English"
 
 
 def alert_count(summary: str) -> int | None:
@@ -75,7 +75,7 @@ def property_result(payload: dict, checks: dict, raw: str) -> tuple[bool, str]:
         )
         return passed, "" if passed else "no unavailable claim"
     if kind == "language":
-        passed = language(summary) == checks["lang"]
+        passed = language(summary).casefold() == checks["lang"].casefold()
         return passed, "" if passed else "wrong language"
     if kind == "multiturn":
         passed = checks["entity"] in json.dumps(payload)

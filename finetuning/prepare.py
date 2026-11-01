@@ -27,32 +27,40 @@ def main() -> None:
     with ZipFile(args.dataset) as archive:
         manifest_hash = hashlib.sha256(archive.read("manifest.json")).hexdigest()
         package_hash = hashlib.sha256(archive.read("package.json")).hexdigest()
+    settings = Settings(_env_file=None)
+    source_revision = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], text=True,
+    ).strip()
+    source_worktree_dirty = bool(subprocess.check_output(
+        ["git", "-C", str(root), "status", "--porcelain"], text=True,
+    ).strip())
     contract = {
         "model": MODEL_ID, "model_revision": MODEL_REVISION,
         "archive_sha256": digest(args.dataset), "manifest_sha256": manifest_hash,
         "package_sha256": package_hash,
         "system_prompt": SYSTEM_PROMPT,
         "system_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
+        "response_language": settings.response_language,
         "max_claims": MAX_CLAIMS,
         "max_length": args.max_length,
-        "source_revision": subprocess.check_output(
-            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True,
-        ).strip(),
+        "source_revision": source_revision,
+        "source_worktree_dirty": source_worktree_dirty,
         "training_authorized": False,
     }
     splits, warnings = load_candidate(args.dataset, contract)
-    minimum_coverage = Settings(_env_file=None).grounding_min_coverage
     count = 0
     for examples in splits.values():
         for example in examples:
-            validate_example(example, minimum_coverage)
+            validate_example(
+                example, settings.grounding_min_coverage, settings.response_language,
+            )
             count += 1
     contract["validated_examples"] = count
     contract["warnings"] = warnings
     args.output.parent.mkdir(parents=True, exist_ok=True)
     files = (
-        "__init__.py", "data.py", "preflight.py", "model.py", "checkpoints.py", "train.py",
-        "evaluation.py",
+        "__init__.py", "data.py", "preflight.py", "model.py", "inference.py",
+        "checkpoints.py", "train.py", "evaluation.py",
     )
     with ZipFile(args.output, "x", compression=ZIP_DEFLATED) as archive:
         for name in files:

@@ -42,7 +42,9 @@ def rows(files: dict[str, bytes], prefix: str) -> list[dict]:
     ]
 
 
-def align_example(original: dict, sources: dict, minimum_coverage: float) -> dict:
+def align_example(
+    original: dict, sources: dict, minimum_coverage: float, response_language: str
+) -> dict:
     messages = original["messages"]
     if [item["role"] for item in messages] != ["system", "user", "assistant"]:
         raise ValueError(f"Unexpected conversation roles: {original['id']}")
@@ -70,7 +72,7 @@ def align_example(original: dict, sources: dict, minimum_coverage: float) -> dic
             request, route, evidence,
             [DetectionAlert.model_validate(item) for item in context["alerts"]],
             StreamStatistics.model_validate(context["statistics"]),
-            context["validation_feedback"], plan=plan,
+            context["validation_feedback"], response_language=response_language, plan=plan,
         )},
         dict(messages[-1]),
     ]
@@ -81,7 +83,7 @@ def align_example(original: dict, sources: dict, minimum_coverage: float) -> dic
         **original, "id": hashlib.sha256(identity).hexdigest(), "messages": rebuilt,
         "alignment": {"parent_id": original["id"], "assistant_target_changed": False},
     }
-    validate_example(result, minimum_coverage)
+    validate_example(result, minimum_coverage, response_language)
     if result["messages"][-1] != original["messages"][-1]:
         raise ValueError("Alignment must never rewrite an assistant target")
     return result
