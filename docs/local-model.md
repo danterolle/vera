@@ -36,6 +36,49 @@ llama-server -m .vera/models/qwen3.5-4b-mtp/Qwen3.5-4B-Q6_K.gguf \
 The MTP head is included in this file; no separate draft model is needed.
 If the flags are unknown, update `llama-server`. Performance depends on hardware.
 
+## Test a fine-tuned adapter
+
+The step-400 LoRA uses `Qwen/Qwen3.5-4B` revision `851bf6e8`; the adapter is separate
+from the base model and stays under the ignored `.vera/finetuning/adapter-step400/`.
+Convert it once with the matching llama.cpp revision (`8642541b2`):
+
+```bash
+python convert_lora_to_gguf.py .vera/finetuning/adapter-step400 \
+  --outfile .vera/finetuning/adapter-step400/vera-step400-lora-f16.gguf \
+  --outtype f16
+```
+
+Serve the base and adapter in one process:
+
+```bash
+llama-server -m .vera/models/qwen3.5-4b-mtp/Qwen3.5-4B-Q6_K.gguf \
+  --lora .vera/finetuning/adapter-step400/vera-step400-lora-f16.gguf \
+  -ngl 99 -fa on --ctx-size 8192 --parallel 1 \
+  --reasoning off --reasoning-budget 0 \
+  --host 127.0.0.1 --port 1234 --alias vera-qwen3.5-4b-step400
+```
+
+Inspect and set the adapter scale (`0` for base, `1` for full adapter):
+
+```bash
+curl -fsS http://127.0.0.1:1234/lora-adapters
+curl -fsS -X POST http://127.0.0.1:1234/lora-adapters \
+  -H 'Content-Type: application/json' -d '[{"id":0,"scale":1}]'
+```
+
+Point VERA at the alias:
+
+```dotenv
+VERA_LLM_PROVIDER=openai
+VERA_LLM_MODEL=vera-qwen3.5-4b-step400
+VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
+VERA_LLM_TIMEOUT_SECONDS=600
+```
+
+Revalidate the served model: applying a LoRA to a quantized GGUF differs numerically
+from merging the adapter before quantization. The adapter is experimental, not a
+replacement model.
+
 ## Linux / NVIDIA helper
 
 `bash scripts/start-local-model.sh` reuses LM Studio's CUDA runtime and serves

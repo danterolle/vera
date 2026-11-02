@@ -150,23 +150,11 @@ After runtime normalization, both models pass all six `scope` cases; the apparen
 validation is clean on 22/40 base answers and 36/40 adapter answers, although the
 combined behavioral-and-grounding comparison is not statistically conclusive.
 
-### What the adapter lost under the previous language-mirroring policy
+### Previous language and multi-turn probe
 
-These results were scored while the runtime required answers in the latest user's
-language. Under that old metric, the FP32 base passed `language` and `multiturn`; the
-adapter did not:
-
-- Italian question about `CVE-2026-81578`: the base answers in Italian with the record
-  content; the adapter answers *"No supplied authoritative evidence concerns
-  CVE-2026-81578"* in English, and the evidence does contain that CVE.
-- Follow-up about an entity from the previous turn: the base keeps the subject; the
-  adapter falls back to *"No configured authoritative source concerns this local
-  applicability question."*
-
-The Italian CVE case shows that neither model met the new combined requirement:
-the base answered in the wrong language, while the adapter answered in English but
-missed available evidence. The follow-up result still indicates a multi-turn weakness.
-More epochs on the same monolingual, non-conversational data are not the remedy.
+The old probe found a multi-turn gap: base 4/4, adapter 2/4. On a follow-up, the adapter
+fell back to "No configured authoritative source concerns this local applicability
+question." The Italian cases and their evidence failures are summarized below.
 
 ### Language: historical mirror-language probe
 
@@ -383,71 +371,8 @@ scored for it yet.
 
 ## Serve the adapter locally
 
-The adapter is a PEFT LoRA on `Qwen/Qwen3.5-4B` revision `851bf6e8` (rank 8, alpha 16,
-`lora_dropout` 0, seven projection modules). It is 20 MB; the base model is not merged
-and not duplicated.
-
-The weights live under `.vera/finetuning/adapter-step400/`, which Git ignores:
-`adapter_model.safetensors` (PEFT) and `vera-step400-lora-f16.gguf` (converted LoRA).
-
-Convert the PEFT adapter once with the llama.cpp script at the revision used for the
-local run (`8642541b2`):
-
-```bash
-python convert_lora_to_gguf.py .vera/finetuning/adapter-step400 \
-  --outfile .vera/finetuning/adapter-step400/vera-step400-lora-f16.gguf \
-  --outtype f16
-```
-
-The converter reads the base model config from the Hugging Face hub; `--base` accepts a
-local directory with `config.json` and `tokenizer.json` when working offline.
-
-Serve base and adapter from one server process:
-
-```bash
-llama-server -m .vera/models/qwen3.5-4b-mtp/Qwen3.5-4B-Q6_K.gguf \
-  --lora .vera/finetuning/adapter-step400/vera-step400-lora-f16.gguf \
-  -ngl 99 -fa on --ctx-size 8192 --parallel 1 \
-  --reasoning off --reasoning-budget 0 \
-  --host 127.0.0.1 --port 1234 --alias vera-qwen3.5-4b-step400
-```
-
-Confirm the adapter is active, and dial it at runtime:
-
-```bash
-curl -s http://127.0.0.1:1234/lora-adapters
-curl -s -X POST http://127.0.0.1:1234/lora-adapters \
-  -H 'Content-Type: application/json' -d '[{"id":0,"scale":0.5}]'
-```
-
-`scale` 0 is the base model, 1 is the full adapter. Restart with `--lora` and no
-`--lora-scale` entry in `/lora-adapters` means no adapter is loaded, which is easy to
-misread as "the adapter does nothing".
-
-Point VERA at the alias:
-
-```dotenv
-VERA_LLM_PROVIDER=openai
-VERA_LLM_MODEL=vera-qwen3.5-4b-step400
-VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
-VERA_LLM_TIMEOUT_SECONDS=600
-```
-
-In Python, without converting to GGUF:
-
-```python
-from peft import PeftModel
-from transformers import AutoModelForCausalLM
-
-base = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3.5-4B", revision="851bf6e8")
-model = PeftModel.from_pretrained(base, ".vera/finetuning/adapter-step400")
-```
-
-Loading the LoRA on a quantized GGUF is not the same as merging and then quantizing: it
-changes numerics slightly and is why the local figures above are close to, but not
-identical with, the Kaggle ones. The runtime contract keeps
-`training_authorized: false` and `deployment_authorized: false`; serving it locally for
-experiments is fine, promoting it is not.
+Follow the [local model guide](local-model.md#test-a-fine-tuned-adapter) to convert and
+serve the step-400 LoRA. It remains experimental and is not approved for deployment.
 
 ## Reproduce the English-only probe
 
