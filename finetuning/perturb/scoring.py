@@ -65,7 +65,7 @@ def property_result(payload: dict, checks: dict, raw: str) -> tuple[bool, str]:
         return passed, "" if passed else f"expected {checks['expected']}, said {said}"
     if kind == "entity":
         whole = json.dumps(payload)
-        passed = checks["new"] in summary and checks["old"] not in whole
+        passed = checks["new"] in whole and checks["old"] not in whole
         return passed, "" if passed else "entity not updated"
     if kind == "scope":
         passed = payload["out_of_scope"] and not claims
