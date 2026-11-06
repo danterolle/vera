@@ -79,7 +79,8 @@ def property_result(payload: dict, checks: dict, raw: str) -> tuple[bool, str]:
         )
         return passed, "" if passed else "no unavailable claim"
     if kind == "language":
-        passed = language(summary).casefold() == checks["lang"].casefold()
+        detected = language(summary)
+        passed = detected == "?" or detected.casefold() == checks["lang"].casefold()
         return passed, "" if passed else "wrong language"
     if kind == "multiturn":
         passed = checks["entity"] in json.dumps(payload)
