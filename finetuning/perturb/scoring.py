@@ -1,5 +1,6 @@
 import json
 import re
+import unicodedata
 from collections import defaultdict
 from math import comb
 
@@ -30,7 +31,10 @@ def valid_schema(payload: dict) -> bool:
 
 
 def language(text: str) -> str:
-    words = re.findall(r"[a-zàèéìòù0-9]+", text.lower())
+    words = [
+        unicodedata.normalize("NFKD", word).encode("ascii", "ignore").decode()
+        for word in re.findall(r"[a-zàèéìòù0-9]+", text.lower())
+    ]
     if not words:
         return "?"
     italian = sum(word in ITALIAN for word in words)
