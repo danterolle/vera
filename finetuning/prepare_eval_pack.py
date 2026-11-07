@@ -23,20 +23,35 @@ def load_excluded(path: Path | None) -> set[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Select a leakage-audited, task-stratified validation pack"
+        description="Select a leakage-audited, task-stratified evaluation pack"
     )
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--contract", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--split", choices=("validation", "test"), default="validation")
     parser.add_argument("--per-task", type=int, default=20)
     parser.add_argument("--seed", type=int, default=20261102)
     parser.add_argument("--max-new-tokens", type=int, default=768)
     parser.add_argument("--previous-answers", type=Path, action="append", default=[])
     parser.add_argument("--previous-dataset", type=Path)
     parser.add_argument("--previous-contract", type=Path)
-    parser.add_argument("--exclude-loss-sample", type=int, default=24)
+    parser.add_argument(
+        "--exclude-loss-sample",
+        type=int,
+        default=None,
+        help="Validation-only rows held out for loss monitoring (default 24).",
+    )
     args = parser.parse_args()
-    if args.per_task < 1 or args.exclude_loss_sample < 0 or args.max_new_tokens < 1:
+    exclude_loss_sample = args.exclude_loss_sample
+    if exclude_loss_sample is None:
+        exclude_loss_sample = 24 if args.split == "validation" else 0
+    if args.split == "test" and (
+        exclude_loss_sample or args.previous_answers or args.previous_dataset
+    ):
+        parser.error(
+            "--split test does not accept validation-only prior-answer or loss-sample exclusions"
+        )
+    if args.per_task < 1 or exclude_loss_sample < 0 or args.max_new_tokens < 1:
         parser.error(
             "--per-task and --max-new-tokens must be positive; exclusions cannot be negative"
         )
@@ -74,10 +89,10 @@ def main() -> None:
         )
     excluded_parent_ids = {
         row.get("alignment", {}).get("parent_id", row["id"])
-        for row in splits["validation"][:args.exclude_loss_sample]
+        for row in splits[args.split][:exclude_loss_sample]
     }
     candidates = [
-        row for row in splits["validation"]
+        row for row in splits[args.split]
         if row["id"] not in previous_ids
         and row.get("alignment", {}).get("parent_id", row["id"]) not in previous_parent_ids
         and row.get("alignment", {}).get("parent_id", row["id"]) not in excluded_parent_ids
@@ -125,13 +140,13 @@ def main() -> None:
     args.output.mkdir(parents=True)
     selection = {
         "dataset_sha256": digest(args.dataset),
-        "split": "validation", "seed": args.seed, "per_task": args.per_task,
+        "split": args.split, "seed": args.seed, "per_task": args.per_task,
         "max_new_tokens": args.max_new_tokens,
         "response_language": contract.get("response_language"),
         "excluded_prior_behavioral_ids": sum(
             row["id"] in previous_ids
             or row.get("alignment", {}).get("parent_id", row["id"]) in previous_parent_ids
-            for row in splits["validation"]
+            for row in splits[args.split]
         ),
         "excluded_fixed_loss_sample_parent_ids": len(excluded_parent_ids),
         "selected_ids": [row["id"] for row in selected],
@@ -151,7 +166,7 @@ def main() -> None:
             count - 1 for count in pack_target_counts.values() if count > 1
         ),
         "all_source_groups_disjoint_from_training": True,
-        "test_split_used": False,
+        "test_split_used": args.split == "test",
         "training_started": False,
     }
     (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
