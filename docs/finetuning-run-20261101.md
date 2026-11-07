@@ -435,6 +435,32 @@ invalid answers; the adapter produced 90 detected-English summaries and 20 summa
 short or neutral for the detector. This is a coarse check, not full language
 identification.
 
+### Why 10/10 schema validity is not correctness
+
+`schema_valid` only means the JSON satisfies `GeneratedAnswer`. The strict pass adds
+scope, status coverage and no validator error; it still does not check whether the answer
+is factually right. On the 110 pack the adapter reproduces the target summary exactly in
+**104/110** cases (mean token F1 **0.991**), including **84/90** rows whose exact target
+does not occur in training. In **107/110** answers the claim texts are identical to the
+target. The base reproduces **0/110** summaries (mean token F1 0.113).
+
+The reason is target entropy, not model skill. In the training split:
+
+| Task | Rows | Unique summaries | Unique claim texts |
+| --- | ---: | ---: | ---: |
+| `current_status` | 240 | 1 | 241 |
+| `memory_only` | 240 | 1 | 1 |
+| `risk_comparison` | 239 | 1 | 451 |
+| `scope_boundary` | 238 | 1 | 0 |
+| `stream_triage` | 108 | 2 | 46 |
+| `missing_record` | 240 | 240 | 1 |
+| `vulnerability_triage` | 1,332 | 1,332 | 1,366 |
+
+Most tasks have either a constant summary or a constant claim text. A model that learns
+the template can score near-perfectly without learning the underlying rule. This is the
+same dataset defect already visible in `alerts`, and it is why the next evaluation must
+use targets the model cannot reproduce, not only rows it has not seen.
+
 ### What the two runs establish
 
 - The adapter transfers the English-only output rule: the three measured families that
