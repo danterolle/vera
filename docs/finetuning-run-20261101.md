@@ -337,18 +337,120 @@ remain in their source language so citation validation is preserved. The v2 Kagg
 results above predate this change and do not evaluate the new language contract.
 
 An English-only v3 candidate was mechanically aligned and validated locally. It changes
-prompts only (`assistant_targets_changed: 0`) and remains unauthorized for training.
-New 110- and 220-case packs are prepared; they exclude the 33 prior behavioral examples
-by their parent IDs and the 24 fixed loss rows. The 110-case pack has 20 exact-target
-overlaps and 18 duplicate rows; the 220-case pack has 40 and 38. No new Kaggle inference
-or training has been started. The candidate and packs are under
-`.vera/finetuning/v3-english-20261102b/`. The prior Kaggle charts/results above remain
-historical; they were not generated under this new prompt contract.
+prompts only (`assistant_targets_changed: 0`) and remains unauthorized for training. The
+dataset prompt is now the same 3,660-character prompt the runtime sends
+(`010be6a5…`), and every assistant target is preserved; the v1 dataset shipped a
+different 1,722-character prompt. New 110- and 220-case packs exclude the 33 prior
+behavioral examples by their parent IDs and the 24 fixed loss rows. The 110-case pack has
+20 exact-target overlaps and 18 duplicate rows; the 220-case pack has 40 and 38. The
+candidate and packs are under `.vera/finetuning/v3-english-20261102b/`.
 
-A fresh 40-case perturbation set is also generated from the v3 prompts at
-`.vera/finetuning/v3-english-20261102b/perturbed-english-only.jsonl`. Its Italian
-queries check the configured English response; no model answers have been generated or
-scored for it yet.
+Both prepared evaluations have now been run: the 40-case perturbed set locally on Q6_K
+and the 110-case validation pack on Kaggle. The results are in the next section. The
+prior v2 Kaggle charts/results above remain historical; they were generated under the
+language-mirroring contract.
+
+## English-only evaluation (2026-11-06/07)
+
+Two runs measured the new contract without retraining: the 40-case perturbed set on the
+local Q6_K server (base and F16 LoRA), and the 110-case validation pack on Kaggle at
+FP32. Both used the aligned v3 candidate and its runtime contract,
+`training_authorized: false`.
+
+### Perturbed set, 40 cases
+
+The set is built from the v3 training prompts. Italian queries now expect an English
+answer, while evidence quotations stay verbatim. Scores below use the production-aware
+scorer: Pydantic normalization, whole-answer entity lookup, and the real citation
+validator.
+
+| Metric | Base | Adapter 400 |
+| --- | ---: | ---: |
+| Valid JSON | 33/40 | 35/40 |
+| Valid VERA schema | 31/40 | **35/40** |
+| Property check after normalization | 23/40 (57.5%) | **33/40 (82.5%)** |
+| Property check and clean citations | 18/40 (45.0%) | **33/40 (82.5%)** |
+| Paired: property check | — | 11 vs 1, `p = 0.0063` |
+| Paired: property and grounding | — | 15 vs 0, `p = 0.000061` |
+
+By family, after normalization:
+
+| Family | Cases | Property under test | Base | Adapter 400 |
+| --- | ---: | --- | ---: | ---: |
+| `scope` | 6 | non-cybersecurity question -> `out_of_scope: true` | 5/6 | **6/6** |
+| `unavailable` | 6 | only never-retrieved records remain | 0/6 | **6/6** |
+| `injection` | 6 | hostile instructions inside evidence | 5/6 | **6/6** |
+| `entity` | 6 | unseen CVE identifier replaces the original | **6/6** | 5/6 |
+| `multiturn` | 4 | entity introduced only in the previous turn | 4/4 | **4/4** |
+| `language` | 4 | Italian question -> English answer | 3/4 | **4/4** |
+| `alerts` | 8 | 0 / 2 / 3 configured signals | 0/8 | 2/8 |
+| **Total** | **40** | | **23/40** | **33/40** |
+
+The adapter is clean on `scope`, `unavailable`, `injection`, multiturn and language; it
+regresses on `entity` and `alerts`. Three limits remain visible:
+
+1. **`alerts` is a dataset gap, not a training-budget gap.** Training `stream_triage`
+   contains only summaries with zero alerts (72 rows) or one alert (36 rows); the set asks
+   for two and three. Five of the eight adapter answers also truncate at the 768-token
+   limit because the target format quotes the whole evidence payload.
+2. **`entity` is a real miss.** The adapter does not name the swapped CVE anywhere in one
+   case. The check now looks at the whole answer rather than only the summary, because
+   `current_status` has a constant summary by contract (all 240 training rows are
+   identical and none names a CVE). The adapter still misses that case.
+3. **`language` had two scorer false negatives.** A short English sentence with no
+   stopword signal was reported as "wrong language". The detector now folds accents and
+   treats an undetermined language as inconclusive.
+
+The three scorer fixes are separate commits: accent folding, inconclusive language, and
+whole-answer entity lookup. They change measurement only; no answer was regenerated for
+the rescore.
+
+### Kaggle validation pack, 110 cases
+
+Paired base/adapter generation on the v3 pack, 220 answers. The 110 rows are a validation
+slice: 20 targets also occur in training and 18 rows duplicate another target. They
+measure retention and format robustness, not generalization to new project cases.
+
+| Metric | Base | Adapter 400 |
+| --- | ---: | ---: |
+| Valid JSON | 101/110 (91.8%) | **110/110 (100%)** |
+| Valid VERA schema | 97/110 (88.2%) | **110/110 (100%)** |
+| Correct scope decision | 91/110 (82.7%) | **110/110 (100%)** |
+| Mean claim-status recall | 0.670 | **1.000** |
+| Unavailable presence when expected | 30.0% | **100%** |
+| Answers with citation failures | 28.9% | **0.9%** |
+| Memory citation violations | 10 | **0** |
+| Exact quote rate | 90.2% | **100%** |
+| Mean output tokens | 482 | **218** |
+| Mean generation seconds | 44.1 | **25.1** |
+
+A stricter derived pass requires valid schema, correct scope, all expected statuses and no
+validator errors: **43/110 base versus 109/110 adapter**, and **39/90 versus 89/90** on
+the rows whose exact target does not occur in training. The adapter's only failure is one
+non-verbatim quote in `graph_evidence`.
+
+Language compliance on the 110 pack, measured from the parsed summary: no non-English
+answer was detected for either model. The base produced 101 English summaries plus 9
+invalid answers; the adapter produced 90 detected-English summaries and 20 summaries too
+short or neutral for the detector. This is a coarse check, not full language
+identification.
+
+### What the two runs establish
+
+- The adapter transfers the English-only output rule: the three measured families that
+  depend on a learned rule (`scope`, `unavailable`, `injection`) are clean on both sets.
+- The runtime contract and the training prompt now match byte for byte, so the previous
+  "trained on a retired prompt" defect is removed for this candidate.
+- The remaining failures are distribution defects in the dataset: alert counts above one,
+  constant `current_status` summaries, and evidence quotes long enough to hit the output
+  limit.
+- Neither run is a deployment gate. The v3 candidate still declares
+  `training_authorized: false`, the targets are synthetic and unreviewed, and both packs
+  overlap training. `vera evaluate` reports 100% with the deterministic provider, whose
+  English strings are hardcoded, so it does not test this contract.
+
+The exact commands used to generate and score the two runs are in
+[Reproduce the English-only probe](#reproduce-the-english-only-probe).
 
 ## Verdict
 
@@ -363,11 +465,17 @@ scored for it yet.
 4. The perturbed set is the most reusable artifact. Regenerate its Italian-query cases
    to check English output, evidence use and grounding together; retain the multi-turn
    regression gate.
-5. The dominant defect is distribution, not budget: the dataset carries a retired
-   1,722-character system prompt and a terse target contract, while the runtime prompt
-   used in this run was 3,604 characters and asked for language-mirroring answers.
-   The new `VERA_RESPONSE_LANGUAGE` default is English; realign the data before
-   another training run.
+5. The dominant defect in the v1/v2 data was distribution, not budget: it carried a
+   retired 1,722-character system prompt and a terse target contract, while the runtime
+   prompt used in that run was 3,604 characters and asked for language-mirroring
+   answers. The v3 candidate now matches the 3,660-character runtime prompt byte for
+   byte, so this specific defect is removed.
+6. Under the English-only contract, the step-400 adapter is clearly better on both
+   prepared sets: 33/40 versus 23/40 on the perturbed set and 109/110 versus 43/110
+   strict passes on the 110-case pack. Those sets overlap training, so they prove
+   retention and format robustness, not generalization to new cases. The remaining
+   dataset defects are alert counts above one, constant `current_status` summaries and
+   evidence quotes that exceed the output budget.
 
 ## Serve the adapter locally
 
@@ -397,28 +505,36 @@ uv run python -m finetuning.perturb.build \
   --seed 20261102
 ```
 
-The set is prepared locally; no new model answers or training run have been generated.
-When answers are available, score them against the same candidate and contract:
+The set is versioned nowhere: regenerate it from the aligned candidate as above. The
+2026-11-06 answers are in
+`.vera/finetuning/v3-english-20261102b/perturbed-answers-english-only.jsonl`. Score them
+against the same candidate and contract:
 
 ```bash
 PYTHONPATH=finetuning uv run python -m perturb.score \
-  --answers .vera/finetuning/v3-english-20261102b/perturbed-answers.jsonl \
+  --answers .vera/finetuning/v3-english-20261102b/perturbed-answers-english-only.jsonl \
   --set .vera/finetuning/v3-english-20261102b/perturbed-english-only.jsonl \
   --dataset .vera/finetuning/v3-english-20261102b/aligned/vera-domain-v3-english-candidate.zip \
   --contract .vera/finetuning/v3-english-20261102b/bundle/runtime-contract.json \
   --output .vera/finetuning/v3-english-20261102b/scores-perturbed-english-only.json
 ```
 
+The 110-case pack was run with `finetuning/kaggle_eval.py` on Kaggle and scored with
+`finetuning/score.py` against the same candidate and contract; the answers and metadata
+are under `.vera/finetuning/v3-english-20261102b/kaggle-results/`.
+
 ## Artifacts
 
 Local, Git-ignored, under `.vera/finetuning/`:
 
 - `perturbed.jsonl` (40 cases with their expected checks) and `perturbed-answers.jsonl`
-  (80 answers, base and adapter)
+  (80 answers, base and adapter) from the v2 language-mirroring run
 - `scores-perturbed.json`
 - step-160 and step-400 `report.json`, `metrics.jsonl`, validation and test answers,
   and the complete checkpoint directories
-- 110-case inference-only results under
+- the v3 English-only candidate, 40-case set and answers, 110/220-case packs, Kaggle
+  answers and scores under `.vera/finetuning/v3-english-20261102b/`
+- 110-case v2 inference-only results under
   `.vera/finetuning/v2-eval-20261101/kaggle-results/vera-eval-v2-110/`
 
 Private Kaggle resources:
@@ -427,7 +543,9 @@ Private Kaggle resources:
 - test-evaluation kernel `danterolle/vera-stage3-test-eval-20261030`
 - perturbed runner `danterolle/vera-perturbed-runner-20261101`
 - inference-only validation kernel `danterolle/vera-v2-eval-110-base-vs-adapter`
-- evaluation inputs `danterolle/vera-eval-v2-110-inputs-20261101`
+- English-only validation kernel `danterolle/vera-english-only-evaluation-110`
+- evaluation inputs `danterolle/vera-eval-v2-110-inputs-20261101` and
+  `danterolle/vera-english-eval-inputs-20261102`
 - datasets `danterolle/vera-checkpoint-160-20261030`,
   `danterolle/vera-checkpoint-400-20261101`
   (adapter, optimizer state and data cursor, so `--epochs 2` can resume)
