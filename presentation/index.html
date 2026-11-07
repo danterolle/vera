@@ -36,7 +36,7 @@
             </aside>
           </div>
           <footer class="deck-footer">
-            <span>01 / 21</span>
+            <span>01 / 23</span>
           </footer>
         </section>
 
@@ -80,7 +80,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>02 / 21</span>
+            <span>02 / 23</span>
           </footer>
         </section>
 
@@ -129,7 +129,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>03 / 21</span>
+            <span>03 / 23</span>
           </footer>
         </section>
 
@@ -186,13 +186,13 @@
             <div class="callout dark">
               <span class="mono" style="font-size: 12px">
                 src/vera/ → domain · workflow · retrieval · sources · stream · providers ·
-                reasoning · memory · interfaces · data &nbsp;|&nbsp; tests/ → unit ·
-                integration · architecture
+                reasoning · memory · interfaces · data &nbsp;|&nbsp; finetuning/ ·
+                presentation/ · scripts/
               </span>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>04 / 21</span>
+            <span>04 / 23</span>
           </footer>
         </section>
 
@@ -271,7 +271,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>05 / 21</span>
+            <span>05 / 23</span>
           </footer>
         </section>
 
@@ -339,7 +339,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>06 / 21</span>
+            <span>06 / 23</span>
           </footer>
         </section>
 
@@ -398,7 +398,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>07 / 21</span>
+            <span>07 / 23</span>
           </footer>
         </section>
 
@@ -461,7 +461,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>08 / 21</span>
+            <span>08 / 23</span>
           </footer>
         </section>
 
@@ -520,7 +520,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>09 / 21</span>
+            <span>09 / 23</span>
           </footer>
         </section>
 
@@ -613,7 +613,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>10 / 21</span>
+            <span>10 / 23</span>
           </footer>
         </section>
 
@@ -688,7 +688,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>11 / 21</span>
+            <span>11 / 23</span>
           </footer>
         </section>
 
@@ -752,7 +752,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>12 / 21</span>
+            <span>12 / 23</span>
           </footer>
         </section>
 
@@ -814,7 +814,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>13 / 21</span>
+            <span>13 / 23</span>
           </footer>
         </section>
 
@@ -859,7 +859,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>14 / 21</span>
+            <span>14 / 23</span>
           </footer>
         </section>
 
@@ -933,7 +933,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>15 / 21</span>
+            <span>15 / 23</span>
           </footer>
         </section>
 
@@ -974,7 +974,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>16 / 21</span>
+            <span>16 / 23</span>
           </footer>
         </section>
 
@@ -1039,54 +1039,198 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>17 / 21</span>
+            <span>17 / 23</span>
           </footer>
         </section>
 
         <section>
           <header class="slide-head">
             <div>
-              <h2>Code size and tests</h2>
+              <h2>Fine-tuning a local adapter</h2>
             </div>
           </header>
           <div class="slide-body">
             <div class="grid g4">
               <div class="card accent">
-                <div class="stat">7,557</div>
-                <div class="stat-label">lines of Python source</div>
+                <div class="stat">3,939</div>
+                <div class="stat-label">training examples · 11 tasks</div>
               </div>
               <div class="card teal">
-                <div class="stat">3,215</div>
-                <div class="stat-label">lines of test code</div>
+                <div class="stat">0.81</div>
+                <div class="stat-label">epoch · 160 → 400 updates</div>
               </div>
               <div class="card amber">
-                <div class="stat">107</div>
-                <div class="stat-label">source modules</div>
+                <div class="stat">8</div>
+                <div class="stat-label">LoRA rank · alpha 16</div>
               </div>
               <div class="card violet">
-                <div class="stat">33</div>
-                <div class="stat-label">test modules</div>
+                <div class="stat">0.00044</div>
+                <div class="stat-label">final validation loss</div>
               </div>
             </div>
             <div class="split split-55" style="flex: 1">
               <div>
-                <div class="micro" style="margin-bottom: 6px">Test layout</div>
+                <div class="micro" style="margin-bottom: 6px">Training run</div>
                 <ul class="checks">
-                  <li><strong>unit/</strong> — isolated domain behaviour.</li>
-                  <li><strong>integration/</strong> — workflow, API, UI, persistence, evaluation.</li>
-                  <li><strong>architecture/</strong> — repository-wide structural constraints.</li>
+                  <li>
+                    <strong>Base:</strong> Qwen3.5-4B, revision <code>851bf6e8</code>, FP32
+                    on two T4.
+                  </li>
+                  <li><strong>Adapter:</strong> rank 8, alpha 16, seven projection modules.</li>
+                  <li>
+                    <strong>Data:</strong> 3,939 train / 528 validation / 522 test;
+                    2,560-token budget.
+                  </li>
+                  <li><strong>Cost:</strong> 8 h 09 min for 240 updates, plus ~35 min validation.</li>
+                  <li><strong>Artifact:</strong> 42 MB adapter; 21 MB F16 LoRA GGUF for local serving.</li>
                 </ul>
-                <p class="small muted" style="margin-top: 8px">
-                  Graph tests cover imports, two-hop retrieval, conflicts, rollback, missing
-                  databases, simulation and projection retries.
-                </p>
-                <div class="micro" style="margin: 12px 0 6px">Lines of code</div>
-                <div class="bars">
-                  <div class="bar-row"><span>Source</span><div class="bar"><i style="width: 100%"></i></div><b>7,557</b></div>
-                  <div class="bar-row"><span>Tests</span><div class="bar teal"><i style="width: 43%"></i></div><b>3,215</b></div>
+              </div>
+              <div class="stack" style="gap: 10px">
+                <div class="card teal">
+                  <h4>What it fixes</h4>
+                  <p>Valid JSON, scope, missing-evidence and injection behavior on the prepared probes.</p>
                 </div>
-                <p class="tiny" style="margin-top: 6px">
-                  Test code is ~43% of the source line count.
+                <div class="card amber">
+                  <h4>What it does not fix</h4>
+                  <p>A 0.81-epoch run over templated targets cannot add capabilities the dataset never shows.</p>
+                </div>
+                <div class="card">
+                  <h4>Deployment status</h4>
+                  <p>Experimental. Targets are synthetic and unreviewed; the contract forbids training and deployment.</p>
+                </div>
+              </div>
+            </div>
+            <div class="callout amber">
+              Validation loss is already saturated: another epoch would add memorization, not capability.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>18 / 23</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>English-only evaluation</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="grid g3">
+              <div class="card accent">
+                <div class="stat">109/110</div>
+                <div class="stat-label">adapter strict passes · base 43/110</div>
+              </div>
+              <div class="card teal">
+                <div class="stat">33/40</div>
+                <div class="stat-label">adapter perturbed · base 23/40</div>
+              </div>
+              <div class="card amber">
+                <div class="stat">89/90</div>
+                <div class="stat-label">adapter on unseen targets · base 39/90</div>
+              </div>
+            </div>
+            <div class="split split-even" style="flex: 1">
+              <div>
+                <div class="micro" style="margin-bottom: 6px">110-case Kaggle pack</div>
+                <table>
+                  <thead>
+                    <tr><th>Metric</th><th>Base</th><th>Adapter</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Valid schema</td><td>88.2%</td><td><strong>100%</strong></td></tr>
+                    <tr><td>Correct scope</td><td>82.7%</td><td><strong>100%</strong></td></tr>
+                    <tr><td>Status recall</td><td>0.670</td><td><strong>1.000</strong></td></tr>
+                    <tr><td>Citation failures</td><td>28.9%</td><td><strong>0.9%</strong></td></tr>
+                    <tr><td>Memory violations</td><td>10</td><td><strong>0</strong></td></tr>
+                    <tr><td>Mean output tokens</td><td>482</td><td><strong>218</strong></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <div class="micro" style="margin-bottom: 6px">40-case perturbed set</div>
+                <table>
+                  <thead>
+                    <tr><th>Family</th><th>Base</th><th>Adapter</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>scope · unavailable</td><td>5/12</td><td><strong>12/12</strong></td></tr>
+                    <tr><td>injection · multiturn</td><td>9/10</td><td><strong>10/10</strong></td></tr>
+                    <tr><td>language</td><td>3/4</td><td><strong>4/4</strong></td></tr>
+                    <tr><td>entity</td><td><strong>6/6</strong></td><td>5/6</td></tr>
+                    <tr><td>alerts</td><td>0/8</td><td>2/8</td></tr>
+                  </tbody>
+                </table>
+                <div class="callout amber" style="margin-top: 10px">
+                  Paired tests: <strong>p = 0.0063</strong> for the rule check,
+                  <strong>p = 0.000061</strong> with grounding.
+                </div>
+              </div>
+            </div>
+            <div class="callout">
+              Both packs overlap training. They show retention and format robustness, not
+              generalization; alert counts above one and long evidence quotes remain dataset defects.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>19 / 23</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Code size and validation</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="grid g4">
+              <div class="card accent">
+                <div class="stat">8,653</div>
+                <div class="stat-label">lines of Python source</div>
+              </div>
+              <div class="card teal">
+                <div class="stat">119</div>
+                <div class="stat-label">source modules</div>
+              </div>
+              <div class="card amber">
+                <div class="stat">11</div>
+                <div class="stat-label">fine-tuning tasks</div>
+              </div>
+              <div class="card violet">
+                <div class="stat">23</div>
+                <div class="stat-label">presentation slides</div>
+              </div>
+            </div>
+            <div class="split split-55" style="flex: 1">
+              <div>
+                <div class="micro" style="margin-bottom: 6px">Validation layers</div>
+                <div class="steps">
+                  <div class="step">
+                    <span class="n">01</span>
+                    <div>
+                      <h4>Lint</h4>
+                      <p><code>ruff check .</code> in CI on Python 3.11 and 3.13.</p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <span class="n">02</span>
+                    <div>
+                      <h4>Deterministic evaluation</h4>
+                      <p><code>vera evaluate --json</code> checks routing and grounding offline.</p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <span class="n">03</span>
+                    <div>
+                      <h4>Adapter evaluation</h4>
+                      <p>40-case perturbed set plus 110/220-case validation packs.</p>
+                    </div>
+                  </div>
+                </div>
+                <p class="tiny" style="margin-top: 8px">
+                  No tracked test suite on <code>main</code>; the deterministic provider's English
+                  strings are hardcoded, so it does not test the language contract.
                 </p>
               </div>
               <div>
@@ -1094,7 +1238,6 @@ VERA_LIVE_SOURCES=false</code></pre>
                 <pre><code>E="uv run --extra dev --extra knowledge-graph"
 
 $E ruff check .
-$E pytest
 $E vera evaluate --json
 $E vera corpus-sync
 $E vera kg-build</code></pre>
@@ -1105,7 +1248,7 @@ $E vera kg-build</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>18 / 21</span>
+            <span>20 / 23</span>
           </footer>
         </section>
 
@@ -1138,8 +1281,8 @@ $E vera kg-build</code></pre>
                 <ul class="clean" style="margin-top: 4px">
                   <li><strong>kuzu</strong> <code>==0.11.3</code> — <code>knowledge-graph</code> extra, pinned</li>
                   <li><strong>sentence-transformers</strong> <code>≥3.3,&lt;6</code> — <code>embeddings</code> extra</li>
-                  <li><strong>pytest</strong> <code>≥8.3,&lt;10</code> · <strong>pytest-cov</strong> <code>≥6,&lt;8</code> — <code>dev</code> extra</li>
-                  <li><strong>ruff</strong> <code>≥0.9,&lt;1</code> — lint (E, F, I, UP, B, SIM)</li>
+                  <li><strong>ruff</strong> <code>≥0.9,&lt;1</code> — <code>dev</code> extra and CI lint gate</li>
+                  <li><strong>matplotlib</strong> <code>≥3.9,&lt;4</code> — <code>analysis</code> extra for charts</li>
                 </ul>
                 <div class="callout amber" style="margin-top: auto">
                   Kuzu’s upstream repository is <strong>archived</strong>: the dependency is
@@ -1153,7 +1296,7 @@ $E vera kg-build</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>19 / 21</span>
+            <span>21 / 23</span>
           </footer>
         </section>
 
@@ -1239,7 +1382,7 @@ uv run --extra knowledge-graph vera serve --open-browser</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>20 / 21</span>
+            <span>22 / 23</span>
           </footer>
         </section>
 
@@ -1285,7 +1428,7 @@ uv run --extra knowledge-graph vera serve --open-browser</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>21 / 21</span>
+            <span>23 / 23</span>
           </footer>
         </section>
       </div>

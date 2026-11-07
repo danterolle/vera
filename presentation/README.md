@@ -1,7 +1,7 @@
 # Presentation
 
-Vendored reveal.js deck and Chrome-based PDF export. The slides and PDF are a historical
-snapshot; references to the removed test suite are not current implementation claims.
+Vendored reveal.js deck and Chrome-based PDF export. The deck tracks the repository at
+the time of export; regenerate `../VERA-presentation.pdf` after changing slides.
 
 From the repository root:
 
