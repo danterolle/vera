@@ -36,7 +36,7 @@
             </aside>
           </div>
           <footer class="deck-footer">
-            <span>01 / 23</span>
+            <span>01 / 26</span>
           </footer>
         </section>
 
@@ -80,7 +80,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>02 / 23</span>
+            <span>02 / 26</span>
           </footer>
         </section>
 
@@ -129,7 +129,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>03 / 23</span>
+            <span>03 / 26</span>
           </footer>
         </section>
 
@@ -192,7 +192,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>04 / 23</span>
+            <span>04 / 26</span>
           </footer>
         </section>
 
@@ -271,7 +271,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>05 / 23</span>
+            <span>05 / 26</span>
           </footer>
         </section>
 
@@ -339,7 +339,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>06 / 23</span>
+            <span>06 / 26</span>
           </footer>
         </section>
 
@@ -398,7 +398,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>07 / 23</span>
+            <span>07 / 26</span>
           </footer>
         </section>
 
@@ -461,7 +461,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>08 / 23</span>
+            <span>08 / 26</span>
           </footer>
         </section>
 
@@ -520,7 +520,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>09 / 23</span>
+            <span>09 / 26</span>
           </footer>
         </section>
 
@@ -613,7 +613,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>10 / 23</span>
+            <span>10 / 26</span>
           </footer>
         </section>
 
@@ -688,7 +688,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>11 / 23</span>
+            <span>11 / 26</span>
           </footer>
         </section>
 
@@ -752,7 +752,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>12 / 23</span>
+            <span>12 / 26</span>
           </footer>
         </section>
 
@@ -814,7 +814,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>13 / 23</span>
+            <span>13 / 26</span>
           </footer>
         </section>
 
@@ -859,7 +859,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>14 / 23</span>
+            <span>14 / 26</span>
           </footer>
         </section>
 
@@ -933,7 +933,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>15 / 23</span>
+            <span>15 / 26</span>
           </footer>
         </section>
 
@@ -974,7 +974,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>16 / 23</span>
+            <span>16 / 26</span>
           </footer>
         </section>
 
@@ -1039,7 +1039,7 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>17 / 23</span>
+            <span>17 / 26</span>
           </footer>
         </section>
 
@@ -1105,7 +1105,7 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>18 / 23</span>
+            <span>18 / 26</span>
           </footer>
         </section>
 
@@ -1173,7 +1173,89 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>19 / 23</span>
+            <span>19 / 26</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Paired validation: base vs adapter</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart">
+              <img
+                src="images/finetuning-v3/overall.svg"
+                alt="Base versus step-400 adapter on the v3 110-case validation pack"
+              />
+            </div>
+            <div class="callout teal">
+              The adapter is at or near the ceiling on every contract metric; the base loses
+              most on strict passes and claim-status recall.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>20 / 26</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Schema validity by task</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart">
+              <img
+                src="images/finetuning-v3/schema-by-task.svg"
+                alt="Schema-valid answers by task for base and adapter"
+              />
+            </div>
+            <div class="callout amber">
+              All eleven tasks reach 10/10 with the adapter; the base drops on graph evidence,
+              risk comparison, stream triage and untrusted notes.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>21 / 26</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Validation-pack composition</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart" style="flex: 0 0 320px">
+              <img
+                src="images/finetuning-v3/target-overlap.svg"
+                alt="Exact-target overlap and duplicate counts in the v3 110-case pack"
+              />
+            </div>
+            <div class="grid g3">
+              <div class="card accent">
+                <div class="stat" style="font-size: 44px">20</div>
+                <div class="stat-label">exact targets also occur in training</div>
+              </div>
+              <div class="card teal">
+                <div class="stat" style="font-size: 44px">18</div>
+                <div class="stat-label">rows duplicate another target</div>
+              </div>
+              <div class="card">
+                <div class="stat" style="font-size: 44px">92</div>
+                <div class="stat-label">unique target strings out of 110</div>
+              </div>
+            </div>
+            <div class="callout amber">
+              The pack measures retention and format robustness, not generalization.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>22 / 26</span>
           </footer>
         </section>
 
@@ -1248,7 +1330,7 @@ $E vera kg-build</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>20 / 23</span>
+            <span>23 / 26</span>
           </footer>
         </section>
 
@@ -1296,7 +1378,7 @@ $E vera kg-build</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>21 / 23</span>
+            <span>24 / 26</span>
           </footer>
         </section>
 
@@ -1382,7 +1464,7 @@ uv run --extra knowledge-graph vera serve --open-browser</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>22 / 23</span>
+            <span>25 / 26</span>
           </footer>
         </section>
 
@@ -1428,7 +1510,7 @@ uv run --extra knowledge-graph vera serve --open-browser</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>23 / 23</span>
+            <span>26 / 26</span>
           </footer>
         </section>
       </div>

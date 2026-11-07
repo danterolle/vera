@@ -20,4 +20,14 @@ use `--chrome /path/to/chrome` or `CHROME_PATH` to select another executable:
 node scripts/export-pdf.mjs --out ../other.pdf --chrome /path/to/chrome
 ```
 
+Charts under `images/finetuning-v3/` are generated from the retained v3 scores and pack
+report:
+
+```bash
+uv run --extra analysis python finetuning/plot_pack.py \
+  --scores .vera/finetuning/v3-english-20261102b/scores-kaggle-110.json \
+  --pack-report .vera/finetuning/v3-english-20261102b/evaluation-pack-10-per-task/report.json \
+  --output presentation/images/finetuning-v3
+```
+
 Libron's [font license](fonts/LICENSE-Libron.txt) is included. Reveal.js remains vendored.
