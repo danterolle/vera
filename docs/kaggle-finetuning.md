@@ -138,14 +138,17 @@ uv run python finetuning/prepare_eval_pack.py \
 ```
 
 The 220-case selection (20 per task) reports exact-target overlap and duplicates:
-40 targets are seen in training and 38 rows duplicate a target within the pack. A
-smaller 110-case v2 selection was run on Kaggle under the previous language-mirroring
-prompt; it does not evaluate the new English-only policy. The v3 English-only 110-case
-pack is prepared locally, with no new GPU run or training yet. Both selections are
-validation slices, not independent tests; they do not change targets, authorize training
-or use the held-out test split. Prompt alignment preserves all targets, so this candidate
-is not ready for training until labels are reviewed and corrected. Use a fresh output
-directory because the packer never overwrites an existing selection.
+40 targets are seen in training and 38 rows duplicate a target within the pack. The
+smaller 110-case selection has 20 overlaps and 18 duplicates; it was run on Kaggle with
+the v3 English-only candidate on 2026-11-07. The base produced 97/110 schema-valid
+answers and 43 strict passes; the adapter produced 110/110 and 109 strict passes (89/90
+on rows whose exact target is unseen). The adapter's only failure is a non-verbatim quote
+in `graph_evidence`. Results and caveats are in
+[the fine-tuning report](finetuning-run-20261101.md#english-only-evaluation-2026-11-0607).
+Both selections are validation slices, not independent tests; they do not change targets,
+authorize training or use the held-out test split. Prompt alignment preserves all targets,
+so this candidate is not ready for training until labels are reviewed and corrected. Use a
+fresh output directory because the packer never overwrites an existing selection.
 
 For inference-only comparison, `finetuning/kaggle_eval.py` runs preflight followed by
 base/adapter generation on a private Kaggle T4 x2 kernel. Its uploaded code bundle contains
