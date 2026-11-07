@@ -150,6 +150,25 @@ authorize training or use the held-out test split. Prompt alignment preserves al
 so this candidate is not ready for training until labels are reviewed and corrected. Use a
 fresh output directory because the packer never overwrites an existing selection.
 
+The same packer can select from the held-out test split. Test packs do not reuse
+validation-only exclusions, so prior-answer and loss-sample flags are rejected:
+
+```bash
+uv run python finetuning/prepare_eval_pack.py \
+  --dataset .vera/finetuning/v3-english-20261102b/aligned/vera-domain-v3-english-candidate.zip \
+  --contract .vera/finetuning/v3-english-20261102b/bundle/runtime-contract.json \
+  --split test \
+  --per-task 20 \
+  --seed 20261107 \
+  --max-new-tokens 768 \
+  --output .vera/finetuning/v3-english-20261102b/evaluation-pack-test-20-per-task
+```
+
+The 220-case test selection has no ID overlap with the validation pack. Targets are still
+shared with training in `memory_only` (20) and `scope_boundary` (20), because those tasks
+have a single target in the dataset; 38 rows duplicate another target within the pack.
+That remains a template limitation, not a split problem.
+
 For inference-only comparison, `finetuning/kaggle_eval.py` runs preflight followed by
 base/adapter generation on a private Kaggle T4 x2 kernel. Its uploaded code bundle contains
 only dataset, inference and evaluation modules; it does not include the training entrypoint.
