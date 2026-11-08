@@ -172,6 +172,8 @@ on 2026-11-08: the base reached 86/220 strict passes, the adapter 219/220, and i
 failure was a non-verbatim supporting quote. Template reproduction persists on this split
 (209/220 exact target summaries, 169/180 on unseen targets). Results are in
 [the fine-tuning report](finetuning-run-20261101.md#test-split-pack-220-cases).
+A consolidated view of purpose, evidence, serving and limits is in
+[the adapter assessment](finetuning-adapter-assessment.md).
 
 For inference-only comparison, `finetuning/kaggle_eval.py` runs preflight followed by
 base/adapter generation on a private Kaggle T4 x2 kernel. Its uploaded code bundle contains

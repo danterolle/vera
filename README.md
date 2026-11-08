@@ -78,6 +78,7 @@ automated test suite or a guarantee of model accuracy.
 - [Kaggle pilot and retained dataset](docs/kaggle-finetuning.md)
 - [Fine-tuning preview: answer-contract behavior](docs/finetuning-preview-20261028.md)
 - [Fine-tuning run: step 400 and the perturbed evaluation](docs/finetuning-run-20261101.md)
+- [Step-400 adapter: purpose, evidence and limits](docs/finetuning-adapter-assessment.md)
 
 The Kaggle pilot is experimental. The retained dataset predates the chat prompt
 and is rejected until a compatible dataset is prepared and reviewed.

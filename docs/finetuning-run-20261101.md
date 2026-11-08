@@ -4,6 +4,8 @@ Date: 2026-10-30/11-01. Status: bounded experiment, not a deployment decision.
 This page continues [the 2026-10-28 preview](finetuning-preview-20261028.md). It records
 a second training stage, the validation and test results, and a 40-case perturbed set
 built to check whether the adapter learned answer rules or only the reference templates.
+A consolidated assessment of purpose, evidence and limits is in
+[the adapter assessment](finetuning-adapter-assessment.md).
 
 **Policy update (2026-11-02):** VERA's configured response language now defaults to
 English regardless of the user's language. The language-mirroring results in this
