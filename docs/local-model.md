@@ -87,6 +87,20 @@ by the script. Override `VERA_LOCAL_MODEL_FILE`, `VERA_LOCAL_BACKEND` and
 `VERA_LOCAL_CUDA_VENDOR` for another installation.
 Stop this helper with `systemctl --user stop vera-qwen.scope`.
 
+The helper loads the base model only by default. To use the documented Q6_K base
+and converted step-400 adapter on Linux/NVIDIA, stop the existing model server and run:
+
+```bash
+bash scripts/start-local-model-adapter.sh
+```
+
+Both GGUF files from the adapter setup above must already exist. The command refuses
+to start when either is missing; it does not download, convert or train an adapter.
+Set VERA's model ID to `vera-qwen3.5-4b-step400` as shown above and restart VERA.
+Verify `/lora-adapters` reports the expected adapter with scale `1`.
+`VERA_LOCAL_MODEL_FILE`, `VERA_LOCAL_LORA_FILE` and `VERA_LOCAL_MODEL_ALIAS` override
+the paths and alias. The underlying helper also accepts these variables directly.
+
 ## Connect VERA
 
 Set `.env` using the ID from `/v1/models`. This example uses the Apple alias:
