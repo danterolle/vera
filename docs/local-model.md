@@ -111,6 +111,36 @@ These are a local profile, not global defaults; see
 Set `VERA_LLM_API_KEY` if the server requires authentication.
 Restart VERA after changes. `vera serve` does not start the model.
 
+## Enable bounded ReAct
+
+ReAct is opt-in and requires an external provider; the deterministic provider cannot
+make model action decisions. With the local OpenAI-compatible server above, enable it
+in `.env`:
+
+```dotenv
+VERA_LLM_PROVIDER=openai
+VERA_LLM_MODEL=vera-qwen3.5-4b-mtp
+VERA_LLM_BASE_URL=http://127.0.0.1:1234/v1
+VERA_LLM_RESPONSE_FORMAT=json_schema
+VERA_REACT_ENABLED=true
+VERA_MAX_REACT_STEPS=3
+```
+
+Use the exact model ID returned by `/v1/models` instead of the example alias. ReAct
+asks the model for one JSON action at a time; it can search the local corpus, look up
+an exact CVE already identified in the request, or finish. It does not expose
+arbitrary commands, URLs or general web search. With the default three steps, VERA
+budgets up to six model calls, including action decisions and answer generation.
+
+The response details in chat show the ReAct action trace when present. The complete
+result is also available from `/v1/runs/{run_id}` or `vera analyze --json`; inspect
+`trace`, `metadata.react_steps` and `metadata.react_observations`. The trace includes
+each action and its short operational reason; observations include whether it
+completed, was skipped or rejected, and the new evidence IDs. This is an audit
+summary, not the model's private chain-of-thought. The model must still return valid
+action JSON, and enabling ReAct does not establish that a particular model or adapter
+makes useful decisions; verify actual responses and warnings before relying on it.
+
 ## Verify and stop
 
 Ask a question through `/chat` and inspect `metadata.model`,
@@ -126,6 +156,22 @@ uv run --extra knowledge-graph python scripts/check-local-model.py
 It saves `.vera/local-model-checks.json`, counts pending reviews as failed autonomous
 answers and exits nonzero for them. It never approves a review and does not establish
 general model accuracy.
+
+For an automated, offline base/adapter comparison, run:
+
+```bash
+uv sync --extra knowledge-graph
+uv run --extra knowledge-graph --with huggingface_hub \
+  python scripts/reproduce_step400.py
+```
+
+The script downloads the pinned base GGUF and public adapter GGUF, verifies their
+SHA-256 digests, starts a temporary loopback model server, runs the four-case A/B check
+at LoRA scales 0 and 1, then stops the server. It uses repository-bundled snapshots,
+disables ReAct/live sources, and writes to temporary databases; it does not require
+`.env`, `.vera/corpus` or existing runtime databases. A `llama-server` binary built
+from llama.cpp commit `8642541b2` is required because native builds vary by OS/GPU.
+The check is a smoke test, not a general quality benchmark.
 
 Stop manual servers with Ctrl+C; stop/unload GUI models through LM Studio/Bionic.
 Use `VERA_LLM_PROVIDER=deterministic` to run without a model server.

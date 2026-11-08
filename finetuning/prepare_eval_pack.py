@@ -21,6 +21,12 @@ def load_excluded(path: Path | None) -> set[str]:
     return values
 
 
+def target_key(row: dict) -> str:
+    target = json.loads(row["messages"][-1]["content"])
+    canonical = json.dumps(target, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Select a leakage-audited, task-stratified evaluation pack"
@@ -35,6 +41,11 @@ def main() -> None:
     parser.add_argument("--previous-answers", type=Path, action="append", default=[])
     parser.add_argument("--previous-dataset", type=Path)
     parser.add_argument("--previous-contract", type=Path)
+    parser.add_argument(
+        "--require-independent-targets",
+        action="store_true",
+        help="Exclude targets seen in training and duplicate targets within the selected pack.",
+    )
     parser.add_argument(
         "--exclude-loss-sample",
         type=int,
@@ -97,20 +108,32 @@ def main() -> None:
         and row.get("alignment", {}).get("parent_id", row["id"]) not in previous_parent_ids
         and row.get("alignment", {}).get("parent_id", row["id"]) not in excluded_parent_ids
     ]
+    training_targets = {target_key(row) for row in splits["train"]}
     grouped = {}
     for row in candidates:
         grouped.setdefault(row["task"], []).append(row)
     rng = random.Random(args.seed)
     selected = []
+    selected_targets = set()
     for task in sorted(grouped):
         examples = list(grouped[task])
         rng.shuffle(examples)
+        if args.require_independent_targets:
+            unique = []
+            seen = set(selected_targets)
+            for row in examples:
+                key = target_key(row)
+                if key not in training_targets and key not in seen:
+                    unique.append(row)
+                    seen.add(key)
+            examples = unique
         take = examples[:args.per_task]
         if len(take) < args.per_task:
-            raise ValueError(f"{task} has only {len(take)} unseen evaluation examples")
+            qualifier = "independent-target" if args.require_independent_targets else "evaluation"
+            raise ValueError(f"{task} has only {len(take)} {qualifier} candidates")
         selected.extend(take)
+        selected_targets.update(target_key(row) for row in take)
 
-    training_targets = {row["messages"][-1]["content"] for row in splits["train"]}
     training_groups = {group for row in splits["train"] for group in row["groups"]}
     training_sources = {source for row in splits["train"] for source in row["source_ids"]}
     training_entities = {
@@ -123,24 +146,23 @@ def main() -> None:
         for row in selected
     ):
         raise ValueError("Selected validation examples overlap training source groups")
-    pack_target_counts = Counter(row["messages"][-1]["content"] for row in selected)
+    pack_target_counts = Counter(target_key(row) for row in selected)
     records = [{
         "id": row["id"],
         "parent_id": row.get("alignment", {}).get("parent_id", row["id"]),
         "task": row["task"],
         "group_ids": row["groups"],
         "source_ids": row["source_ids"],
-        "target_sha256": hashlib.sha256(
-            row["messages"][-1]["content"].encode()
-        ).hexdigest(),
-        "target_seen_in_training": row["messages"][-1]["content"] in training_targets,
-        "target_duplicate_in_pack": pack_target_counts[row["messages"][-1]["content"]] > 1,
+        "target_sha256": target_key(row),
+        "target_seen_in_training": target_key(row) in training_targets,
+        "target_duplicate_in_pack": pack_target_counts[target_key(row)] > 1,
     } for row in selected]
 
     args.output.mkdir(parents=True)
     selection = {
         "dataset_sha256": digest(args.dataset),
         "split": args.split, "seed": args.seed, "per_task": args.per_task,
+        "require_independent_targets": args.require_independent_targets,
         "max_new_tokens": args.max_new_tokens,
         "response_language": contract.get("response_language"),
         "excluded_prior_behavioral_ids": sum(

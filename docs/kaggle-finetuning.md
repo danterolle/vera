@@ -175,6 +175,13 @@ failure was a non-verbatim supporting quote. Template reproduction persists on t
 A consolidated view of purpose, evidence, serving and limits is in
 [the adapter assessment](finetuning-adapter-assessment.md).
 
+For a future independent pack, pass `--require-independent-targets` to
+`prepare_eval_pack.py`. It excludes canonical answer JSON already present in training
+and duplicate answer targets within the selected pack, in addition to the existing
+source/group/entity leakage checks. The current v3 candidate cannot satisfy this option
+for all tasks; new, independently authored and reviewed targets are required. Exact
+JSON novelty does not by itself establish semantic diversity or factual accuracy.
+
 For inference-only comparison, `finetuning/kaggle_eval.py` runs preflight followed by
 base/adapter generation on a private Kaggle T4 x2 kernel. Its uploaded code bundle contains
 only dataset, inference and evaluation modules; it does not include the training entrypoint.

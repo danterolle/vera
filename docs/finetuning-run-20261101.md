@@ -563,8 +563,10 @@ into an independent measure of analysis quality.
 
 - The adapter transfers the English-only output rule: the three measured families that
   depend on a learned rule (`scope`, `unavailable`, `injection`) are clean on both sets.
-- The runtime contract and the training prompt now match byte for byte, so the previous
-  "trained on a retired prompt" defect is removed for this candidate.
+  This is observed behavior on the probe, not an English-only training objective.
+- The v3 evaluation prompts match the current runtime contract, but the step-400 adapter
+  was trained before v3 on the retired prompt. No v3 training was performed, so the
+  training/inference prompt mismatch remains for this adapter.
 - The remaining failures are distribution defects in the dataset: alert counts above one,
   constant `current_status` summaries, and evidence quotes long enough to hit the output
   limit.
@@ -592,16 +594,20 @@ The exact commands used to generate and score the two runs are in
 5. The dominant defect in the v1/v2 data was distribution, not budget: it carried a
    retired 1,722-character system prompt and a terse target contract, while the runtime
    prompt used in that run was 3,604 characters and asked for language-mirroring
-   answers. The v3 candidate now matches the 3,660-character runtime prompt byte for
-   byte, so this specific defect is removed.
+   answers. The v3 candidate mechanically matches the current 3,660-character runtime
+   prompt, but preserves all assistant targets and remains unauthorized for training.
+   The step-400 adapter was not retrained on v3, so its training/inference prompt
+   mismatch is not fixed.
 6. Under the English-only contract, the step-400 adapter is clearly better on both
    prepared sets: 33/40 versus 23/40 on the perturbed set and 109/110 versus 43/110
-   strict passes on the 110-case pack. Those sets overlap training, so they prove
-   retention and format robustness, not generalization to new cases. The 40-case probe
-   built from the held-out test split keeps most of the advantage (32/40 versus 22/40
-   rule pass, 31/40 versus 20/40 with grounding); alert counting is the one family that
-   does not transfer. The remaining dataset defects are alert counts above one,
-   constant `current_status` summaries and evidence quotes that exceed the output budget.
+   strict passes on the 110-case pack. These runs used v3-aligned evaluation prompts
+   without retraining the adapter. The validation sets overlap training, so they prove
+   behavior on those prompts, not generalization to new cases or training on the current
+   contract. The 40-case probe built from the held-out test split keeps most of the
+   advantage (32/40 versus 22/40 rule pass, 31/40 versus 20/40 with grounding); alert
+   counting is the one family that does not transfer. The remaining dataset defects are
+   alert counts above one, constant `current_status` summaries and evidence quotes that
+   exceed the output budget.
 
 ## Serve the adapter locally
 

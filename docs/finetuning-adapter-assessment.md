@@ -1,13 +1,15 @@
 # Step-400 adapter: purpose, evidence and limits
 
-This page consolidates what the English-only step-400 adapter is for, why it worked,
-what the evaluations do and do not establish, how to serve it, and whether another
+This page consolidates what the step-400 adapter was trained for, what later
+English-only evaluations do and do not establish, how to serve it, and whether another
 epoch is worth the GPU hours. It complements the run report in
 [the 2026-11-01 experiment](finetuning-run-20261101.md) and the operational guide in
 [local models](local-model.md#test-a-fine-tuned-adapter).
 
-Status: experimental. The runtime contract declares `training_authorized: false`,
-`deployment_authorized: false` and synthetic, unreviewed targets.
+Status: experimental. The step-400 adapter was trained with the pre-v3 prompt. The v3
+English-only candidate was used for later evaluation prompts, without retraining; it
+declares `training_authorized: false` and contains synthetic, unreviewed targets.
+Deployment is not authorized.
 
 ## What it was trained for
 
@@ -19,8 +21,11 @@ contract**:
 - correct `out_of_scope` decisions;
 - expected claim statuses, including `unavailable` when evidence is missing;
 - verbatim supporting quotes;
-- no `supported_fact` grounded only in memory;
-- English output, with evidence quotes kept in their source language.
+- no `supported_fact` grounded only in memory.
+
+The English-only response rule was introduced after this adapter's training. Its
+later evaluation on v3-aligned prompts measures observed behavior, not an
+English-only training objective.
 
 The measured effect on the 110-case validation pack:
 
@@ -46,10 +51,11 @@ In one sentence: it is a **formatter and guardrail**, not an analysis engine.
 1. **The task is closer to mapping than to reasoning.** The model receives selected
    evidence and must emit a fixed schema. The hard part is the contract, not the domain
    knowledge.
-2. **The training prompt now matches the runtime prompt byte for byte** (3,660
-   characters, `sha 010be6a5…`). The v1/v2 archives were trained on a retired prompt,
-   which created a distribution shift between training and inference. That defect is
-   removed for v3.
+2. **The evaluation prompt was aligned to the runtime, not the adapter's training
+   prompt.** The v3 candidate uses the 3,660-character current prompt
+   (`sha 010be6a5…`), but preserves all targets and was not used to retrain the
+   step-400 adapter. The v1/v2 training data used the retired prompt, so the
+   training/inference distribution shift remains.
 3. **The dataset is low-entropy.** Most tasks have one summary or one claim text, so the
    target is nearly deterministic. LoRA rank 8 on seven projection modules is more than
    enough for a format change.
@@ -66,10 +72,11 @@ template fitting.
 
 ## What the evidence establishes
 
-- The adapter transfers the English-only contract and the formatting rules to rows the
-  training never saw. On a 40-case probe built from the held-out test split it passes
-  32/40 versus 22/40 for the base (grounded 31/40 versus 20/40; `p = 0.0063` and
-  `p = 0.0074`).
+- On v3-aligned evaluation prompts, the adapter follows the measured English-only
+  behavior in the small language probe and improves contract scores. This was not an
+  English-only training run. On a 40-case probe built from the held-out test split it
+  passes 32/40 versus 22/40 for the base (grounded 31/40 versus 20/40;
+  `p = 0.0063` and `p = 0.0074`).
 - `scope`, `unavailable` and `injection` transfer fully on that probe.
 - The 220-case test pack confirms the same ordering at larger size (219/220 versus
   86/220 strict).
@@ -93,6 +100,9 @@ template fitting.
 - **Production readiness.** The archive is unauthorized for training and deployment, the
   targets are synthetic and unreviewed, and citation failures must still pass the human
   review gate.
+- **Training on the current prompt.** The step-400 adapter was not retrained on the
+  mechanically aligned v3 candidate; its current-prompt scores do not establish what a
+  properly aligned, reviewed training run would achieve.
 
 `vera evaluate` reporting 100% with the deterministic provider is not evidence here: that
 provider returns hardcoded English strings and does not exercise this model.
@@ -158,18 +168,46 @@ not optimization time.
 
 If GPU hours are available, spend them in this order:
 
-1. **Build the v4 dataset** with diverse summaries and claim texts, alert counts 0-3,
-   short quotes, multi-turn cases and human-reviewed targets, then train on it. This is
-   the only change that addresses the measured defect.
+1. **Build the v4 dataset** against the current prompt with diverse summaries and claim
+   texts, alert counts 0-3, short verbatim quotes, multi-turn cases and human-reviewed
+   targets. Keep it unauthorized until review is complete; then train only on the
+   explicitly authorized candidate. This is the only change that addresses the measured
+   defect.
 2. **Write a golden set by hand** (50-60 cases, 11 tasks, independent targets) with
-   fact-based scoring and a human review sample. It needs no GPU and answers the question
-   the current packs cannot answer.
+   fact-based scoring and a human review sample. Require targets to be absent from
+   training and unique within the pack; the current v3 candidate fails that criterion.
+   It needs no GPU and answers the question the current packs cannot answer.
 3. **Run a pre-registered falsification experiment** only if the goal is to test the
    saturation claim: resume 400 -> 800 on the same data and require an improvement on the
    held-out `alerts` family and on the 40-case test probe, not on validation loss. If
    those do not improve, stop. Expected outcome: no improvement.
 4. **Tune LoRA rank or learning rate** only after v4 exists; on the current data those
    knobs cannot add missing rules.
+
+## Local Q6_K A/B smoke check (2026-11-08)
+
+The current VERA runtime was exercised with the same Q6_K base model at LoRA scale 0
+and 1. ReAct, live sources, the knowledge graph and memory were disabled; each variant
+used a temporary database and only repository-bundled corpus snapshots. The prompt hash
+was `010be6a57f95bfbb34e27478cc496576b5ca72c5e3d4c35ddd6393a8b18272c7`. The
+permissive result was 2/4 base versus 3/4 adapter. With a strict zero-validation-error
+criterion, the result is **2/4 for both**; neither score is a statistically meaningful
+quality estimate.
+
+| Case | Base | Step-400 | Observation |
+| --- | --- | --- | --- |
+| PowerShell explanation | Fail | Fail | Both classified the request as out of scope. |
+| CWE-89 | Pass* | Pass | Base summary first stated an incorrect XSS definition, then contradicted it; adapter gave a concise grounded definition. |
+| Missing CVE-2099-99999 | Fail | Fail (1 validation error) | Base emitted both `supported_fact` and `unavailable`; adapter emitted only `unavailable`. |
+| Carbonara recipe | Pass | Pass | Both correctly returned an out-of-scope answer without claims. |
+
+`Pass*` reflects the automated smoke criterion, not full summary accuracy. The VERA
+validator checks claim citations but does not validate every sentence in the summary;
+the base's CWE-89 contradiction therefore escaped its validation counters. The
+repeatable command is `scripts/reproduce_step400.py`; it downloads and verifies the
+pinned public artifacts, starts and stops the local model server, and uses no training
+data or live-source requests. With the script's stricter zero-validation-error check,
+the adapter's missing-CVE case is a failure, even though its status is more conservative.
 
 ## Test roadmap
 
@@ -178,7 +216,7 @@ If GPU hours are available, spend them in this order:
 | P0 | Dataset v4 + training | Whether diverse targets teach the rules | Dataset generator |
 | P0 | Fact-based / paraphrase scoring | Correctness instead of target equality | Scorer or judge model |
 | P0 | Human review of 30-50 answers | Factual accuracy and usefulness | Reviewer time |
-| P1 | Independent scenario set | Generalization beyond v3 templates | New scenarios/sources |
+| P1 | Independent scenario set | Generalization beyond v3 templates | New reviewed targets; `--require-independent-targets` |
 | P1 | Base + prompt ablation | Adapter effect versus prompt/normalizer effect | None |
 | P1 | Multilingual probe | English-only contract on IT/ES/DE queries | None |
 | P1 | Expanded multi-turn | Context and entity carry-over | New cases |
