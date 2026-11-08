@@ -36,7 +36,7 @@
             </aside>
           </div>
           <footer class="deck-footer">
-            <span>01 / 26</span>
+            <span>01 / 32</span>
           </footer>
         </section>
 
@@ -80,7 +80,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>02 / 26</span>
+            <span>02 / 32</span>
           </footer>
         </section>
 
@@ -129,7 +129,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>03 / 26</span>
+            <span>03 / 32</span>
           </footer>
         </section>
 
@@ -192,7 +192,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>04 / 26</span>
+            <span>04 / 32</span>
           </footer>
         </section>
 
@@ -271,7 +271,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>05 / 26</span>
+            <span>05 / 32</span>
           </footer>
         </section>
 
@@ -339,7 +339,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>06 / 26</span>
+            <span>06 / 32</span>
           </footer>
         </section>
 
@@ -398,7 +398,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>07 / 26</span>
+            <span>07 / 32</span>
           </footer>
         </section>
 
@@ -461,7 +461,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>08 / 26</span>
+            <span>08 / 32</span>
           </footer>
         </section>
 
@@ -520,7 +520,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>09 / 26</span>
+            <span>09 / 32</span>
           </footer>
         </section>
 
@@ -613,7 +613,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>10 / 26</span>
+            <span>10 / 32</span>
           </footer>
         </section>
 
@@ -688,7 +688,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>11 / 26</span>
+            <span>11 / 32</span>
           </footer>
         </section>
 
@@ -752,7 +752,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>12 / 26</span>
+            <span>12 / 32</span>
           </footer>
         </section>
 
@@ -814,7 +814,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>13 / 26</span>
+            <span>13 / 32</span>
           </footer>
         </section>
 
@@ -859,7 +859,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>14 / 26</span>
+            <span>14 / 32</span>
           </footer>
         </section>
 
@@ -933,7 +933,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>15 / 26</span>
+            <span>15 / 32</span>
           </footer>
         </section>
 
@@ -974,7 +974,7 @@
             </div>
           </div>
           <footer class="deck-footer">
-            <span>16 / 26</span>
+            <span>16 / 32</span>
           </footer>
         </section>
 
@@ -1039,7 +1039,7 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>17 / 26</span>
+            <span>17 / 32</span>
           </footer>
         </section>
 
@@ -1105,7 +1105,7 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>18 / 26</span>
+            <span>18 / 32</span>
           </footer>
         </section>
 
@@ -1173,7 +1173,7 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>19 / 26</span>
+            <span>19 / 32</span>
           </footer>
         </section>
 
@@ -1196,7 +1196,7 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>20 / 26</span>
+            <span>20 / 32</span>
           </footer>
         </section>
 
@@ -1219,7 +1219,7 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>21 / 26</span>
+            <span>21 / 32</span>
           </footer>
         </section>
 
@@ -1255,7 +1255,147 @@ VERA_LIVE_SOURCES=false</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>22 / 26</span>
+            <span>22 / 32</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Validation loss through step 400</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart">
+              <img
+                src="images/finetuning-v3/validation-loss.svg"
+                alt="Validation loss on fixed held-out examples from step 0 to 400"
+              />
+            </div>
+            <div class="callout teal">
+              Loss falls from 0.816 to 0.00044. After step 240 each validation pass buys
+              less than the previous one, so another epoch would add memorization, not skill.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>23 / 32</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Training loss, first 160 updates</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart">
+              <img
+                src="images/finetuning-v3/train-loss.svg"
+                alt="Per-update training loss and a 20-update moving average to step 160"
+              />
+            </div>
+            <div class="callout">
+              Per-update loss is noisy; the 20-update mean drops from 0.70 to 0.006, so the
+              apparent smoothness of the validation curve is not an artefact of a single run.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>24 / 32</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Strict contract pass by task</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart">
+              <img
+                src="images/finetuning-v3/strict-by-task.svg"
+                alt="Strict contract passes by task for base and adapter"
+              />
+            </div>
+            <div class="callout amber">
+              The adapter reaches 10/10 on ten tasks and 9/10 on graph evidence. The base
+              collapses on current status, memory-only and stream triage, where scope and
+              status coverage fail together.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>25 / 32</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Answer cost</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart">
+              <img
+                src="images/finetuning-v3/answer-cost.svg"
+                alt="Mean output tokens and seconds per answer for base and adapter"
+              />
+            </div>
+            <div class="callout teal">
+              The adapter emits less than half the tokens and answers in about 57% of the
+              base latency, on the same prompts and the same 768-token cap.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>26 / 32</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Held-out probe: training vs test split</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart">
+              <img
+                src="images/finetuning-v3/heldout-comparison.svg"
+                alt="Rule and grounded pass counts on training-derived and test-derived probe sets"
+              />
+            </div>
+            <div class="callout teal">
+              On 40 cases built from the held-out test split the adapter still passes 32/40
+              versus 22/40 for the base, and 31/40 versus 20/40 with grounding. The gain
+              survives the move away from training rows, though it drops slightly.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>27 / 32</span>
+          </footer>
+        </section>
+
+        <section>
+          <header class="slide-head">
+            <div>
+              <h2>Held-out probe by family</h2>
+            </div>
+          </header>
+          <div class="slide-body">
+            <div class="chart">
+              <img
+                src="images/finetuning-v3/heldout-family.svg"
+                alt="Held-out rule pass by perturbation family for base and adapter"
+              />
+            </div>
+            <div class="callout amber">
+              Scope and missing evidence transfer fully. Alert counting does not: the adapter
+              passes 1/8 because training only ever contains zero or one configured signal.
+            </div>
+          </div>
+          <footer class="deck-footer">
+            <span>28 / 32</span>
           </footer>
         </section>
 
@@ -1330,7 +1470,7 @@ $E vera kg-build</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>23 / 26</span>
+            <span>29 / 32</span>
           </footer>
         </section>
 
@@ -1378,7 +1518,7 @@ $E vera kg-build</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>24 / 26</span>
+            <span>30 / 32</span>
           </footer>
         </section>
 
@@ -1464,7 +1604,7 @@ uv run --extra knowledge-graph vera serve --open-browser</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>25 / 26</span>
+            <span>31 / 32</span>
           </footer>
         </section>
 
@@ -1510,7 +1650,7 @@ uv run --extra knowledge-graph vera serve --open-browser</code></pre>
             </div>
           </div>
           <footer class="deck-footer">
-            <span>26 / 26</span>
+            <span>32 / 32</span>
           </footer>
         </section>
       </div>
