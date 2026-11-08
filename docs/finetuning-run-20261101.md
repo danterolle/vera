@@ -65,6 +65,17 @@ already at a level where the model reproduces the target, so another pass would 
 add memorization. That is why the run stopped rather than continuing to two or three
 epochs.
 
+![Validation loss from step 0 to 400](../presentation/images/finetuning-v3/validation-loss.svg)
+
+The 160-to-400 points come from the stage-2 run log; the earlier points come from the
+retained step reports. The validation sample changes at 160 (16 examples every 20 steps,
+then 24 every 60), so the join is marked on the chart.
+
+![Training loss over the retained first 160 updates](../presentation/images/finetuning-v3/train-loss.svg)
+
+Only the first 160 updates retain per-step train loss, but they show the same collapse
+under the noisier signal.
+
 ## Validation
 
 Both models answered the same 33 validation examples with greedy decoding.
@@ -429,6 +440,14 @@ validator errors: **43/110 base versus 109/110 adapter**, and **39/90 versus 89/
 the rows whose exact target does not occur in training. The adapter's only failure is one
 non-verbatim quote in `graph_evidence`.
 
+![Strict contract passes by task on the 110-case pack](../presentation/images/finetuning-v3/strict-by-task.svg)
+
+The adapter is at 10/10 on ten tasks and 9/10 on `graph_evidence`. The base loses most on
+`current_status`, `memory_only` and `stream_triage`, where scope and status coverage fail
+together.
+
+![Mean output tokens and seconds per answer](../presentation/images/finetuning-v3/answer-cost.svg)
+
 Language compliance on the 110 pack, measured from the parsed summary: no non-English
 answer was detected for either model. The base produced 101 English summaries plus 9
 invalid answers; the adapter produced 90 detected-English summaries and 20 summaries too
@@ -461,7 +480,55 @@ the template can score near-perfectly without learning the underlying rule. This
 same dataset defect already visible in `alerts`, and it is why the next evaluation must
 use targets the model cannot reproduce, not only rows it has not seen.
 
-### What the two runs establish
+### Held-out test probe (2026-11-07)
+
+The 40-case probe above is built from the training split. To check whether the same
+rules transfer to rows the adapter never saw, `finetuning/perturb/build.py` was run on
+the held-out **test** split with seed 20261107. The set has 40 cases across seven
+families (`alerts` 8, `entity` 6, `scope` 6, `injection` 6, `unavailable` 6,
+`language` 4, `multiturn` 4), shares **no IDs** with training, and 56 of the 522 test
+rows still have an exact target that occurs in training.
+
+| Set | Rule pass | Grounded pass |
+| --- | ---: | ---: |
+| Training-derived, base | 23/40 | 18/40 |
+| Training-derived, adapter | 33/40 | 33/40 |
+| Test-derived, base | 22/40 | 20/40 |
+| Test-derived, adapter | 32/40 | 31/40 |
+
+The paired advantage survives on the held-out set: 11 adapter-only passes versus 1
+base-only pass for the rule check (`p = 0.0063`), and 13 versus 2 with grounding
+(`p = 0.0074`). The training-derived set gives `p = 0.0063` and `p = 0.000061`.
+The drop from 33/40 to 32/40 (rule) and 33/40 to 31/40 (grounded) is one to two cases,
+so this probe does not show a generalization collapse.
+
+The family breakdown explains where the remaining failures are:
+
+| Family | Base | Adapter |
+| --- | ---: | ---: |
+| `alerts` | 0/8 | 1/8 |
+| `entity` | 6/6 | 6/6 |
+| `injection` | 5/6 | 6/6 |
+| `language` | 4/4 | 4/4 |
+| `multiturn` | 3/4 | 3/4 |
+| `scope` | 4/6 | 6/6 |
+| `unavailable` | 0/6 | 6/6 |
+
+`scope`, `unavailable` and `injection` transfer fully. Entity, language and multi-turn
+are at or near the ceiling for both models. `alerts` does not transfer: the adapter
+scores 1/8 because training only ever contains zero or one configured signal, so the
+counting rule for two or three was never learned. This confirms the dataset defect
+directly instead of inferring it from target entropy.
+
+The local run stalled on a few cases for up to about 35 minutes. Generation is greedy,
+so the stalls delayed the run but did not change the answers; they are a local
+`llama-server` artifact, not a scoring input.
+
+![Training-derived versus held-out probe](../presentation/images/finetuning-v3/heldout-comparison.svg)
+
+![Held-out probe by perturbation family](../presentation/images/finetuning-v3/heldout-family.svg)
+
+### What the runs establish
 
 - The adapter transfers the English-only output rule: the three measured families that
   depend on a learned rule (`scope`, `unavailable`, `injection`) are clean on both sets.
@@ -499,9 +566,11 @@ The exact commands used to generate and score the two runs are in
 6. Under the English-only contract, the step-400 adapter is clearly better on both
    prepared sets: 33/40 versus 23/40 on the perturbed set and 109/110 versus 43/110
    strict passes on the 110-case pack. Those sets overlap training, so they prove
-   retention and format robustness, not generalization to new cases. The remaining
-   dataset defects are alert counts above one, constant `current_status` summaries and
-   evidence quotes that exceed the output budget.
+   retention and format robustness, not generalization to new cases. The 40-case probe
+   built from the held-out test split keeps most of the advantage (32/40 versus 22/40
+   rule pass, 31/40 versus 20/40 with grounding); alert counting is the one family that
+   does not transfer. The remaining dataset defects are alert counts above one,
+   constant `current_status` summaries and evidence quotes that exceed the output budget.
 
 ## Serve the adapter locally
 
@@ -548,6 +617,27 @@ PYTHONPATH=finetuning uv run python -m perturb.score \
 The 110-case pack was run with `finetuning/kaggle_eval.py` on Kaggle and scored with
 `finetuning/score.py` against the same candidate and contract; the answers and metadata
 are under `.vera/finetuning/v3-english-20261102b/kaggle-results/`.
+
+For the held-out probe, extract `test/part-000.jsonl` instead of the train split, build
+the set with `--seed 20261107`, and score it the same way:
+
+```bash
+uv run python -m finetuning.perturb.build \
+  --dataset .vera/finetuning/v3-english-20261102b/extracted/test \
+  --output .vera/finetuning/v3-english-20261102b/perturbed-test-english-only.jsonl \
+  --seed 20261107
+PYTHONPATH=finetuning uv run python -m perturb.score \
+  --answers .vera/finetuning/v3-english-20261102b/perturbed-test-answers-english-only.jsonl \
+  --set .vera/finetuning/v3-english-20261102b/perturbed-test-english-only.jsonl \
+  --dataset .vera/finetuning/v3-english-20261102b/aligned/vera-domain-v3-english-candidate.zip \
+  --contract .vera/finetuning/v3-english-20261102b/bundle/runtime-contract.json \
+  --output .vera/finetuning/v3-english-20261102b/scores-perturbed-test-english-only.json
+```
+
+The charts in this report are generated from the retained reports, scores and pack
+reports by `finetuning/plot_training.py`, `finetuning/plot_validation.py` and
+`finetuning/plot_perturbed.py`; the exact commands are in
+[the presentation README](../presentation/README.md).
 
 ## Artifacts
 
