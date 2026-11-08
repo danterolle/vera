@@ -167,7 +167,11 @@ uv run python finetuning/prepare_eval_pack.py \
 The 220-case test selection has no ID overlap with the validation pack. Targets are still
 shared with training in `memory_only` (20) and `scope_boundary` (20), because those tasks
 have a single target in the dataset; 38 rows duplicate another target within the pack.
-That remains a template limitation, not a split problem.
+That remains a template limitation, not a split problem. The selection was run locally
+on 2026-11-08: the base reached 86/220 strict passes, the adapter 219/220, and its only
+failure was a non-verbatim supporting quote. Template reproduction persists on this split
+(209/220 exact target summaries, 169/180 on unseen targets). Results are in
+[the fine-tuning report](finetuning-run-20261101.md#test-split-pack-220-cases).
 
 For inference-only comparison, `finetuning/kaggle_eval.py` runs preflight followed by
 base/adapter generation on a private Kaggle T4 x2 kernel. Its uploaded code bundle contains

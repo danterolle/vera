@@ -528,6 +528,35 @@ so the stalls delayed the run but did not change the answers; they are a local
 
 ![Held-out probe by perturbation family](../presentation/images/finetuning-v3/heldout-family.svg)
 
+### Test-split pack, 220 cases
+
+The 40-case probe is small, so the packer selected 20 test-split examples per task
+(220 cases, seed 20261107). No ID overlaps the validation pack. Base and adapter ran
+locally on the Q6_K GGUF with the step-400 LoRA.
+
+| Metric | Base | Adapter 400 |
+| --- | ---: | ---: |
+| Valid JSON | 202/220 (91.8%) | **220/220 (100%)** |
+| Valid VERA schema | 192/220 (87.3%) | **220/220 (100%)** |
+| Correct scope | 85.0% | **100%** |
+| Mean claim-status recall | 0.701 | **1.000** |
+| Unavailable presence when expected | 33.9% | **100%** |
+| Answers with citation failures | 28.6% | **0.5%** |
+| Memory citation violations | 26 | **0** |
+| Exact quote rate | 91.1% | **100%** |
+| Strict contract pass | 86/220 (39.1%) | **219/220 (99.5%)** |
+
+The adapter reaches 20/20 strict passes on ten tasks and 19/20 on `vulnerability_triage`;
+the single failure is again a non-verbatim supporting quote. The base is at 0/20 on
+`current_status` and `memory_only`, 2/20 on `review_revision`, 3/20 on `stream_triage`
+and 4/20 on `vulnerability_triage`.
+
+Template reproduction holds on this split too: the adapter's summary is identical to the
+target in **209/220** cases (169/180 unseen targets, mean token F1 **0.978**) and claim
+texts are identical in **210/220**. The base is at 0/220 exact summaries (F1 0.110).
+More rows confirm the adapter fits the target distribution; they do not turn the probe
+into an independent measure of analysis quality.
+
 ### What the runs establish
 
 - The adapter transfers the English-only output rule: the three measured families that
@@ -648,8 +677,9 @@ Local, Git-ignored, under `.vera/finetuning/`:
 - `scores-perturbed.json`
 - step-160 and step-400 `report.json`, `metrics.jsonl`, validation and test answers,
   and the complete checkpoint directories
-- the v3 English-only candidate, 40-case set and answers, 110/220-case packs, Kaggle
-  answers and scores under `.vera/finetuning/v3-english-20261102b/`
+- the v3 English-only candidate, 40-case set and answers, 110/220-case packs, 220-case
+  test pack with local answers and scores, Kaggle answers and scores under
+  `.vera/finetuning/v3-english-20261102b/`
 - 110-case v2 inference-only results under
   `.vera/finetuning/v2-eval-20261101/kaggle-results/vera-eval-v2-110/`
 
