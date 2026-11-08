@@ -38,6 +38,33 @@ function evidence(parent, record, all) {
   }
 }
 
+function reactTrace(parent, record) {
+  const decisions = (record.trace || []).filter(item => item.startsWith("react:decision="));
+  if (!decisions.length) return;
+  const observations = record.metadata?.react_observations || [];
+  let observationIndex = 0;
+  text(parent, "h4", "Azioni ReAct (motivazioni operative)");
+  const list = document.createElement("ol");
+  for (const decision of decisions) {
+    const match = decision.match(/^react:decision=([^:]+):reason=(.*)$/);
+    if (!match) continue;
+    const [, action, reason] = match;
+    const observation = action === "finish" ? null : observations[observationIndex++] || null;
+    const item = document.createElement("li");
+    text(item, "strong", action);
+    const argument = observation?.action?.query || observation?.action?.cve_id;
+    if (argument) text(item, "code", argument);
+    text(item, "p", reason);
+    if (observation) {
+      text(item, "small", `Esito: ${observation.outcome}`);
+      const ids = observation.evidence_ids || [];
+      text(item, "small", ids.length ? `Nuove evidenze: ${ids.join(", ")}` : "Nessuna nuova evidenza");
+    }
+    list.append(item);
+  }
+  parent.append(list);
+}
+
 export function details(parent, record, review = false) {
   const panel = document.createElement("details");
   panel.className = "message-details";
@@ -76,6 +103,7 @@ export function details(parent, record, review = false) {
     const learned = record.metadata.knowledge_learning?.validated_entity_ids || [];
     if (learned.length) text(body, "p", `Nuove conoscenze convalidate: ${learned.length} · ${learned.join(", ")}`);
   }
+  reactTrace(body, record);
   if (typeof record.answer === "string") {
     const link = text(body, "a", "Apri report completo");
     link.href = `/v1/runs/${encodeURIComponent(record.run_id)}`;

@@ -64,6 +64,9 @@ normalized fields rather than raw packets to the model.
 
 Model/tool calls, timeouts and input sizes are bounded by `Settings`. Optional ReAct
 can choose local corpus searches and exact CVE lookups, not arbitrary URLs or commands.
+It is disabled by default and requires an external model provider. Its trace records
+the selected action, a short operational reason, the outcome and newly retained
+evidence IDs; it is an audit trace, not private chain-of-thought.
 The initial model-call budget defaults to four; ReAct resolves its budget separately.
 User-facing prose follows `VERA_RESPONSE_LANGUAGE` (default: English), not the query
 language. Evidence quotations remain verbatim in their source language.
