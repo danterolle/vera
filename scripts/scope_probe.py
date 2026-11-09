@@ -41,7 +41,7 @@ from vera_finetuning.local_server import (  # noqa: E402
     model_id,
     set_adapter_scale,
 )
-from vera_finetuning.scope import QUERIES, settings_for  # noqa: E402
+from vera_finetuning.scope import CASES, settings_for  # noqa: E402
 
 from vera.domain.reports import AnalysisResult  # noqa: E402
 from vera.domain.requests import AnalysisRequest  # noqa: E402
@@ -66,7 +66,7 @@ def run(args: argparse.Namespace) -> dict:
         "--parallel", "1", "--reasoning", "off", "--reasoning-budget", "0",
         "--host", "127.0.0.1", "--port", str(args.port), "--alias", MODEL_ID,
     ]
-    cases = [case for case in QUERIES if not args.case or case[0] in set(args.case)]
+    cases = [case for case in CASES if not args.case or case["name"] in set(args.case)]
     if not cases:
         raise ValueError("No probe case matches --case")
     with tempfile.TemporaryDirectory(prefix="vera-scope-probe-") as directory:
@@ -85,9 +85,12 @@ def run(args: argparse.Namespace) -> dict:
                             set_adapter_scale(client, identifier, scale)
                             variant_dir = root / variant
                             variant_dir.mkdir()
-                            settings = settings_for(model, url, variant_dir)
+                            settings = settings_for(
+                                model, url, variant_dir, args.backend,
+                            )
                             with VeraOrchestrator(settings, review_enabled=False) as engine:
-                                for name, query, kind in cases:
+                                for case in cases:
+                                    name, query, kind = case["name"], case["query"], case["kind"]
                                     result = engine.analyze(AnalysisRequest(
                                         query=query,
                                         session_id=f"{variant}-{name}-{uuid4().hex[:8]}",
@@ -132,7 +135,7 @@ def run(args: argparse.Namespace) -> dict:
         "model": model,
         "response_language": "English",
         "retrieval_k": 5,
-        "embedding_backend": "hash",
+        "embedding_backend": args.backend,
         "corpus": "bundled repository snapshots only",
         "react_enabled": False,
         "live_sources": False,
@@ -149,6 +152,9 @@ def main() -> None:
     parser.add_argument("--startup-timeout", type=int, default=180)
     parser.add_argument("--request-timeout", type=float, default=180)
     parser.add_argument("--case", action="append", help="Run only this case name.")
+    parser.add_argument(
+        "--backend", choices=("hash", "sentence-transformers"), default="hash",
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if not 1 <= args.port <= 65535 or args.gpu_layers < 0:
