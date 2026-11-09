@@ -9,28 +9,46 @@ intent interpretation, source assessment or ReAct decisions.
 
 ## Dataset
 
-**The retained dataset is incompatible with the current chat prompt.**
-Packaging intentionally rejects it until a compatible candidate is prepared and reviewed.
-`finetuning/align.py` can rebuild a compatible copy of its prompts while preserving
-targets, sources and splits. This is mechanical alignment, not new label generation
-or expert review.
+The retained v1 dataset is incompatible with the current chat prompt and remains
+local-only. The **v4 candidate** replaces it for the next experiment: it is rebuilt
+against the current `SYSTEM_PROMPT` and `generation_prompt`, and it closes the gaps that
+the step-400 adapter exposed. Dataset card:
+[domain dataset v4](domain-dataset-v4.md).
 
-`vera-domain-v1.zip` and its extracted copy in `.vera/datasets/vera-domain-v1/`
-are local, ignored artifacts. They contain 3,939 training, 528 validation and 522 test
-conversations, plus 252 controlled event replays. Targets combine pinned public
-MITRE ATT&CK and CISA KEV records with synthetic analyst scenarios, not expert SOC decisions.
-Upstream revisions, hashes and license notices are preserved in the archive.
+`vera-domain-v4.zip` and `.vera/datasets/vera-domain-v4/` are local, ignored artifacts.
+They contain **4,863 training, 622 validation and 655 test** conversations (6,140 total),
+plus 130 controlled event replays. Targets combine pinned public MITRE ATT&CK and CISA KEV
+records, 122 repository-bundled official documents and synthetic analyst scenarios. They
+are not expert SOC decisions. Upstream revisions, hashes and license notices are preserved
+in the archive.
 
-The original bytes remain unchanged. Its embedded generator instructions are historical,
-and its recorded system-prompt hash is inconsistent with the conversation text.
-`human_reviewed` and `training_authorized` remain false.
-The earlier code bundle is retained locally as `vera-kaggle-training-pre-chat.zip`;
-do not use it to train the current application.
+| Gap in v1/v3 data | v4 coverage |
+| --- | --- |
+| Prompt drift | both messages come from the current runtime prompts; the manifest records `sha256(SYSTEM_PROMPT)` |
+| One-sided scope | in-domain, unavailable-but-in-domain, social, clarification and `out_of_scope` families |
+| Social handled as security | `social_conversation` and `clarification` targets carry no claims and set `out_of_scope=false` |
+| Alerts only 0/1 | train alert counts `{0: 4773, 1: 40, 2: 30, 3: 20}`; validation and test cover 0-3 |
+| No multi-turn | follow-up conversations with resolved question, subject and search query |
+| No language variants | Italian, Spanish, German and French questions answered in the configured English |
+| Entity/title drift | targets quote evidence verbatim and name the entity each record concerns |
+
+Both `human_reviewed` and `training_authorized` remain false; the archive is a candidate,
+not an approved corpus.
 
 User-facing prose follows `Settings.response_language` (`VERA_RESPONSE_LANGUAGE`,
 default `English`) rather than the input message language. This value is supplied to
 generation and conversation prompts; evidence quotations remain verbatim in their
 source language.
+
+## Token budget
+
+The v4 preflight passes at **`max_length=2560`** with `truncation: false` and a verified
+assistant-only loss boundary. A 2,048-token budget would drop 80 `stream_triage` rows and
+still truncate 48 at 2,304, because three-alert replays need up to **2,462 tokens**
+(question prefix plus multi-alert evidence). 2,560 is the smallest tested budget that
+keeps alert counts 2 and 3, so it is the justified choice. The targets themselves are much
+shorter: the largest is **543 tokens**. Preflight writes `token-budget.json` bound to the
+dataset's `manifest.json` SHA-256; packaging refuses a receipt that does not match.
 
 ## Training approach
 
@@ -53,26 +71,28 @@ notebook log.
 
 ## Prepare and run
 
-To create a separate aligned candidate without model inference:
+Build and audit the v4 candidate without loading weights, then package it:
 
 ```bash
-uv run --with transformers==5.17.0 --with 'jinja2>=3.1,<4' python finetuning/align.py \
-  --output .vera/finetuning/aligned/vera-domain-v1.zip
+uv run python finetuning/vera_domain/cli.py
 uv run python finetuning/prepare.py \
-  --dataset .vera/finetuning/aligned/vera-domain-v1.zip --max-length 2560
+  --dataset .vera/datasets/vera-domain-v4.zip --max-length 2560 \
+  --output .vera/finetuning/vera-kaggle-training-v4.zip
 ```
 
-Use the token budget reported by alignment; this runtime's retained candidate needs
-2,560 tokens. No examples are truncated or removed. The original archive is untouched.
-The command validates archive hashes, actual prompts and grounded targets, then writes
-`.vera/finetuning/vera-kaggle-training.zip`. It never trains, modifies the dataset,
-uploads data or overwrites an existing bundle.
+Generation is data-only: it calls no external model, loads no weights, refuses to
+overwrite an existing directory or archive, and verifies source hashes. `prepare.py`
+validates archive hashes, the actual runtime prompts and grounded targets, refuses any
+example that exceeds the declared token budget, and writes the data-free code bundle.
+It never trains, modifies the dataset, uploads data or overwrites an existing bundle.
+Use `--max-length 2560` for this candidate; lower budgets either fail or require dropping
+multi-alert rows, which is not permitted.
 
-1. Import the notebook into Kaggle. Attach a private dataset containing the compatible
-   `vera-domain-v1.zip` and `vera-kaggle-training.zip`; these exact filenames are required.
-   Do not overwrite the retained original or upload credentials, databases or company telemetry.
-2. Select **GPU T4 x2**, enable Internet and run preflight. Every example must fit
-   the declared token budget without truncation, with a verified assistant-only loss boundary.
+1. Import the notebook into Kaggle. Attach a private dataset containing `vera-domain-v4.zip`
+   and its code bundle; these exact filenames are required. Do not upload credentials,
+   databases or company telemetry.
+2. Select **GPU T4 x2**, enable Internet and run preflight. Every example must fit the
+   declared token budget without truncation, with a verified assistant-only loss boundary.
 3. Read the warnings, set `ACKNOWLEDGE_CANDIDATE_DATA = True` and run the five-update pilot.
    Non-finite loss or gradients stop execution. Retain any OOM/kernel traceback;
    do not silently truncate examples or switch to unstable reduced precision.
@@ -105,7 +125,7 @@ writes `answers.jsonl`. Download that file and run the local scorer, which uses 
 production `GeneratedAnswer` and `validate_and_repair` contract:
 
 ```bash
-uv run python finetuning/score.py --dataset /path/to/vera-domain-v1.zip \
+uv run python finetuning/score.py --dataset /path/to/vera-domain-v4.zip \
   --contract /path/to/runtime-contract.json \
   --answers /path/to/answers.jsonl --output /path/to/scores.json
 ```

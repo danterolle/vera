@@ -7,9 +7,9 @@ epoch is worth the GPU hours. It complements the run report in
 [local models](local-model.md#test-a-fine-tuned-adapter).
 
 Status: experimental. The step-400 adapter was trained with the pre-v3 prompt. The v3
-English-only candidate was used for later evaluation prompts, without retraining; it
-declares `training_authorized: false` and contains synthetic, unreviewed targets.
-Deployment is not authorized.
+English-only candidate was used for later evaluation prompts, without retraining. A v4
+candidate now exists against the current prompt, but it is synthetic and unreviewed:
+`training_authorized: false` and `human_reviewed: false`. Deployment is not authorized.
 
 ## What it was trained for
 
@@ -168,11 +168,11 @@ not optimization time.
 
 If GPU hours are available, spend them in this order:
 
-1. **Build the v4 dataset** against the current prompt with diverse summaries and claim
-   texts, alert counts 0-3, short verbatim quotes, multi-turn cases and human-reviewed
-   targets. Keep it unauthorized until review is complete; then train only on the
-   explicitly authorized candidate. This is the only change that addresses the measured
-   defect.
+1. **Review, then train the v4 candidate.** The v4 generator now exists and produces
+   diverse summaries and claim texts, alert counts 0-3, short verbatim quotes, social and
+   clarification turns, multi-turn cases and language variants, all against the current
+   prompt. It is still synthetic and unreviewed, so the next step is human review, not
+   another epoch on v3. Train only on the explicitly authorized candidate.
 2. **Write a golden set by hand** (50-60 cases, 11 tasks, independent targets) with
    fact-based scoring and a human review sample. Require targets to be absent from
    training and unique within the pack; the current v3 candidate fails that criterion.
@@ -262,6 +262,34 @@ at scope. The variable is natural-language concept phrasing; exact identifiers w
 answered. Before any promotion, scope needs a two-sided criterion (accept in-domain,
 reject unrelated, classify social correctly), and the single `scope_boundary` target in
 the dataset cannot teach it.
+
+## v4 candidate: gaps addressed, still unauthorized
+
+A v4 generator now rebuilds the data against the current prompt. Full card:
+[domain dataset v4](domain-dataset-v4.md). It is **built and audited locally**, but
+`human_reviewed` and `training_authorized` remain false, and no GPU run has started.
+
+| Defect measured on v3 | v4 response |
+| --- | --- |
+| Prompt drift | both messages come from the current runtime prompts; manifest stores `sha256(SYSTEM_PROMPT)` |
+| Over-refusal of in-domain questions | `concept_definition`, `defensive_guidance` and explicit `unavailable_concept` families |
+| Social turns marked out of scope | `social_conversation` and `clarification` targets with no claims and `out_of_scope=false` |
+| Alert counting only 0/1 | train alert counts `{0: 4773, 1: 40, 2: 30, 3: 20}`; all splits cover 0-3 |
+| No multi-turn | follow-up conversations with resolved question, subject and search query |
+| No language variants | IT/ES/DE/FR questions answered in the configured English |
+| Entity/title drift | verbatim quotes plus explicit entity binding per record |
+
+Counts are **4,863 train / 622 validation / 655 test** (6,140 examples), with 2,319
+distinct training factual texts and 2,241 multi-evidence answers. Token preflight passes
+at `max_length=2560` without truncation; 2,048 would drop multi-alert replays.
+
+The audit checks split, source, entity and verbatim-fact leakage, replays against the real
+detectors, intent/language/conversation metadata, and diversity thresholds. Passing it
+shows internal consistency only. It does **not** prove that v4 teaches the rules better:
+that needs a reviewed target set, a training run and a fact-based evaluation. Known weak
+spots remain: `defensive_guidance` (66) and `multiturn_followup` (71) are sparse because
+mitigation companions are limited, and social/clarification targets are authored templates,
+not observed users.
 
 ## Test roadmap
 
