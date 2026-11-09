@@ -173,5 +173,17 @@ disables ReAct/live sources, and writes to temporary databases; it does not requ
 from llama.cpp commit `8642541b2` is required because native builds vary by OS/GPU.
 The check is a smoke test, not a general quality benchmark.
 
+For the scope probe (10 in-domain questions, 2 unrelated requests, 1 social message),
+run the same command with `scripts/scope_probe.py` and an output path:
+
+```bash
+uv run --extra knowledge-graph --with huggingface_hub \
+  python scripts/scope_probe.py --output .vera/finetuning/scope-probe.json
+```
+
+It reuses the pinned artifacts and temporary server, reports `out_of_scope` per variant,
+and writes only a JSON report. A refusal is not by itself a scope failure: the probe
+separates rejection of unrelated topics from acceptance of in-domain ones.
+
 Stop manual servers with Ctrl+C; stop/unload GUI models through LM Studio/Bionic.
 Use `VERA_LLM_PROVIDER=deterministic` to run without a model server.

@@ -208,6 +208,43 @@ repeatable command is `scripts/reproduce_step400.py`; it downloads and verifies 
 pinned public artifacts, starts and stops the local model server, and uses no training
 data or live-source requests. With the script's stricter zero-validation-error check,
 the adapter's missing-CVE case is a failure, even though its status is more conservative.
+Re-running the script on 2026-11-09 reproduced **2/4 for both** models.
+
+## Scope probe: refusal in both directions (2026-11-09)
+
+The 4-case smoke flags a second issue: both models reject "Explain PowerShell". The
+110- and 220-case packs report scope accuracy near 100% for the adapter, but those packs
+mostly test rejection of unrelated requests. To check the other direction, a 13-case probe
+asks 10 in-domain questions (tools, techniques, a weakness, a CVE), 2 unrelated requests
+and 1 social message through the same orchestrator, with the same pinned model, bundled
+corpus, hash embeddings, no live sources, ReAct, graph or memory. Reproduce with
+`scripts/scope_probe.py`; the full answer text is in the JSON report.
+
+| Family | Base `out_of_scope` | Adapter `out_of_scope` |
+| --- | ---: | ---: |
+| In-domain, 10 cases | 3 | 5 |
+| Unrelated, 2 cases | 2 | 2 |
+| Social, 1 case | 1 | 1 |
+
+Both models rejected **PowerShell** and **SQL injection**. The base additionally rejected
+**MITRE ATT&CK**; the adapter also rejected **Nmap**, **Kerberoasting** and **PowerShell
+logging**. Both answered CWE-89, CVE-2021-44228, firewall and T1059.001. Both correctly
+rejected the recipe and weather requests, and both marked "Tell me a joke" as
+`out_of_scope`, although the contract says social conversation must return
+`out_of_scope=false` with no claims.
+
+This is not a retrieval gap. A direct `LocalCorpus.search` on the same bundled snapshots
+returns CAPEC-66, OWASP A03 and CWE-89 for the SQL-injection query, and T1059.001 plus
+mitigations for the PowerShell query. The refusals are model-side, and the "No evidence
+was available" line in those answers describes the absence of citations, not the absence
+of retrieved records, which makes the message misleading.
+
+Interpretation, bounded by 13 cases and one configuration: the adapter learned to reject
+unrelated topics but not when to accept an in-domain tool question; it is **more
+conservative than the base**, not better at scope. The variable is the natural-language
+concept phrasing, since exact identifiers were answered. Before any promotion, scope needs
+a two-sided criterion (accept in-domain, reject unrelated, classify social correctly), and
+the single `scope_boundary` target in the dataset cannot teach it.
 
 ## Test roadmap
 
@@ -217,6 +254,7 @@ the adapter's missing-CVE case is a failure, even though its status is more cons
 | P0 | Fact-based / paraphrase scoring | Correctness instead of target equality | Scorer or judge model |
 | P0 | Human review of 30-50 answers | Factual accuracy and usefulness | Reviewer time |
 | P1 | Independent scenario set | Generalization beyond v3 templates | New reviewed targets; `--require-independent-targets` |
+| P1 | Two-sided scope and social control | Over-refusal of in-domain questions and social misclassification | `scripts/scope_probe.py`; new cases |
 | P1 | Base + prompt ablation | Adapter effect versus prompt/normalizer effect | None |
 | P1 | Multilingual probe | English-only contract on IT/ES/DE queries | None |
 | P1 | Expanded multi-turn | Context and entity carry-over | New cases |

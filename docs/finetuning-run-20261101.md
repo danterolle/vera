@@ -516,10 +516,12 @@ The family breakdown explains where the remaining failures are:
 | `scope` | 4/6 | 6/6 |
 | `unavailable` | 0/6 | 6/6 |
 
-`scope`, `unavailable` and `injection` transfer fully. Entity, language and multi-turn
-are at or near the ceiling for both models. `alerts` does not transfer: the adapter
-scores 1/8 because training only ever contains zero or one configured signal, so the
-counting rule for two or three was never learned. This confirms the dataset defect
+`scope`, `unavailable` and `injection` transfer fully on this probe. The `scope` family
+only tests rejection of unrelated requests; the separate scope probe finds over-refusal
+of in-domain tool questions, worse for the adapter than for the base. Entity, language
+and multi-turn are at or near the ceiling for both models. `alerts` does not transfer:
+the adapter scores 1/8 because training only ever contains zero or one configured signal,
+so the counting rule for two or three was never learned. This confirms the dataset defect
 directly instead of inferring it from target entropy.
 
 The local run stalled on a few cases for up to about 35 minutes. Generation is greedy,
@@ -564,6 +566,8 @@ into an independent measure of analysis quality.
 - The adapter transfers the English-only output rule: the three measured families that
   depend on a learned rule (`scope`, `unavailable`, `injection`) are clean on both sets.
   This is observed behavior on the probe, not an English-only training objective.
+  `scope` is clean only for rejecting unrelated requests: the separate scope probe finds
+  over-refusal of in-domain tool questions, worse for the adapter than for the base.
 - The v3 evaluation prompts match the current runtime contract, but the step-400 adapter
   was trained before v3 on the retired prompt. No v3 training was performed, so the
   training/inference prompt mismatch remains for this adapter.
