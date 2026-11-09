@@ -8,11 +8,12 @@ from vera.domain.requests import AnalysisRequest
 from vera.providers.prompts import generation_prompt
 from vera.reasoning.validation import validate_and_repair
 
+INTENTS = {"cybersecurity", "social", "out_of_scope", "clarification"}
+
 
 def parse_context(example: dict) -> dict:
-    return json.JSONDecoder().raw_decode(
-        example["messages"][1]["content"].split("\n", 1)[1]
-    )[0]
+    prompt = example["messages"][1]["content"]
+    return json.JSONDecoder().raw_decode(prompt[prompt.index("{") :])[0]
 
 
 def context_evidence(context: dict) -> list[Evidence]:
@@ -31,12 +32,12 @@ def validate_example(
 ) -> None:
     messages = example["messages"]
     context = parse_context(example)
-    if context["conversational_intent"] != "cybersecurity":
-        raise ValueError(
-            "This pilot supports cybersecurity generation, not conversational profiles"
-        )
+    intent = context["conversational_intent"]
+    if intent not in INTENTS:
+        raise ValueError(f"Unknown conversational intent: {intent}")
     evidence = context_evidence(context)
     answer = GeneratedAnswer.model_validate_json(messages[2]["content"])
+    _validate_intent(intent, answer)
     outcome = validate_and_repair(
         answer, evidence, repair=False, minimum_coverage=minimum_coverage,
     )
@@ -59,3 +60,12 @@ def validate_example(
         raise ValueError(
             "The dataset does not use the current runtime's input format; rebuild it first"
         )
+
+
+def _validate_intent(intent: str, answer: GeneratedAnswer) -> None:
+    if intent in {"social", "clarification"} and (answer.claims or answer.out_of_scope):
+        raise ValueError(f"{intent} answers must carry no claims and stay in scope")
+    if intent == "out_of_scope" and (not answer.out_of_scope or answer.claims):
+        raise ValueError("Out-of-scope answers must set out_of_scope and carry no claims")
+    if intent == "cybersecurity" and answer.out_of_scope:
+        raise ValueError("Cybersecurity answers cannot be marked out of scope")
