@@ -214,37 +214,54 @@ Re-running the script on 2026-11-09 reproduced **2/4 for both** models.
 
 The 4-case smoke flags a second issue: both models reject "Explain PowerShell". The
 110- and 220-case packs report scope accuracy near 100% for the adapter, but those packs
-mostly test rejection of unrelated requests. To check the other direction, a 13-case probe
-asks 10 in-domain questions (tools, techniques, a weakness, a CVE), 2 unrelated requests
-and 1 social message through the same orchestrator, with the same pinned model, bundled
-corpus, hash embeddings, no live sources, ReAct, graph or memory. Reproduce with
+mostly test rejection of unrelated requests. To check the other direction, a 40-case probe
+asks 30 in-domain questions (tools, techniques, weaknesses, CVEs, defenses), 6 unrelated
+requests and 4 social messages through the same orchestrator, with the same pinned model,
+bundled corpus, hash embeddings, no live sources, ReAct, graph or memory. Reproduce with
 `scripts/scope_probe.py`; the full answer text is in the JSON report.
 
 | Family | Base `out_of_scope` | Adapter `out_of_scope` |
 | --- | ---: | ---: |
-| In-domain, 10 cases | 3 | 5 |
-| Unrelated, 2 cases | 2 | 2 |
-| Social, 1 case | 1 | 1 |
+| In-domain, 30 cases | 6 | **19** |
+| Unrelated, 6 cases | 6 | 6 |
+| Social, 4 cases | 4 | 4 |
 
-Both models rejected **PowerShell** and **SQL injection**. The base additionally rejected
-**MITRE ATT&CK**; the adapter also rejected **Nmap**, **Kerberoasting** and **PowerShell
-logging**. Both answered CWE-89, CVE-2021-44228, firewall and T1059.001. Both correctly
-rejected the recipe and weather requests, and both marked "Tell me a joke" as
-`out_of_scope`, although the contract says social conversation must return
+The adapter rejects **19 of 30** in-domain questions, the base 6. Both reject PowerShell,
+SQL injection, XSS and phishing. The base additionally rejects MITRE ATT&CK and server
+hardening; the adapter additionally rejects Nmap, Kerberoasting, Log4Shell, MFA,
+ransomware, port scanning, privilege escalation, lateral movement, zero trust and supply
+chain. Both answer CWE-89, CWE-79, T1059.001, T1059, CVE-2021-44228, CVE-2023-34362,
+firewall and EDR.
+
+Scope rejection is correct for all six unrelated requests in both models. Social messages
+are wrong for both: all four ("Tell me a joke", "Hello, how are you?", "Thanks for your
+help!", "Who are you?") are marked `out_of_scope=true`, while the contract requires
 `out_of_scope=false` with no claims.
 
-This is not a retrieval gap. A direct `LocalCorpus.search` on the same bundled snapshots
-returns CAPEC-66, OWASP A03 and CWE-89 for the SQL-injection query, and T1059.001 plus
-mitigations for the PowerShell query. The refusals are model-side, and the "No evidence
-was available" line in those answers describes the absence of citations, not the absence
-of retrieved records, which makes the message misleading.
+This is mostly not a retrieval gap. Cross-checking every in-domain case against the 122
+bundled documents, the expected entity is present for 27 of 30. Three cases are genuine
+corpus gaps (Nmap, Kerberoasting, supply chain), where refusing is defensible but should
+still be an `unavailable` answer, not `out_of_scope`. Of the adapter's 19 refusals, **16
+have the expected record in the corpus**, and a direct search returns it. The "No evidence
+was available" line in those answers describes the absence of citations, not of retrieved
+records, which makes the message misleading.
 
-Interpretation, bounded by 13 cases and one configuration: the adapter learned to reject
-unrelated topics but not when to accept an in-domain tool question; it is **more
-conservative than the base**, not better at scope. The variable is the natural-language
-concept phrasing, since exact identifiers were answered. Before any promotion, scope needs
-a two-sided criterion (accept in-domain, reject unrelated, classify social correctly), and
-the single `scope_boundary` target in the dataset cannot teach it.
+A retrieval audit (`scripts/retrieval_audit.py`) compares the runtime hybrid ranker with
+lexical-only ranking on the same 30 questions. Expected-record hit rate: hash hybrid 22/30,
+lexical-only 23/30, sentence-transformers hybrid 24/30. Sentence-transformers fixes SQLi
+and Log4Shell and never regresses, but the remaining misses are the three corpus gaps plus
+ranking noise on terms the documents do not contain. Re-running the 10 key cases through
+the model with sentence-transformers changed **no refusal decision** (3/10 base, 5/10
+adapter, same cases). The embedding backend is therefore a second-order factor; corpus
+coverage and the model's scope decision dominate.
+
+Interpretation, bounded by 40 cases and one configuration: the adapter learned to reject
+unrelated topics but not when to accept an in-domain question. On evidence that is present
+it over-refuses **16/30 versus 6/30 for the base**, so it is more conservative, not better
+at scope. The variable is natural-language concept phrasing; exact identifiers were
+answered. Before any promotion, scope needs a two-sided criterion (accept in-domain,
+reject unrelated, classify social correctly), and the single `scope_boundary` target in
+the dataset cannot teach it.
 
 ## Test roadmap
 

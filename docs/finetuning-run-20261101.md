@@ -399,8 +399,10 @@ By family, after normalization:
 | `alerts` | 8 | 0 / 2 / 3 configured signals | 0/8 | 2/8 |
 | **Total** | **40** | | **23/40** | **33/40** |
 
-The adapter is clean on `scope`, `unavailable`, `injection`, multiturn and language; it
-regresses on `entity` and `alerts`. Three limits remain visible:
+The adapter is clean on `scope` (rejection cases only), `unavailable`, `injection`,
+multiturn and language; it regresses on `entity` and `alerts`. A separate 40-case probe
+finds over-refusal of in-domain questions, so the scope result is not two-sided. Three
+limits remain visible:
 
 1. **`alerts` is a dataset gap, not a training-budget gap.** Training `stream_triage`
    contains only summaries with zero alerts (72 rows) or one alert (36 rows); the set asks
