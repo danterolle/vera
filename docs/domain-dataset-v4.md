@@ -104,6 +104,18 @@ Passing the audit is not authorization. A person must review the targets before
 (including alert counts 0-3, social, clarification and the new defensive/multi-turn
 families) and writes a checklist:
 
+### AI-assisted pre-review (not a sign-off)
+
+An AI-assisted pass inspected every case in the review pack and scanned the whole
+candidate for task/wording drift. It found three template defects that the automated
+checks could not detect in the previous candidate: technique scenarios using
+vulnerability wording in `graph_evidence` summaries (265 rows), `local_applicability`
+questions asking about "affected versions" for ATT&CK techniques (89 rows), and
+`risk_comparison` questions calling techniques "documented issues" (88 rows). The
+generator now selects technique-specific wording, the audit rejects the old phrases, and
+the candidate was rebuilt. This pass is advisory: it does not set `human_reviewed` or
+authorize training.
+
 ```bash
 uv run python finetuning/prepare_review_pack.py \
   --dataset .vera/datasets/vera-domain-v4.zip \
