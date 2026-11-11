@@ -149,7 +149,8 @@ def summarize(directory: Path) -> dict:
         "examples": len(cases), "verdicts": dict(sorted(verdicts.items())),
         "unresolved": unresolved, "missing_notes": missing_notes,
         "reviewer": signoff.get("reviewer"), "ready_for_authorization": ready,
-        "human_reviewed": ready, "training_authorized": False,
+        "human_reviewed": ready, "signoff_authorized": signoff.get("authorized") is True,
+        "training_authorized": False,
     }
     (directory / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary
