@@ -99,9 +99,14 @@ def _base(primary, companion, distractor, entity, generator) -> Scenario:
     if companion is None:
         entities = [entity, distractor.entity_id]
         claims.insert(1, factual(decoy))
+        limitation = (
+            "Neither record establishes local execution or attribution."
+            if technique else
+            "Neither record establishes local exposure or an asset-specific priority."
+        )
         summary = (
             f"The supplied records describe {name} and {distractor.entity_id} separately. "
-            "Neither record establishes local exposure or an asset-specific priority."
+            + limitation
         )
     claims.append(inference(
         "The supplied documentation is not evidence of local execution or compromise."
@@ -188,8 +193,12 @@ def _variant(variant, primary, companion, distractor, entity, base, split, gener
         scenario.claims = [factual(evidence_for(primary)),
                            inference("These records do not establish local compromise.")]
     elif variant == "risk_comparison":
+        subject = (
+            "documented behaviors" if primary.category == "technique"
+            else "documented issues"
+        )
         scenario.query = (
-            f"Compare the documented issues for {entity} and {distractor.entity_id}. Can you "
+            f"Compare the {subject} for {entity} and {distractor.entity_id}. Can you "
             "rank asset-specific risk without inventory or exposure data?"
         )
         scenario.entities = [entity, distractor.entity_id]
@@ -204,16 +213,26 @@ def _variant(variant, primary, companion, distractor, entity, base, split, gener
             inference("Asset-specific risk cannot be ranked without exposure and inventory data."),
         ]
     elif variant == "local_applicability":
+        technique = primary.category == "technique"
+        target = (
+            "local execution, actor attribution or exploitation" if technique
+            else "affected versions, actor attribution or exploitation"
+        )
         scenario.query = (
-            f"An analyst associated a ticket with {entity}. Is that enough to confirm affected "
-            "versions, actor attribution or exploitation in this environment?"
+            f"An analyst associated a ticket with {entity}. Is that enough to confirm "
+            f"{target} in this environment?"
         )
-        scenario.summary = (
-            f"The association with {entity} does not confirm affected assets or exploitation."
+        limitation = (
+            "local execution or exploitation." if technique
+            else "affected assets or exploitation."
         )
-        scenario.claims = [factual(evidence_for(primary)), inference(
+        scenario.summary = f"The association with {entity} does not confirm {limitation}"
+        inference_text = (
+            "The association does not confirm local execution, attribution or exploitation."
+            if technique else
             "The association does not confirm affected assets, attribution or exploitation."
-        )]
+        )
+        scenario.claims = [factual(evidence_for(primary)), inference(inference_text)]
     else:
         scenario.query = generator.choice(OUTSIDE[split]).rstrip(".") + "."
         scenario.summary = (

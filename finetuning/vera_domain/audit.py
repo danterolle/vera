@@ -16,6 +16,7 @@ from vera_domain.models import (
     semantic_fingerprint,
 )
 from vera_domain.partition import normalized_text, split_fragments
+from vera_domain.semantics import audit_technique_wording
 
 SPLITS = ("train", "validation", "test")
 
@@ -122,6 +123,9 @@ def _audit_split(split, records, sources, source_splits, replays, seen, entity_s
                         raise ValueError("The factual target cites an unrelated entity")
                     facts.add(normalized_text(claim["text"]))
         _audit_decision(record.task, context, answer)
+        audit_technique_wording(
+            record.task, metadata.entities, context["query"], answer["summary"],
+        )
         if metadata.event_replay_id is not None:
             outcomes[_audit_replay(context, answer, metadata.event_replay_id, replays)] += 1
         if context["conversational_intent"] != metadata.intent:
