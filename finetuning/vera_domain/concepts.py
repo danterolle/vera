@@ -194,10 +194,11 @@ def _unavailable(fragments, assignments, split, generator) -> list:
                       f"How does {term} work?", f"Can you define {term}?"):
             fragment = generator.choice(fragments)
             decoy = evidence_for(fragment)
+            label = f"{term[:1].upper()}{term[1:]}"
             scenario = Scenario(
                 task="unavailable_concept", query=query,
                 summary=(
-                    f"{term} is a cybersecurity topic, but the supplied records do not define "
+                    f"{label} is a cybersecurity topic, but the supplied records do not define "
                     "it. I will not substitute an unrelated record."
                 ),
                 evidence=[decoy], claims=[unavailable(
