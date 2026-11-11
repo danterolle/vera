@@ -86,7 +86,9 @@ validates archive hashes, the actual runtime prompts and grounded targets, refus
 example that exceeds the declared token budget, and writes the data-free code bundle.
 It never trains, modifies the dataset, uploads data or overwrites an existing bundle.
 Use `--max-length 2560` for this candidate; lower budgets either fail or require dropping
-multi-alert rows, which is not permitted.
+multi-alert rows, which is not permitted. Before training, run the human review pack
+described in the [dataset card](domain-dataset-v4.md#human-review); a green audit alone
+does not authorize training.
 
 1. Import the notebook into Kaggle. Attach a private dataset containing `vera-domain-v4.zip`
    and its code bundle; these exact filenames are required. Do not upload credentials,

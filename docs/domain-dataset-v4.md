@@ -97,6 +97,42 @@ source text. A source, split group or verbatim factual target must not appear in
 - Passing the audit only shows internal consistency; it does not prove model improvement.
 - Do not train or deploy without a human review, explicit consent and a Kaggle compatibility run.
 
+## Human review
+
+Passing the audit is not authorization. A person must review the targets before
+`training_authorized` can become true. The review pack builder samples each task
+(including alert counts 0-3, social, clarification and the new defensive/multi-turn
+families) and writes a checklist:
+
+```bash
+uv run python finetuning/prepare_review_pack.py \
+  --dataset .vera/datasets/vera-domain-v4.zip \
+  --output .vera/review/v4-review-20261111
+```
+
+The output directory is local and ignored. It contains:
+
+| File | Purpose |
+| --- | --- |
+| `REVIEW.md` | human-readable cases, claims, evidence excerpts and automated checks |
+| `cases.jsonl` | the same cases with `review.verdict`, `reviewer`, `notes` fields to fill |
+| `review.csv` | a spreadsheet view with blank verdict columns |
+| `report.json` | selection counts and any failed automated check |
+| `signoff.json` | reviewer and date template; still `authorized: false` |
+
+Automated checks cover target schema, citation resolution, verbatim factual quotes,
+scope/intent agreement, alert-claim agreement and the runtime contract. They are
+necessary, not sufficient: the reviewer still judges whether each claim is factually
+right and whether the summary overstates local impact. After filling the pack, run:
+
+```bash
+uv run python finetuning/prepare_review_pack.py --summarize .vera/review/v4-review-20261111
+```
+
+`ready_for_authorization` is true only when every case is accepted, every `fix`/`reject`
+has notes and a reviewer is recorded. It never sets `training_authorized` itself; that
+requires an explicit change to the generated dataset and a new audit.
+
 ## Build and inspect
 
 ```bash
