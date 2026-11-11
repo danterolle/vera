@@ -32,8 +32,22 @@ in the archive.
 | No language variants | Italian, Spanish, German and French questions answered in the configured English |
 | Entity/title drift | targets quote evidence verbatim and name the entity each record concerns |
 
-Both `human_reviewed` and `training_authorized` remain false; the archive is a candidate,
-not an approved corpus.
+The reviewed package was signed off on 2026-11-11 (`accept` 80/80) and an authorized
+derivative now sets `human_reviewed` and `training_authorized` to true. Deployment is
+still not authorized, and the GPU launch remains a separate explicit step.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Reviewed manifest | `485bd329a5c3409929b17f7618b3cd95e0a35bcbccc8a29a7dd863437823d98d` |
+| Authorized manifest | `04d18fbb7db8b35571bff755f43ad3eadadbc3c30d01d3f54426bfbcf27feb10` |
+| Authorized package | `6a3b5aa90252cecabc0560f2376929c8b4d0f7b38f85f580e98af011a1c0cd24` |
+| Authorized dataset archive | `f0e288f4bf78be8a351f3a7f403a7fe0c870c6137af44c2b1b7f0bf611997142` |
+| Authorized Kaggle bundle | `f13248e11a6a5d0f99ac905fd8ee50d89de98f2f0884a41c2cb1b1928fa8ce48` |
+
+The authorized derivative preserves the reviewed data shards byte-for-byte and adds
+`AUTHORIZATION.md` with the reviewed hashes and reviewer. The token receipt is rebound
+to the authorized manifest: maximum 2,462 tokens, no truncation, assistant-only loss
+boundary verified.
 
 User-facing prose follows `Settings.response_language` (`VERA_RESPONSE_LANGUAGE`,
 default `English`) rather than the input message language. This value is supplied to

@@ -1,12 +1,14 @@
 # VERA v4 public-evidence domain dataset
 
-This is the v4 candidate for teaching VERA's evidence-based defensive analysis contract.
+This is the v4 dataset for teaching VERA's evidence-based defensive analysis contract.
 It is generated from **real, pinned public records** plus repository-bundled official
 snapshots and explicit synthetic analyst scenarios. Generation loads no model weights,
 calls no external language model and trains nothing.
 
-The package is a **candidate**, not an approved training corpus:
-`training_authorized` and `human_reviewed` remain `false` until a human reviews it.
+The reviewed package was signed off on **2026-11-11** by `danterolle` after an 80-case
+review (`accept` 80/80). The authorized derivative sets `human_reviewed: true` and
+`training_authorized: true`; deployment remains unauthorized. The reviewed bytes and
+the signed pack are identified by the hashes in the sign-off section below.
 
 ## Why v4 exists
 
@@ -116,6 +118,32 @@ generator now selects technique-specific wording, the audit rejects the old phra
 the candidate was rebuilt. This pass is advisory: it does not set `human_reviewed` or
 authorize training.
 
+### Human sign-off (2026-11-11)
+
+The 80-case pack was reviewed with a guided pass over the highest-risk cases:
+`rv-0016`, `rv-0030`, the four `stream_triage` alert profiles, the two
+`untrusted_note` cases, the two `vulnerability_triage` cases with distractors,
+and six dataset-wide gap examples (technique `risk_comparison`,
+`graph_evidence` without a mitigation companion, vulnerability
+`defensive_guidance`, `multiturn_followup` and `concept_definition`, and
+technique `missing_record`).
+
+| Field | Value |
+| --- | --- |
+| Reviewer | `danterolle` |
+| Review date | `2026-11-11` |
+| Verdicts | `accept`: 80 / 80 |
+| Reviewed dataset SHA-256 | `485bd329a5c3409929b17f7618b3cd95e0a35bcbccc8a29a7dd863437823d98d` |
+| Cases SHA-256 | `c5ae626f017f8e7d7ab68463ccd40f97f3accfe2caf8d7541e776518e987443e` |
+| Sign-off SHA-256 | `5a60cfe0895715eef8b756b08aefeaad8eff61fcac59dfd00eb82af9ea76eeb7` |
+| Summary SHA-256 | `8359cfae11498886927e5d2325351ae4beee9ff8833a683eeb7ad182960eab0d` |
+
+`rv-0016` was accepted as a source-grounded oddity: MITRE ATT&CK itself maps
+M1027 Password Policies to T1599.001, and the target quotes the supplied
+mitigation without claiming deployment. The sign-off authorizes training on
+these reviewed bytes; it does not authorize deployment or the GPU launch
+itself.
+
 ```bash
 uv run python finetuning/prepare_review_pack.py \
   --dataset .vera/datasets/vera-domain-v4.zip \
@@ -130,7 +158,7 @@ The output directory is local and ignored. It contains:
 | `cases.jsonl` | the same cases with `review.verdict`, `reviewer`, `notes` fields to fill |
 | `review.csv` | a spreadsheet view with blank verdict columns |
 | `report.json` | selection counts and any failed automated check |
-| `signoff.json` | reviewer and date template; still `authorized: false` |
+| `signoff.json` | reviewer, date and the human training authorization |
 
 Automated checks cover target schema, citation resolution, verbatim factual quotes,
 scope/intent agreement, alert-claim agreement and the runtime contract. They are
@@ -142,8 +170,17 @@ uv run python finetuning/prepare_review_pack.py --summarize .vera/review/v4-revi
 ```
 
 `ready_for_authorization` is true only when every case is accepted, every `fix`/`reject`
-has notes and a reviewer is recorded. It never sets `training_authorized` itself; that
-requires an explicit change to the generated dataset and a new audit.
+has notes and a reviewer is recorded. The summarizer reports `human_reviewed: true` and
+`signoff_authorized: true` after this sign-off, but it never sets
+`training_authorized` itself: that requires an explicit change to the generated
+dataset and a new audit.
+
+The authorized derivative keeps the reviewed data files byte-for-byte, changes only the
+manifest authorization fields, records the reviewed manifest SHA-256 and the review-pack
+hashes, and adds `AUTHORIZATION.md`. It is written to a new directory so the reviewed
+artifact stays immutable. `AUTHORIZATION.md` lists the reviewer, date, verdicts and
+hashes; `token-budget.json` binds the authorized manifest SHA-256 to the 2,560-token
+preflight.
 
 ## Build and inspect
 
