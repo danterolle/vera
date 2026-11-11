@@ -99,6 +99,22 @@ def _eligible(entities):
     return result
 
 
+def _with_companion(eligible, fragments):
+    by_entity = defaultdict(list)
+    for item in fragments:
+        by_entity[item.entity_id].append(item)
+    result = []
+    for entity, primary in eligible:
+        companion = next(
+            (item for item in by_entity[entity]
+             if item.category in {"mitigation", "remediation"}),
+            None,
+        )
+        if companion is not None:
+            result.append((entity, primary, companion))
+    return result
+
+
 def _distractor(primary, fragments, generator):
     pool = [
         item for item in fragments
@@ -139,17 +155,11 @@ def _concept(entity, primary, fragments, assignments, generator) -> object | Non
 
 
 def _defensive(eligible, fragments, assignments, split, generator) -> list:
+    candidates = _with_companion(eligible, fragments)
     limit = {"train": 360, "validation": 45, "test": 45}[split]
-    selected = generator.sample(eligible, min(limit, len(eligible)))
+    selected = generator.sample(candidates, min(limit, len(candidates)))
     records = []
-    for entity, primary in selected:
-        companion = next(
-            (item for item in fragments
-             if item.entity_id == entity and item.category in {"mitigation", "remediation"}),
-            None,
-        )
-        if companion is None:
-            continue
+    for entity, primary, companion in selected:
         evidence = [evidence_for(primary), evidence_for(companion)]
         query = pick(generator, DEFENSIVE, name=display_name(primary))
         scenario = Scenario(
@@ -200,20 +210,11 @@ def _unavailable(fragments, assignments, split, generator) -> list:
 
 
 def _multiturn(eligible, fragments, assignments, split, generator) -> list:
+    candidates = _with_companion(eligible, fragments)
     limit = {"train": 320, "validation": 40, "test": 40}[split]
-    selected = generator.sample(eligible, min(limit, len(eligible)))
+    selected = generator.sample(candidates, min(limit, len(candidates)))
     records = []
-    by_entity = defaultdict(list)
-    for item in fragments:
-        by_entity[item.entity_id].append(item)
-    for entity, primary in selected:
-        companion = next(
-            (item for item in by_entity[entity]
-             if item.category in {"mitigation", "remediation"}),
-            None,
-        )
-        if companion is None:
-            continue
+    for entity, primary, companion in selected:
         name = display_name(primary)
         evidence = [evidence_for(primary), evidence_for(companion)]
         conversation = [
