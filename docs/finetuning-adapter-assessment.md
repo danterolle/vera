@@ -279,17 +279,17 @@ A v4 generator now rebuilds the data against the current prompt. Full card:
 | No language variants | IT/ES/DE/FR questions answered in the configured English |
 | Entity/title drift | verbatim quotes plus explicit entity binding per record |
 
-Counts are **4,863 train / 622 validation / 655 test** (6,140 examples), with 2,319
-distinct training factual texts and 2,241 multi-evidence answers. Token preflight passes
+Counts are **5,406 train / 686 validation / 720 test** (6,812 examples), with 2,319
+distinct training factual texts and 2,535 multi-evidence answers. Token preflight passes
 at `max_length=2560` without truncation; 2,048 would drop multi-alert replays.
 
 The audit checks split, source, entity and verbatim-fact leakage, replays against the real
 detectors, intent/language/conversation metadata, and diversity thresholds. Passing it
 shows internal consistency only. It does **not** prove that v4 teaches the rules better:
 that needs a reviewed target set, a training run and a fact-based evaluation. Known weak
-spots remain: `defensive_guidance` (66) and `multiturn_followup` (71) are sparse because
-mitigation companions are limited, and social/clarification targets are authored templates,
-not observed users.
+spots remain: `defensive_guidance` (360) and `multiturn_followup` (320) now use every
+eligible entity with a mitigation companion, so they are no longer sparse, but their
+targets are still authored templates, as are the social and clarification replies.
 
 ## Test roadmap
 

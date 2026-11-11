@@ -58,6 +58,19 @@ Knowledge families reuse the v1/v3 contract families (`missing_record`, `memory_
 `current_status`, `untrusted_note`, `review_revision`, `risk_comparison`,
 `local_applicability`) and add the in-domain variants above.
 
+## Size
+
+| Split | Examples | Alert counts 0/1/2/3 | Multi-turn | Social | Clarification | Out of scope |
+| --- | ---: | --- | ---: | ---: | ---: | ---: |
+| train | 5,406 | 5,316 / 40 / 30 / 20 | 320 | 16 | 4 | 240 |
+| validation | 686 | 662 / 6 / 12 / 6 | 40 | 8 | 4 | 28 |
+| test | 720 | 696 / 12 / 6 / 6 | 40 | 8 | 4 | 30 |
+
+Train has 2,319 distinct factual texts and 2,535 answers that cite at least two evidence
+records. `defensive_guidance` (360 train) and `multiturn_followup` (320 train) use every
+eligible entity that has a mitigation companion. The longest input is 2,462 tokens and the
+longest target is 543, so `max_length=2560` is the smallest tested budget with no truncation.
+
 ## Dataset layout
 
 ```

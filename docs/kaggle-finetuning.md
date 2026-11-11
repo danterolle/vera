@@ -16,8 +16,8 @@ the step-400 adapter exposed. Dataset card:
 [domain dataset v4](domain-dataset-v4.md).
 
 `vera-domain-v4.zip` and `.vera/datasets/vera-domain-v4/` are local, ignored artifacts.
-They contain **4,863 training, 622 validation and 655 test** conversations (6,140 total),
-plus 130 controlled event replays. Targets combine pinned public MITRE ATT&CK and CISA KEV
+They contain **5,406 training, 686 validation and 720 test** conversations (6,812 total),
+plus 160 controlled event replays. Targets combine pinned public MITRE ATT&CK and CISA KEV
 records, 122 repository-bundled official documents and synthetic analyst scenarios. They
 are not expert SOC decisions. Upstream revisions, hashes and license notices are preserved
 in the archive.
@@ -27,8 +27,8 @@ in the archive.
 | Prompt drift | both messages come from the current runtime prompts; the manifest records `sha256(SYSTEM_PROMPT)` |
 | One-sided scope | in-domain, unavailable-but-in-domain, social, clarification and `out_of_scope` families |
 | Social handled as security | `social_conversation` and `clarification` targets carry no claims and set `out_of_scope=false` |
-| Alerts only 0/1 | train alert counts `{0: 4773, 1: 40, 2: 30, 3: 20}`; validation and test cover 0-3 |
-| No multi-turn | follow-up conversations with resolved question, subject and search query |
+| Alerts only 0/1 | train alert counts `{0: 5316, 1: 40, 2: 30, 3: 20}`; validation and test cover 0-3 |
+| No multi-turn | 320 training follow-up conversations with resolved question, subject and search query |
 | No language variants | Italian, Spanish, German and French questions answered in the configured English |
 | Entity/title drift | targets quote evidence verbatim and name the entity each record concerns |
 
