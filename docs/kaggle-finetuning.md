@@ -104,9 +104,11 @@ multi-alert rows, which is not permitted. Before training, run the human review 
 described in the [dataset card](domain-dataset-v4.md#human-review); a green audit alone
 does not authorize training.
 
-1. Import the notebook into Kaggle. Attach a private dataset containing `vera-domain-v4.zip`
-   and its code bundle; these exact filenames are required. Do not upload credentials,
-   databases or company telemetry.
+1. Import the notebook into Kaggle. Attach a private dataset containing
+   `vera-domain-v4.zip` and `vera-kaggle-training.zip`; these exact filenames are
+   required. Upload the authorized archive as `vera-domain-v4.zip` and the authorized
+   bundle as `vera-kaggle-training.zip`. Do not upload credentials, databases or
+   company telemetry.
 2. Select **GPU T4 x2**, enable Internet and run preflight. Every example must fit the
    declared token budget without truncation, with a verified assistant-only loss boundary.
 3. Read the warnings, set `ACKNOWLEDGE_CANDIDATE_DATA = True` and run the five-update pilot.
