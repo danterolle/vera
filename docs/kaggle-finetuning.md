@@ -113,6 +113,43 @@ not used for selection and deployment remains unauthorized. A behavioral evaluat
 on validation (scope, unavailable evidence, citations and exact quotes) is the next
 gate; loss alone is not evidence of quality.
 
+### v4 behavioral result (2026-11-12)
+
+The final adapter was evaluated once on a fixed validation pack: 54 examples,
+3 per task across 18 tasks, seed 20261102, `max_new_tokens` 768, selection SHA-256
+`54eee0b8d9b7984739af79abf7663c7dc8921d206dcbd787902ba0611259fc7f`. The pack
+excludes the 24 validation parent IDs used for loss monitoring, and the test split was
+not used. Each example was generated with the base model and with the adapter, so the
+108 answers are paired. Generation took 3,147 s (52.5 min); the kernel took 1 h 34 min
+including dependency install and model load.
+
+| Metric | Base | Adapter |
+| --- | ---: | ---: |
+| Valid JSON | 90.7% | 98.1% |
+| Valid schema | 88.9% | 98.1% |
+| Correct scope | 87.0% | 98.1% |
+| Mean status recall | 0.719 | 0.981 |
+| `unavailable` present (12 expected) | 8/12 | 11/12 |
+| Citation failures (schema-valid rows) | 8.3% | 0% |
+| Exact-quote claims | 98.0% | 100% |
+| Memory-citation violations | 0 | 0 |
+| Mean output tokens | 399 | 190 |
+| Mean seconds per answer | 36.6 | 21.7 |
+
+The adapter's only schema failure was a `social_conversation` reply written as prose
+instead of JSON. That target was seen in training, so the failure is not explained by
+unseen-task difficulty. The `unavailable` miss used `system_inference` for "No local
+record of DNS tunnelling was established"; the text states absence, but the status is
+wrong. Base failed schema on 6/54 examples, including all three `stream_triage` cases,
+and had citation failures in `current_status` and `graph_evidence`.
+
+Caveats: 12/54 targets were seen in training, 5 rows duplicate another target within
+the pack, and the targets are synthetic. On the 42 rows whose targets were unseen, the
+adapter still produced valid schema and scope in 42/42 with status recall 0.976 (base
+85.7%, 85.7%, 0.653). That is evidence of contract retention on this pack, not
+generalization: validation loss is saturated and the split is template-adjacent.
+Deployment remains unauthorized.
+
 ## Prepare and run
 
 Build and audit the v4 dataset without loading weights, then package it:
