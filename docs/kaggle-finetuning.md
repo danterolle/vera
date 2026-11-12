@@ -2,15 +2,15 @@
 
 The standalone [notebook](../finetuning/kaggle.ipynb) targets structured cybersecurity
 answer generation with **Qwen/Qwen3.5-4B**.
-A five-update FP32 pilot completed on two Kaggle T4 GPUs, peaking at 9.91 and 10.15 GiB
-of PyTorch-allocated VRAM. This establishes initial execution compatibility, not
-quality improvement or full-epoch reliability. It does not train social replies,
-intent interpretation, source assessment or ReAct decisions.
+A five-update FP32 compatibility pilot and a full v4 epoch completed on two Kaggle T4
+GPUs. The full epoch peaked at 9.89 and 10.15 GiB of PyTorch-allocated VRAM. This
+establishes execution compatibility and full-epoch fit for v4, not quality improvement.
+It does not train ReAct decisions, tool use or retrieval policy.
 
 ## Dataset
 
 The retained v1 dataset is incompatible with the current chat prompt and remains
-local-only. The **v4 candidate** replaces it for the next experiment: it is rebuilt
+local-only. The **v4 dataset** replaces it for the next experiment: it is rebuilt
 against the current `SYSTEM_PROMPT` and `generation_prompt`, and it closes the gaps that
 the step-400 adapter exposed. Dataset card:
 [domain dataset v4](domain-dataset-v4.md).
@@ -70,7 +70,8 @@ Two T4 GPUs have separate memory. This recipe uses one process with **FP32 LoRA
 and model sharding**, not DDP, BF16, FP16 or 4-bit QLoRA.
 T4 lacks native BF16 training; Qwen3.5 has documented FP16 gradient stability issues,
 and its model-specific guide discourages 4-bit QLoRA.
-Full-epoch cost and memory fit for other workloads remain unverified.
+The v4 epoch is verified on T4 x2; memory fit and cost for other workloads remain
+unverified.
 
 The [model setup](../finetuning/vera_finetuning/model.py) pins the base revision
 and uses eager attention, gradient checkpointing, LoRA rank 8 and alpha 16.
@@ -83,9 +84,38 @@ records validation loss during training and `--validation-examples` controls the
 validation sample. These runs write `metrics.jsonl` so the curve survives outside the
 notebook log.
 
+### v4 training result (2026-11-12)
+
+The authorized v4 dataset completed **one full epoch**: 676 optimizer updates over
+5,406 examples with accumulation 8 and `max_length` 2,560. It ran in two Kaggle
+sessions: the first saved `checkpoint-000350` and was stopped by its wall-clock budget
+at step 387; the second resumed from that checkpoint for the remaining 326 updates.
+The resumed segment took **35,093 s (9.75 h)** of training. The first subprocess ran
+11.4 h before its budget expired, so the epoch cost about 21 h of T4 x2 time across
+the two sessions, including the 37 updates discarded at the first timeout.
+
+| Metric | Value |
+| --- | --- |
+| Optimizer updates | 676 / 676 |
+| Training examples | 5,406 |
+| Peak allocated VRAM | 9.89 / 10.15 GiB |
+| Validation loss | 0.0177 (350) → 0.0084 (600) → 0.0146 (676) |
+| Final training loss | 0.0023 |
+| Truncation / warnings | none |
+
+The final adapter (`adapter/adapter_model.safetensors`, 41 MB) has SHA-256
+`927d384c922e8523000ce8b9445de03e6650dde17098f548e07f4e1065151b4b`. It is a local
+artifact and is not committed.
+
+Validation loss is saturated and training loss is near zero: the epoch fits the
+generation templates and does not demonstrate general capability. The test split was
+not used for selection and deployment remains unauthorized. A behavioral evaluation
+on validation (scope, unavailable evidence, citations and exact quotes) is the next
+gate; loss alone is not evidence of quality.
+
 ## Prepare and run
 
-Build and audit the v4 candidate without loading weights, then package it:
+Build and audit the v4 dataset without loading weights, then package it:
 
 ```bash
 uv run python finetuning/vera_domain/cli.py
@@ -99,7 +129,7 @@ overwrite an existing directory or archive, and verifies source hashes. `prepare
 validates archive hashes, the actual runtime prompts and grounded targets, refuses any
 example that exceeds the declared token budget, and writes the data-free code bundle.
 It never trains, modifies the dataset, uploads data or overwrites an existing bundle.
-Use `--max-length 2560` for this candidate; lower budgets either fail or require dropping
+Use `--max-length 2560` for this dataset; lower budgets either fail or require dropping
 multi-alert rows, which is not permitted. Before training, run the human review pack
 described in the [dataset card](domain-dataset-v4.md#human-review); a green audit alone
 does not authorize training.
