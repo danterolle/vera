@@ -231,6 +231,27 @@ Deployment remains unauthorized. The next gate is a real human review of an inde
 the pack hash, then explicit authorization. The held-out test split stays consumed and is
 not reused for tuning or selection.
 
+### Human review pack
+
+The pack tooling generates fresh answers from the served runtime and never trains,
+tunes or selects a model:
+
+```bash
+uv run python scripts/review-pack.py generate \
+  --queries .vera/reviews/v1/queries.jsonl --output .vera/reviews/v1/answers.jsonl
+uv run python scripts/review-pack.py build \
+  --answers .vera/reviews/v1/answers.jsonl --output .vera/reviews/v1/pack-20261113
+uv run python scripts/review-pack.py record \
+  --pack .vera/reviews/v1/pack-20261113 --reviewer "Reviewer name"
+uv run python scripts/review-pack.py summarize --pack .vera/reviews/v1/pack-20261113
+```
+
+Each case shows the question, the supplied evidence, every claim with its citations and
+the reflection report. A person sets `accept`, `fix` or `reject`, with notes required for
+`fix` and `reject`. The summary reports complete only when every case is accepted, no
+notes are missing, the signoff names a reviewer and date, and the pack SHA-256 matches.
+It never sets `production_authorized`; that remains a separate explicit decision.
+
 ## Prepare and run
 
 Build and audit the v4 dataset without loading weights, then package it:
