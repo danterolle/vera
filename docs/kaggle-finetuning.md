@@ -150,6 +150,44 @@ adapter still produced valid schema and scope in 42/42 with status recall 0.976 
 generalization: validation loss is saturated and the split is template-adjacent.
 Deployment remains unauthorized.
 
+### v4 held-out test result (2026-11-13)
+
+After the adapter was frozen, the held-out test split was used once: 54 examples,
+3 per task, seed 20261113, selection SHA-256
+`da626b6a67829cb36c649cfa376d07fea3343b023af5a27203831b8480f0612c`. The pack
+shares 12/54 targets with training and contains 5 duplicate rows, so it is a held-out-row
+test, not an independently authored target set. Generation took 2,904 s (48.4 min);
+the kernel took 53 min including install and model load.
+
+| Metric | Base | Adapter |
+| --- | ---: | ---: |
+| Valid JSON | 92.6% | 100% |
+| Valid schema | 83.3% (45/54) | 100% |
+| Correct scope | 81.5% | 100% |
+| Mean status recall | 0.667 | 0.963 |
+| `unavailable` present (12 expected) | 6/12 | 10/12 |
+| Citation failures (schema-valid rows) | 13.3% | 0% |
+| Exact-quote claims | 88.1% | 100% |
+| Memory-citation violations | 0 | 0 |
+| Mean output tokens | 386 | 183 |
+| Mean seconds per answer | 34.7 | 19.1 |
+
+On the 42 rows whose targets were unseen, the adapter produced valid schema and scope
+in 42/42 with status recall 0.952. The aggregate hides the blocker: `unavailable_concept`
+is only **1/3**. In two cases the supplied record concerns a different entity (Overwrite
+Process Arguments for "supply chain attack"; Stripped Payloads for "firmware implant"),
+and the adapter cites it as `supported_fact` instead of returning `unavailable`. One
+answer even says the record is a different entity and still cites it. The base also fails
+these cases, but its answer is schema-invalid in one; the adapter makes the same
+grounding error schema-valid, so it can pass format checks while asserting the wrong
+record.
+
+The test split has now been used once for the final evaluation and must not be reused
+for tuning. This result does not meet the production gate: format and scope improve, but
+abstention on unrelated evidence is a core safety rule. Deployment remains unauthorized;
+the next step is a runtime relevance/abstention guard (or targeted data), followed by a
+fresh independent review, not another epoch on the same templates.
+
 ## Prepare and run
 
 Build and audit the v4 dataset without loading weights, then package it:
