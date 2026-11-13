@@ -324,6 +324,10 @@ def record(args: argparse.Namespace) -> None:
 def summarize(args: argparse.Namespace) -> None:
     pack = Path(args.pack)
     cases, rows = read_review(pack)
+    case_ids = [case["id"] for case in cases]
+    row_ids = [row["id"] for row in rows]
+    if len(row_ids) != len(set(row_ids)) or set(row_ids) != set(case_ids):
+        raise SystemExit("review.csv must contain exactly one row per case")
     signoff = json.loads((pack / "signoff.json").read_text())
     verdicts = Counter(row["verdict"] for row in rows if row["verdict"] in VERDICTS)
     unresolved = [row["id"] for row in rows if row["verdict"] not in VERDICTS]
