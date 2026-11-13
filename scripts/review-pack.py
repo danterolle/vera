@@ -26,6 +26,15 @@ CHECKLIST = (
     "Abstentions name what is missing instead of substituting an unrelated record.",
     "The answer language matches the question.",
 )
+CONFIG_WARNINGS = ("Online research is disabled", "Live source access is disabled")
+
+
+def notable_warnings(warnings: list[str]) -> list[str]:
+    """Keep warnings that are not the expected local configuration."""
+    return [
+        warning for warning in warnings
+        if not any(marker in warning for marker in CONFIG_WARNINGS)
+    ]
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -224,6 +233,22 @@ def build(args: argparse.Namespace) -> None:
         "scope_counts": dict(
             sorted(Counter(case["expect_scope"] for case in cases).items())
         ),
+        "http_status_counts": dict(
+            sorted(Counter(case["http_status"] for case in cases).items())
+        ),
+        "review_required": [
+            case["id"] for case in cases if case["http_status"] == 202
+        ],
+        "review_reasons": {
+            case["id"]: case["reasons"] for case in cases if case["reasons"]
+        },
+        "warning_cases": {
+            case["id"]: notable_warnings(case["warnings"])
+            for case in cases
+            if notable_warnings(case["warnings"])
+        },
+        "seconds_total": round(sum(case["seconds"] for case in cases), 1),
+        "seconds_max": max(case["seconds"] for case in cases),
         "pack_sha256": digest(pack / "cases.jsonl"),
         "human_reviewed": False,
     }
