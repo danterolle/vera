@@ -1155,7 +1155,7 @@ VERA_LIVE_SOURCES=false</code></pre>
                 </div>
                 <div class="card amber">
                   <h4>Signed, trained, tested</h4>
-                  <p>80/80 review; 676 updates; 54/54 held-out schema. Two of three unrelated-evidence cases still cite the wrong record; deployment is blocked.</p>
+                  <p>80/80 review; 676 updates; 54/54 held-out schema. The runtime guard repairs both unrelated-evidence cases; deployment waits on human review.</p>
                 </div>
               </div>
             </div>
@@ -1305,7 +1305,7 @@ VERA_LIVE_SOURCES=false</code></pre>
         <section>
           <header class="slide-head">
             <div>
-              <h2>Held-out test: format yes, grounding no</h2>
+              <h2>Held-out test: guard closes the gap</h2>
             </div>
           </header>
           <div class="slide-body">
@@ -1315,8 +1315,8 @@ VERA_LIVE_SOURCES=false</code></pre>
                 <div class="stat-label">adapter valid schema · base 45/54</div>
               </div>
               <div class="card amber">
-                <div class="stat">1/3</div>
-                <div class="stat-label">unavailable_concept correct</div>
+                <div class="stat">12/12</div>
+                <div class="stat-label">unavailable present · guarded · base 6/12</div>
               </div>
               <div class="card teal">
                 <div class="stat">0</div>
@@ -1330,35 +1330,33 @@ VERA_LIVE_SOURCES=false</code></pre>
                 </div>
                 <table>
                   <thead>
-                    <tr><th>Metric</th><th>Base</th><th>Adapter</th></tr>
+                    <tr><th>Metric</th><th>Base</th><th>Adapter</th><th>+ guard</th></tr>
                   </thead>
                   <tbody>
-                    <tr><td>Valid schema</td><td>83.3%</td><td><strong>100%</strong></td></tr>
-                    <tr><td>Correct scope</td><td>81.5%</td><td><strong>100%</strong></td></tr>
-                    <tr><td>Status recall</td><td>0.667</td><td><strong>0.963</strong></td></tr>
-                    <tr><td>Unavailable present</td><td>6/12</td><td><strong>10/12</strong></td></tr>
-                    <tr><td>Citation failures</td><td>13.3%</td><td><strong>0%</strong></td></tr>
-                    <tr><td>Mean output tokens</td><td>386</td><td><strong>183</strong></td></tr>
+                    <tr><td>Valid schema</td><td>83.3%</td><td><strong>100%</strong></td><td>100%</td></tr>
+                    <tr><td>Correct scope</td><td>81.5%</td><td><strong>100%</strong></td><td>100%</td></tr>
+                    <tr><td>Status recall</td><td>0.667</td><td><strong>0.963</strong></td><td>1.000</td></tr>
+                    <tr><td>Unavailable present</td><td>6/12</td><td><strong>10/12</strong></td><td>12/12</td></tr>
+                    <tr><td>Citation failures</td><td>13.3%</td><td><strong>0%</strong></td><td>0%</td></tr>
+                    <tr><td>Mean output tokens</td><td>386</td><td><strong>183</strong></td><td>—</td></tr>
                   </tbody>
                 </table>
               </div>
               <div>
-                <div class="micro" style="margin-bottom: 6px">The blocker</div>
+                <div class="micro" style="margin-bottom: 6px">What the guard does</div>
                 <div class="callout amber" style="margin-top: 0">
-                  Two of three <code>unavailable_concept</code> cases cite an unrelated
-                  record as <code>supported_fact</code> instead of returning
-                  <code>unavailable</code>.
+                  If no supplied knowledge record names the question subject, claims that
+                  cite a record are degraded to <code>unavailable</code> during repair.
                 </div>
                 <div class="callout" style="margin-top: 10px">
-                  "Firmware implant" is answered from a Stripped Payloads record. One
-                  answer even says the record is a different entity and still cites it.
-                  Schema-valid wrong answers pass format checks.
+                  Both unrelated-evidence cases now return <code>unavailable</code>.
+                  Zero false positives across 1,406 gold targets; no new training run.
                 </div>
               </div>
             </div>
             <div class="callout">
-              Not production-ready: the abstention rule needs a runtime guard and human
-              review. Another epoch on the same templates will not fix it.
+              The merged Q6_K artifact passed 4/4 local checks. Not production-ready yet:
+              promotion needs the independent human review pack and explicit authorization.
             </div>
           </div>
           <footer class="deck-footer">
