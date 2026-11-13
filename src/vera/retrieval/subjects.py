@@ -38,7 +38,9 @@ EXPLICIT_SECURITY_TOPIC = re.compile(
     r"ddos|dos|brute[\s-]?force|credential[\s-]?stuffing|"
     r"injection|sql[i]?|xss|csrf|ssrf|buffer[\s-]?overflow|"
     r"man-in-the-middle|mitm|spoofing|social[\s-]?engineering|"
-    r"ingegneria sociale|hacker|defacement|privilege[\s-]?escalation)\b",
+    r"ingegneria sociale|hacker|defacement|privilege[\s-]?escalation|"
+    r"powershell|sysinternals|wireshark|nmap|metasploit|mimikatz|"
+    r"cobalt[\s-]?strike|burp[\s-]?suite)\b",
     re.IGNORECASE,
 )
 

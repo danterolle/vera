@@ -17,6 +17,11 @@ SOCIAL = re.compile(
 )
 
 
+def _clean(value: str | None) -> str:
+    text = (value or "").strip()
+    return text if re.search(r"[A-Za-z0-9]", text) else ""
+
+
 def interpret(runtime: Runtime, request: AnalysisRequest) -> tuple[InteractionPlan, int, list[str]]:
     query = research_query(request.query, request.conversation) or request.query
     prev_topic = ""
@@ -48,8 +53,16 @@ def interpret(runtime: Runtime, request: AnalysisRequest) -> tuple[InteractionPl
     if runtime.provider.external and planner:
         try:
             result = planner(request)
-            if IDENTIFIERS.search(request.query) and result.intent != "cybersecurity":
-                result = result.model_copy(update={"intent": "cybersecurity"})
+            if (
+                (IDENTIFIERS.search(request.query) or explicit_security_topic(query))
+                and result.intent != "cybersecurity"
+            ):
+                result = result.model_copy(update={
+                    "intent": "cybersecurity",
+                    "resolved_query": _clean(result.resolved_query) or query[:1000],
+                    "subject": _clean(result.subject) or fallback.subject,
+                    "search_query": _clean(result.search_query) or fallback.search_query,
+                })
             # A named topic, follow-up on previous context, or an explicit security identifier
             # needs evidence, not a generic clarification.
             if result.intent == "clarification" and (
