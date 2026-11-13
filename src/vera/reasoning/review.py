@@ -58,11 +58,39 @@ def review_reasons(state: GraphState) -> list[str]:
         if not any(
             cve_id in item.title.upper() or item.metadata.get("cve_id") == cve_id
             for item in usable
-        ):
+        ) and not _cve_acknowledged(state, cve_id):
             reasons.append(f"No available evidence concerns {cve_id}.")
-    if draft.claims and all(
-        claim.status in {ClaimStatus.UNAVAILABLE, ClaimStatus.SYSTEM_INFERENCE}
-        for claim in draft.claims
-    ) and not reflection.unsupported_claims:
+    if (
+        draft.claims
+        and all(
+            claim.status in {ClaimStatus.UNAVAILABLE, ClaimStatus.SYSTEM_INFERENCE}
+            for claim in draft.claims
+        )
+        and not reflection.unsupported_claims
+        and not _all_unavailable_acknowledged(state)
+    ):
         reasons.append("The draft has no supported or observed findings.")
     return reasons
+
+
+def _cve_acknowledged(state: GraphState, cve_id: str) -> bool:
+    """A correct 'missing' answer does not need review just because evidence is absent."""
+    if not any(
+        claim.status == ClaimStatus.UNAVAILABLE for claim in state["draft"].claims
+    ):
+        return False
+    return any(
+        item.status == EvidenceStatus.UNAVAILABLE
+        and (
+            cve_id in item.title.upper()
+            or item.metadata.get("cve_id") == cve_id
+        )
+        for item in state["evidence"]
+    )
+
+
+def _all_unavailable_acknowledged(state: GraphState) -> bool:
+    draft = state["draft"]
+    return bool(draft.claims) and all(
+        claim.status == ClaimStatus.UNAVAILABLE for claim in draft.claims
+    ) and any(item.status == EvidenceStatus.UNAVAILABLE for item in state["evidence"])

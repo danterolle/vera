@@ -6,7 +6,7 @@ from vera.domain.reports import ReflectionReport
 def _is_grounding_error(error: str) -> bool:
     return any(
         marker in error
-        for marker in ("supported fact", "supported-fact", "supporting quote")
+        for marker in ("supported fact", "supported-fact", "supported_fact", "supporting quote")
     )
 
 
@@ -21,14 +21,15 @@ def reflect(
     missing_sources = sorted(
         {item.source.value for item in evidence if item.status == EvidenceStatus.UNAVAILABLE}
     )
-    inference_count = sum(claim.status == ClaimStatus.SYSTEM_INFERENCE for claim in claims)
     grounding_failures = sum(
         _is_grounding_error(error)
         for error in validation_errors
     )
     factual_failures = sum("(supported_fact)" in error for error in validation_errors)
+    inference_count = sum(claim.status == ClaimStatus.SYSTEM_INFERENCE for claim in claims)
     hidden_failures = max(0, grounding_failures - inference_count)
-    unsupported = inference_count + hidden_failures
+    # A claim explicitly labeled as inference is not an unsupported factual claim.
+    unsupported = grounding_failures
     factual = [claim for claim in claims if claim.status == ClaimStatus.SUPPORTED_FACT]
     assessable = [
         claim
