@@ -140,11 +140,20 @@ class WorkflowNodes:
             minimum_coverage=self.runtime.settings.grounding_min_coverage,
             subjects=subjects,
         )
+        checked = validate_and_repair(
+            final.draft,
+            state["evidence"],
+            repair=False,
+            minimum_coverage=self.runtime.settings.grounding_min_coverage,
+            subjects=subjects,
+        )
         return {
             "draft": final.draft,
-            "validation_errors": initial.errors,
+            "validation_errors": checked.errors,
             "retry_generation": False,
-            "trace": state["trace"] + [f"validation:errors={len(initial.errors)}"],
+            "trace": state["trace"] + [
+                f"validation:errors={len(initial.errors)}:remaining={len(checked.errors)}"
+            ],
         }
 
     def reflection(self, state: GraphState) -> dict:
