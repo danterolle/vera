@@ -216,7 +216,7 @@ On validation the guard never intervened: schema 53/54 (one invalid JSON), statu
 0.981, `unavailable` 11/12, `unavailable_concept` 2/3. The guard closes the measured
 failure on test; it does not add capability that the validation pack still lacks.
 
-For serving, the adapter was merged into the pinned base (PEFT on
+For serving, the adapter was merged into the pinned base (revision `851bf6e8`, PEFT on
 `Qwen3_5ForCausalLM`, bf16), converted to GGUF BF16 (SHA-256
 `053007ea347f71bd132c55f2d086a260c25a59829da78018506dc68c4dd49f03`) and quantized to
 Q6_K (3.2 GB, SHA-256
