@@ -79,6 +79,25 @@ Revalidate the served model: applying a LoRA to a quantized GGUF differs numeric
 from merging the adapter before quantization. The adapter is experimental, not a
 replacement model.
 
+## Serve the merged v4 artifact
+
+The v4 adapter is merged into `Qwen/Qwen3.5-4B` before quantization, so the served file
+contains the fine-tuned weights and needs no `--lora` flag. The local artifact is
+`.vera/models/vera-v4-676-merged-Q6_K.gguf` (3.2 GB, SHA-256
+`872292b16661ab123e51f588d857592c0eab0d1d74aae0615d1310e954ec21a6`). Start it with the
+same flags as the base:
+
+```bash
+llama-server -m .vera/models/vera-v4-676-merged-Q6_K.gguf \
+  -ngl 99 -fa on --ctx-size 8192 --parallel 1 \
+  --reasoning off --reasoning-budget 0 \
+  --host 127.0.0.1 --port 1234 --alias vera-v4-676-merged
+```
+
+Point `VERA_LLM_MODEL` at the alias. The artifact is experimental: validation and test
+leave abstention and human-review gates open. Revalidation commands and results are in
+the [fine-tuning report](kaggle-finetuning.md#v4-runtime-guard-and-merged-artifact-2026-11-13).
+
 ## Linux / NVIDIA helper
 
 `bash scripts/start-local-model.sh` reuses LM Studio's CUDA runtime and serves
