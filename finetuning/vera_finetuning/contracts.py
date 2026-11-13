@@ -7,6 +7,7 @@ from vera.domain.reports import DetectionAlert, GeneratedAnswer, StreamStatistic
 from vera.domain.requests import AnalysisRequest
 from vera.providers.prompts import generation_prompt
 from vera.reasoning.validation import validate_and_repair
+from vera.retrieval.subjects import subject_candidates
 
 INTENTS = {"cybersecurity", "social", "out_of_scope", "clarification"}
 
@@ -39,7 +40,15 @@ def validate_example(
     answer = GeneratedAnswer.model_validate_json(messages[2]["content"])
     _validate_intent(intent, answer)
     outcome = validate_and_repair(
-        answer, evidence, repair=False, minimum_coverage=minimum_coverage,
+        answer,
+        evidence,
+        repair=False,
+        minimum_coverage=minimum_coverage,
+        subjects=(
+            subject_candidates(context["resolved_question"], context.get("current_subject"))
+            if intent == "cybersecurity"
+            else []
+        ),
     )
     if outcome.errors:
         raise ValueError(f"{example['id']}: {outcome.errors}")

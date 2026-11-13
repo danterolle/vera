@@ -12,6 +12,7 @@ from vera_finetuning.evaluation import extract_json
 from vera.config import Settings
 from vera.domain.reports import GeneratedAnswer
 from vera.reasoning.validation import validate_and_repair
+from vera.retrieval.subjects import subject_candidates
 
 
 def normalize(text: str) -> str:
@@ -20,7 +21,13 @@ def normalize(text: str) -> str:
 
 def score_answer(record: dict, example: dict, coverage: float) -> dict:
     target = json.loads(example["messages"][-1]["content"])
-    evidence = context_evidence(parse_context(example))
+    context = parse_context(example)
+    evidence = context_evidence(context)
+    subjects = (
+        subject_candidates(context["resolved_question"], context.get("current_subject"))
+        if context["conversational_intent"] == "cybersecurity"
+        else []
+    )
     by_id = {item.id: item for item in evidence}
     result = {
         "model": record["model"],
@@ -45,10 +52,29 @@ def score_answer(record: dict, example: dict, coverage: float) -> dict:
         return result
 
     outcome = validate_and_repair(
-        answer, evidence, repair=False, minimum_coverage=coverage,
+        answer,
+        evidence,
+        repair=False,
+        minimum_coverage=coverage,
+        subjects=subjects,
+    )
+    guarded = validate_and_repair(
+        answer,
+        evidence,
+        repair=True,
+        minimum_coverage=coverage,
+        subjects=subjects,
+    )
+    checked = validate_and_repair(
+        guarded.draft,
+        evidence,
+        repair=False,
+        minimum_coverage=coverage,
+        subjects=subjects,
     )
     expected = {claim["status"] for claim in target["claims"]}
     actual = {claim.status.value for claim in answer.claims}
+    guarded_actual = {claim.status.value for claim in guarded.draft.claims}
     supported = [
         claim for claim in answer.claims if claim.status.value == "supported_fact"
     ]
@@ -57,17 +83,33 @@ def score_answer(record: dict, example: dict, coverage: float) -> dict:
         schema_valid=True,
         out_of_scope=answer.out_of_scope,
         out_of_scope_correct=answer.out_of_scope == target["out_of_scope"],
+        guarded_out_of_scope=guarded.draft.out_of_scope,
+        guarded_out_of_scope_correct=guarded.draft.out_of_scope == target["out_of_scope"],
         claims=len(answer.claims),
         expected_statuses=sorted(expected),
         actual_statuses=sorted(actual),
+        guarded_statuses=sorted(guarded_actual),
         status_recall=(
             len(expected & actual) / len(expected)
             if expected else float(not actual)
         ),
+        guarded_status_recall=(
+            len(expected & guarded_actual) / len(expected)
+            if expected else float(not guarded_actual)
+        ),
+        relevance_failures=sum(
+            "no supplied record concerns" in error for error in outcome.errors
+        ),
+        scope_guard_failures=sum(
+            "marked out of scope" in error for error in outcome.errors
+        ),
         missing_statuses=sorted(expected - actual),
         unexpected_statuses=sorted(actual - expected),
+        guarded_missing_statuses=sorted(expected - guarded_actual),
+        guarded_unexpected_statuses=sorted(guarded_actual - expected),
         unavailable_expected="unavailable" in expected,
         unavailable_present="unavailable" in actual,
+        guarded_unavailable_present="unavailable" in guarded_actual,
         simulated_expected="simulated" in expected,
         simulated_present="simulated" in actual,
         supported_fact_on_memory=sum(
@@ -89,6 +131,7 @@ def score_answer(record: dict, example: dict, coverage: float) -> dict:
             )
         ),
         validation_failures=len(outcome.errors),
+        guarded_validation_failures=len(checked.errors),
         citation_failures=sum(
             1
             for error in outcome.errors
@@ -118,11 +161,19 @@ def summarize(rows: list[dict]) -> dict:
         "schema_valid_rate": rate("schema_valid"),
         "schema_valid_examples": len(valid),
         "scope_accuracy": rate("out_of_scope_correct"),
+        "guarded_scope_accuracy": rate("guarded_out_of_scope_correct"),
         "mean_status_recall": mean_of("status_recall"),
+        "guarded_mean_status_recall": mean_of("guarded_status_recall"),
         "unavailable_presence_rate": (
             mean(bool(row.get("unavailable_present")) for row in expected_unavailable)
             if expected_unavailable else None
         ),
+        "guarded_unavailable_presence_rate": (
+            mean(bool(row.get("guarded_unavailable_present")) for row in expected_unavailable)
+            if expected_unavailable else None
+        ),
+        "relevance_failure_rate": rate("relevance_failures"),
+        "scope_guard_failure_rate": rate("scope_guard_failures"),
         "simulated_presence_rate": (
             mean(bool(row.get("simulated_present")) for row in expected_simulated)
             if expected_simulated else None
@@ -131,6 +182,7 @@ def summarize(rows: list[dict]) -> dict:
             mean(bool(row["citation_failures"]) for row in valid) if valid else None
         ),
         "mean_validation_failures": mean_of("validation_failures"),
+        "mean_guarded_validation_failures": mean_of("guarded_validation_failures"),
         "exact_quote_rate": exact / supported if supported else None,
         "memory_citation_violations": sum(
             row.get("supported_fact_on_memory", 0) for row in rows

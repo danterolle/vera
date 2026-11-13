@@ -1,9 +1,11 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from vera.domain.enums import ClaimStatus, EvidenceStatus, SourceType
 from vera.domain.evidence import Claim, Evidence
 from vera.domain.reports import GeneratedAnswer
 from vera.reasoning.grounding import grounding_error, quote_is_verbatim
+from vera.reasoning.relevance import has_relevant_evidence, unrelated_supported_claims
 
 
 @dataclass(frozen=True)
@@ -18,11 +20,29 @@ def validate_and_repair(
     *,
     repair: bool,
     minimum_coverage: float = 0.55,
+    subjects: Sequence[str] = (),
 ) -> ValidationOutcome:
     by_id = {item.id: item for item in evidence}
+    unrelated = set(unrelated_supported_claims(draft.claims, evidence, subjects))
+    scope_conflict = (
+        draft.out_of_scope
+        and bool(subjects)
+        and has_relevant_evidence(evidence, subjects)
+    )
     errors: list[str] = []
+    if scope_conflict:
+        errors.append(
+            "Answer is marked out of scope but supplied evidence concerns the query subject"
+        )
     claims: list[Claim] = []
     for index, claim in enumerate(draft.claims):
+        if index in unrelated:
+            errors.append(
+                f"Claim {index} (supported_fact): no supplied record concerns "
+                "the query subject"
+            )
+            claims.append(_unavailable_claim(claim) if repair else claim)
+            continue
         referenced = set(claim.evidence_ids) | {
             citation.evidence_id for citation in claim.citations
         }
@@ -34,7 +54,10 @@ def validate_and_repair(
             claims.append(_repair_claim(claim, cited, by_id) if repair else claim)
         else:
             claims.append(claim)
-    return ValidationOutcome(draft.model_copy(update={"claims": claims}), errors)
+    update = {"claims": claims}
+    if scope_conflict and repair:
+        update["out_of_scope"] = False
+    return ValidationOutcome(draft.model_copy(update=update), errors)
 
 
 def _claim_error(
@@ -107,5 +130,16 @@ def _repair_claim(
             "status": status,
             "evidence_ids": valid_ids,
             "citations": valid_citations,
+        }
+    )
+
+
+def _unavailable_claim(claim: Claim) -> Claim:
+    """An off-topic record must not be retained as a supported fact."""
+    return claim.model_copy(
+        update={
+            "status": ClaimStatus.UNAVAILABLE,
+            "evidence_ids": [],
+            "citations": [],
         }
     )

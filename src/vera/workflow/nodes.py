@@ -5,7 +5,7 @@ from vera.domain.plans import ResourcePlan
 from vera.domain.state import GraphState
 from vera.reasoning.reflection import reflect
 from vera.reasoning.validation import validate_and_repair
-from vera.retrieval.subjects import WEB_INTENT, research_query
+from vera.retrieval.subjects import WEB_INTENT, research_query, subject_candidates
 from vera.stream.detectors import detect_events
 from vera.stream.incident import build_incident
 from vera.stream.policy import DetectionPolicy
@@ -106,11 +106,18 @@ class WorkflowNodes:
         return generate_draft(self.runtime, state)
 
     def validate(self, state: GraphState) -> dict:
+        plan = state["resource_plan"]
+        subjects = (
+            subject_candidates(plan.resolved_query or state["request"].query, plan.subject)
+            if plan.intent == "cybersecurity"
+            else []
+        )
         initial = validate_and_repair(
             state["draft"],
             state["evidence"],
             repair=False,
             minimum_coverage=self.runtime.settings.grounding_min_coverage,
+            subjects=subjects,
         )
         can_retry = (
             bool(initial.errors)
@@ -131,6 +138,7 @@ class WorkflowNodes:
             state["evidence"],
             repair=True,
             minimum_coverage=self.runtime.settings.grounding_min_coverage,
+            subjects=subjects,
         )
         return {
             "draft": final.draft,
