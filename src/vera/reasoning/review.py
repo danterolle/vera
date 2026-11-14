@@ -13,6 +13,10 @@ CYBER_INTENT = re.compile(
 
 
 def review_reasons(state: GraphState) -> list[str]:
+    reasons = []
+    if state.get("provider_fallback"):
+        reasons.append("Model generation failed or exhausted its budget; fallback requires review.")
+    reasons.extend(state.get("summary_errors", []))
     if (
         state["resource_plan"].intent in {"social", "out_of_scope", "clarification"}
         and not state["alerts"]
@@ -21,8 +25,7 @@ def review_reasons(state: GraphState) -> list[str]:
         and not extract_cve_ids(state["request"].query)
         and not CYBER_INTENT.search(state["request"].query)
     ):
-        return []
-    reasons = []
+        return reasons
     alerts = [
         alert for alert in state["alerts"]
         if alert.severity in {Severity.HIGH, Severity.CRITICAL}

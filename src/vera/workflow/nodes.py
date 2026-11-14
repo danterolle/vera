@@ -4,8 +4,10 @@ from datetime import UTC, datetime
 from vera.domain.plans import ResourcePlan
 from vera.domain.state import GraphState
 from vera.reasoning.reflection import reflect
+from vera.reasoning.relevance import analysis_subjects
+from vera.reasoning.summary import summary_review_errors
 from vera.reasoning.validation import validate_and_repair
-from vera.retrieval.subjects import WEB_INTENT, research_query, subject_candidates
+from vera.retrieval.subjects import WEB_INTENT, research_query
 from vera.stream.detectors import detect_events
 from vera.stream.incident import build_incident
 from vera.stream.policy import DetectionPolicy
@@ -51,6 +53,7 @@ class WorkflowNodes:
             "evidence": [],
             "generation_attempts": 0,
             "validation_errors": [],
+            "summary_errors": [],
             "retry_generation": False,
             "provider_fallback": False,
             "model_calls": 0,
@@ -108,7 +111,10 @@ class WorkflowNodes:
     def validate(self, state: GraphState) -> dict:
         plan = state["resource_plan"]
         subjects = (
-            subject_candidates(plan.resolved_query or state["request"].query, plan.subject)
+            analysis_subjects(
+                state["request"].query, state["alerts"],
+                resolved_query=plan.resolved_query, current_subject=plan.subject,
+            )
             if plan.intent == "cybersecurity"
             else []
         )
@@ -129,7 +135,9 @@ class WorkflowNodes:
         )
         if can_retry:
             return {
-                "validation_errors": initial.errors,
+                "validation_errors": list(dict.fromkeys(
+                    state["validation_errors"] + initial.errors,
+                )),
                 "retry_generation": True,
                 "trace": state["trace"] + [f"validation:retry={len(initial.errors)}"],
             }
@@ -147,10 +155,20 @@ class WorkflowNodes:
             minimum_coverage=self.runtime.settings.grounding_min_coverage,
             subjects=subjects,
         )
+        errors = list(dict.fromkeys(state["validation_errors"] + initial.errors + checked.errors))
+        summary_errors = (
+            summary_review_errors(final.draft.summary, final.draft.claims)
+            if self.runtime.provider.external and plan.intent == "cybersecurity"
+            and not final.draft.out_of_scope else []
+        )
+        warnings = list(state["warnings"])
+        warnings.extend(summary_errors)
         return {
             "draft": final.draft,
-            "validation_errors": checked.errors,
+            "validation_errors": errors,
+            "summary_errors": summary_errors,
             "retry_generation": False,
+            "warnings": list(dict.fromkeys(warnings)),
             "trace": state["trace"] + [
                 f"validation:errors={len(initial.errors)}:remaining={len(checked.errors)}"
             ],

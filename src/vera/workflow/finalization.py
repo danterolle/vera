@@ -4,6 +4,7 @@ from vera.domain.enums import ClaimStatus
 from vera.domain.reports import AnalysisResult, RunMetrics
 from vera.domain.state import GraphState
 from vera.providers.rendering import render_answer
+from vera.reasoning.validation import VALIDATION_CONTRACT
 from vera.workflow.knowledge_graph import graph_metadata, persist_result
 from vera.workflow.learning import validated_knowledge
 from vera.workflow.runtime import Runtime
@@ -30,6 +31,8 @@ def finalize_result(runtime: Runtime, state: GraphState) -> dict:
         "provider": runtime.provider.name,
         "model": runtime.settings.llm_model if runtime.provider.external else None,
         "provider_fallback": state["provider_fallback"],
+        "validation_contract": VALIDATION_CONTRACT,
+        "summary_requires_review": bool(state.get("summary_errors")),
         "out_of_scope": state["draft"].out_of_scope,
         "intent": state["resource_plan"].intent,
         "session_id": state["request"].session_id,

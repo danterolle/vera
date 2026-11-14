@@ -7,6 +7,8 @@ from vera.domain.reports import GeneratedAnswer
 from vera.reasoning.grounding import grounding_error, quote_is_verbatim
 from vera.reasoning.relevance import has_relevant_evidence, unrelated_supported_claims
 
+VALIDATION_CONTRACT = "vera-evidence-v2"
+
 
 @dataclass(frozen=True)
 class ValidationOutcome:
@@ -38,8 +40,8 @@ def validate_and_repair(
     for index, claim in enumerate(draft.claims):
         if index in unrelated:
             errors.append(
-                f"Claim {index} (supported_fact): no supplied record concerns "
-                "the query subject"
+                f"Claim {index} (supported_fact): a cited record does not concern "
+                f"the query subject; rejected text: {claim.text}"
             )
             claims.append(_unavailable_claim(claim) if repair else claim)
             continue
@@ -90,6 +92,8 @@ def _claim_error(
                     f"supported fact cites non-authoritative evidence "
                     f"{citation.evidence_id}"
                 )
+            if claim.text != citation.supporting_quote:
+                return "supported fact must equal its verbatim supporting quotation"
             error = grounding_error(claim.text, citation, item, minimum_coverage)
             if error is not None:
                 return (
@@ -138,6 +142,7 @@ def _unavailable_claim(claim: Claim) -> Claim:
     """An off-topic record must not be retained as a supported fact."""
     return claim.model_copy(
         update={
+            "text": "The cited record does not establish a finding about the requested subject.",
             "status": ClaimStatus.UNAVAILABLE,
             "evidence_ids": [],
             "citations": [],

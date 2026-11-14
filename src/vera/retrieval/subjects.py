@@ -114,7 +114,7 @@ RELEVANCE_TRAIL = re.compile(
     re.IGNORECASE,
 )
 RELEVANCE_CLAUSE = re.compile(
-    r"\s+(?:and|but|or|while|whereas|using|that|which|who)\s+", re.IGNORECASE,
+    r"\s+(?:and(?=\s+(?:describe|explain)\b)|but|or|while|whereas|using|that|which|who)\s+", re.I,
 )
 GENERIC_SUBJECT_WORDS = {
     "a", "an", "the", "of", "to", "in", "on", "for", "from", "by", "as", "at",
@@ -155,29 +155,28 @@ def subject_candidates(query: str, current_subject: str | None = None) -> list[s
     text = RELEVANCE_PREFIX.sub("", text).strip()
     text = re.sub(r"^(?:a|an|the)\s+", "", text, flags=re.IGNORECASE)
     text = RELEVANCE_TRAIL.sub("", text).strip(" .,:;-")
+    values.extend(part.strip() for part in text.rsplit(":", 1)[1:])
     text = RELEVANCE_CLAUSE.split(text)[0].strip(" .,:;-")
     if text and len(text.split()) <= 9:
         values.append(text)
-    derived = concept_subject(query)
-    if derived:
+    if derived := concept_subject(query):
         values.append(derived)
     return list(dict.fromkeys(value.strip() for value in values if value and value.strip()))
 
 
 def _names(item: Evidence) -> list[str]:
+    if item.source == SourceType.MEMORY or item.status != EvidenceStatus.AVAILABLE:
+        return []
     names = [item.title.split("—")[0], *item.metadata.get("aliases", [])]
     for entity in item.metadata.get("graph_entities", []):
         names.extend([entity.get("name", ""), *entity.get("aliases", [])])
-    names += [str(item.metadata.get(key, "")) for key in (
-        "external_id", "cve_id", "cwe_id", "technique_id",
-    )]
+    names += [str(item.metadata.get(key, "")) for key in
+              ("external_id", "cve_id", "cwe_id", "technique_id")]
     return [str(name) for name in names if name]
 
 
 def names_subject(item: Evidence, subject: str) -> bool:
     """A passing mention inside a relationship is not a definition of its target."""
-    if item.source == SourceType.MEMORY or item.status != EvidenceStatus.AVAILABLE:
-        return False
     needle = normalized(subject)
     return bool(needle) and any(
         f" {needle} " in f" {normalized(name)} " for name in _names(item)
@@ -186,19 +185,16 @@ def names_subject(item: Evidence, subject: str) -> bool:
 
 def mentions_subject(item: Evidence, subject: str) -> bool:
     """Exact identifiers; for concepts, require every meaningful token in one name."""
-    if item.source == SourceType.MEMORY or item.status != EvidenceStatus.AVAILABLE:
-        return False
-    names = _names(item)
     if IDENTIFIERS.fullmatch(subject.strip()):
         needle = normalized(subject)
-        return any(f" {needle} " in f" {normalized(name)} " for name in names)
+        return any(f" {needle} " in f" {normalized(name)} " for name in _names(item))
     wanted = _subject_tokens(subject)
     if not wanted:
-        return True
+        return names_subject(item, subject)
     return any(
         all(
             f" {token} " in f" {_spelling(normalized(name))} "
             for token in wanted
         )
-        for name in names
+        for name in _names(item)
     )

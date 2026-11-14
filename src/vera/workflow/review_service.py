@@ -13,6 +13,7 @@ from vera.domain.state import GraphState
 from vera.errors import ReviewUnavailable
 from vera.memory.review_decisions import ReviewDecisions
 from vera.memory.reviews import ReviewStore
+from vera.reasoning.validation import VALIDATION_CONTRACT
 from vera.workflow.knowledge_graph import graph_metadata
 from vera.workflow.runtime import Runtime
 
@@ -65,6 +66,8 @@ class ReviewService:
                 "provider": provider.name,
                 "model": self.runtime.settings.llm_model if provider.external else None,
                 "provider_fallback": state["provider_fallback"],
+                "validation_contract": VALIDATION_CONTRACT,
+                "summary_requires_review": bool(state.get("summary_errors")),
                 "origin": state["request"].origin,
                 "intent": state["resource_plan"].intent,
                 "resource_plan": state["resource_plan"].model_dump(mode="json"),
@@ -169,26 +172,22 @@ class ReviewService:
     def _approved(
         self, previous: ReviewRecord, decision: ReviewDecision, result: AnalysisResult
     ) -> AnalysisResult:
-        record = previous.model_copy(
-            update={
-                "status": ReviewStatus.APPROVED,
-                "version": previous.version + 1,
-                "can_revise": False,
-            }
-        )
+        record = previous.model_copy(update={
+            "status": ReviewStatus.APPROVED,
+            "version": previous.version + 1,
+            "can_revise": False,
+        })
         self.decisions.finish(decision, record, result)
         self.prune(previous.run_id)
         return result
 
     def _rejected(self, previous: ReviewRecord, decision: ReviewDecision) -> ReviewRecord:
-        record = previous.model_copy(
-            update={
-                "status": ReviewStatus.REJECTED,
-                "version": previous.version + 1,
-                "can_revise": False,
-                "feedback_history": [*previous.feedback_history, decision.feedback or ""],
-            }
-        )
+        record = previous.model_copy(update={
+            "status": ReviewStatus.REJECTED,
+            "version": previous.version + 1,
+            "can_revise": False,
+            "feedback_history": [*previous.feedback_history, decision.feedback or ""],
+        })
         self.decisions.finish(decision, record, record)
         self.prune(previous.run_id)
         return record

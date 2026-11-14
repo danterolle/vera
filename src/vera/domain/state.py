@@ -34,6 +34,7 @@ class GraphState(TypedDict, total=False):
     result: AnalysisResult
     generation_attempts: int
     validation_errors: list[str]
+    summary_errors: list[str]
     retry_generation: bool
     provider_fallback: bool
     model_calls: int
