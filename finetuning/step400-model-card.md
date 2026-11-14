@@ -10,18 +10,20 @@ tags:
 
 # VERA Qwen3.5-4B step-400 adapter
 
-Experimental, publicly released LoRA adapter for drafting VERA-compatible,
-evidence-grounded answers. Base-model weights and training/evaluation datasets are
-not included.
+This publicly released LoRA adapter drafts answers in VERA's evidence-based format.
+It is experimental, and its release includes neither base-model weights nor training
+or evaluation datasets. The results below describe the step-400 experiment and its
+historical runtime, not acceptance of the later `vera-evidence-v2` contract.
 
 ## Provenance
 
-- Base: `Qwen/Qwen3.5-4B`, revision
-  `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a`
-- Adapter: LoRA rank 8, alpha 16, dropout 0, seven projection modules
-- Training: FP32, 400 optimizer updates, approximately 0.81 epoch
-- Training prompt: the pre-v3 historical answer contract
-- Data: synthetic and not expert-reviewed
+| Item | Value |
+| --- | --- |
+| Base | `Qwen/Qwen3.5-4B`, revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` |
+| Adapter | LoRA rank 8, alpha 16, dropout 0, seven projection modules |
+| Training | FP32, 400 optimizer updates, approximately 0.81 epoch |
+| Training prompt | Historical pre-v3 answer contract |
+| Data | Synthetic targets without expert review |
 
 The later English-only v3 evaluations used mechanically aligned prompts without
 retraining this adapter. The v3 candidate preserves the existing targets and is not
@@ -30,22 +32,25 @@ on the dataset or production deployment.
 
 ## Local validation
 
-A four-case offline A/B smoke check through VERA used the same Q6_K base model with
-the LoRA disabled/enabled, ReAct disabled, live sources disabled, and temporary
-databases. It used only repository-bundled corpus snapshots, the current system prompt
-(`sha256 010be6a57f95bfbb34e27478cc496576b5ca72c5e3d4c35ddd6393a8b18272c7`),
-English output, and a 4,096-token output limit. Under the permissive status/citation
-criterion, the base passed 2/4 cases and the adapter 3/4. Requiring zero validation
-errors gives the stricter result of 2/4 for both; the adapter's missing-CVE case had
-one validation error. Both models classified the PowerShell question as out of scope.
+A four-case offline comparison used the same Q6_K base model with the LoRA disabled
+and enabled. ReAct and live sources were disabled, and each variant used temporary
+databases and repository-bundled snapshots. The system prompt was identified by
+SHA-256 `010be6a57f95bfbb34e27478cc496576b5ca72c5e3d4c35ddd6393a8b18272c7`.
+The run used English output and a 4,096-token output limit.
+
+Under the permissive status/citation criterion, the base passed 2/4 cases and the
+adapter 3/4. Requiring zero validation errors reduced the result to 2/4 for both:
+the adapter's missing-CVE answer still had one error. Both models classified the
+PowerShell question as out of scope.
+
 The adapter gave a concise grounded CWE-89 answer and marked the missing CVE
 unavailable; the base summary included a contradictory XSS statement for CWE-89 and
 combined an unavailable CVE result with a supported-fact claim. Both handled the
 recipe question as out of scope.
 
-This is a small runtime smoke check, not a factual-accuracy benchmark or deployment
-approval. The runtime citation validator does not validate every sentence in the
-summary.
+These four cases are a smoke check, not an accuracy benchmark or deployment approval.
+The citation validator used in that run did not verify every summary sentence. The
+current runtime instead holds non-extractive model summaries for human review.
 
 Reproduce the download, checksum verification, server startup, and local A/B test from
 a VERA source checkout:
@@ -65,10 +70,10 @@ builds remain platform-specific.
 
 ## Files and checksums
 
-The artifact contains `adapter_config.json`, `adapter_model.safetensors`, and the
-tested `vera-step400-lora-f16.gguf` conversion. Their SHA-256 digests are recorded in
-`step400-adapter.sha256`. No dataset, runtime database, credential or base-model
-weight is included.
+The artifact contains `adapter_config.json`, `adapter_model.safetensors` and the
+tested `vera-step400-lora-f16.gguf` conversion, with SHA-256 digests in
+`step400-adapter.sha256`. It contains no datasets, runtime databases, credentials
+or base-model weights.
 
 ## Serving
 
