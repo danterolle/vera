@@ -6,12 +6,12 @@ description: >-
 
 # Evaluation
 
-Use the commands in [README development](../../../README.md#development).
-Scenarios are in `src/vera/data/evaluation/scenarios.json`;
-their schema and metrics are defined in `evaluation/runner.py`.
-Use existing sample filenames and detector rule IDs, not invented examples.
+Use the commands in the [development guide](../../../README.md#development).
+The scenarios live in `src/vera/data/evaluation/scenarios.json`, with their schema
+and metrics defined in `src/vera/evaluation/runner.py`. Refer to existing sample
+filenames and detector rule IDs rather than inventing examples.
 
-The benchmark disables review and live sources. Minimum source coverage counts
-distinct source categories, not document rows.
-Passing it does not establish live-model accuracy, human-review correctness or GPU fit.
-Validate those behaviors separately when the change requires it.
+The benchmark runs with human review and live sources disabled. Its minimum source
+coverage counts distinct source categories, not individual documents. A passing result
+does not establish live-model accuracy, correct human-review behavior or GPU fit;
+check those separately when they are relevant to the change.

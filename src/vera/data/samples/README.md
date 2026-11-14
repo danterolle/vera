@@ -1,7 +1,10 @@
 # Synthetic event samples
 
-All addresses use private or documentation-only ranges. Every record is explicitly marked as
-simulated and is intended only for local defensive testing.
+These event files are controlled examples for local defensive testing, not captures
+of real incidents. Every record is marked as simulated, and all addresses come from
+private or documentation-only ranges.
+
+The table shows the routes and detector results expected by the bundled scenarios:
 
 | File | Expected route | Expected rules |
 | --- | --- | --- |
@@ -12,9 +15,13 @@ simulated and is intended only for local defensive testing.
 | `web-exploitation.jsonl` | `FULL` | Log4Shell, path traversal, and command injection |
 | `network-events.jsonl` | `FULL` | Combined port scan and web exploitation |
 
-Example:
+For example, replay the port-scan sample with:
 
 ```bash
 uv run --extra knowledge-graph vera analyze "Analyze this controlled replay" \
   --events src/vera/data/samples/port-scan.jsonl --simulated --offline
 ```
+
+Pass events through `--events` or the API's structured event field. Pasting their
+text into a question does not invoke the detectors. The `--offline` flag disables
+live source lookups, not calls to a configured local model.

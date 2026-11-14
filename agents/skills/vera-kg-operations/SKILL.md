@@ -6,12 +6,14 @@ description: >-
 
 # Knowledge graph operations
 
-Follow [graph operations](../../../docs/knowledge-graph.md).
-Implementation lives in `src/vera/knowledge_graph/`; use `schema.py` for migrations,
-`store.py` for connections and `projection.py` for retained runs.
+Start with the [graph operations guide](../../../docs/knowledge-graph.md).
+The implementation is in `src/vera/knowledge_graph/`: migrations belong in `schema.py`,
+connections in `store.py`, and retained-run projection in `projection.py`.
 
-Keep Kuzu pinned unless compatibility is checked. Preserve source versions and
-provenance; graph associations must not become unsupported factual claims.
-Queries use bound parameters and fixed templates.
-Back up a closed database before schema work; do not delete an open database to fix a lock.
-Inspect actual `kg-status` output rather than assuming counts or field names.
+Keep Kuzu pinned until compatibility has been checked. Preserve source versions and
+provenance, and do not turn graph associations into unsupported factual claims. Use
+fixed query templates with bound parameters.
+
+Before changing the schema, close the database and back it up. Never delete an open
+database to work around a lock. Read the actual `kg-status` output instead of assuming
+its field names or record counts.

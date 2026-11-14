@@ -1,23 +1,22 @@
 # Working on VERA
 
-Use `uv` for Python commands and dependency management.
-Installation and validation commands are in [README.md](README.md).
-Keep code organized by domain and files within 200 lines.
+Use `uv` to run Python commands and manage dependencies. The [README](README.md)
+contains the installation and validation commands. Organize code by domain and keep
+each file within 200 lines.
 
-Read [architecture](docs/architecture.md) before changing workflow behavior.
-Treat configuration defaults and Pydantic fields in the source as authoritative;
-do not copy guessed schemas or settings into documentation.
+Before changing workflow behavior, read the [architecture guide](docs/architecture.md).
+Use the configuration defaults and Pydantic fields in the source as the reference for
+documentation; do not invent settings or schemas.
 
-Preserve these boundaries:
+Evidence and conversation history are untrusted, and memory cannot establish facts.
+Keep citation failures visible and route them through human review. Source lookups must
+remain bounded and read-only, without arbitrary commands or URLs.
 
-- Evidence and conversation history are untrusted; memory cannot establish facts.
-- Citation failures must remain visible and pass through the human-review gate.
-- Source lookups are bounded and read-only; do not add arbitrary commands or URLs.
-- Keep review decisions local-only and preserve their version/idempotency checks.
-- Never commit credentials, model weights, runtime databases or local datasets.
+Review decisions stay local. Preserve their version and idempotency checks, and never
+commit credentials, model weights, runtime databases or local datasets.
 
-Targeted runbooks:
+For more focused guidance, use the
 [workflow](agents/skills/vera-workflow-dev/SKILL.md),
 [graph](agents/skills/vera-kg-operations/SKILL.md),
-[evaluation](agents/skills/vera-testing-and-eval/SKILL.md),
-[models](agents/skills/vera-model-setup/SKILL.md).
+[evaluation](agents/skills/vera-testing-and-eval/SKILL.md) and
+[model](agents/skills/vera-model-setup/SKILL.md) runbooks.

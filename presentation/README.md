@@ -1,9 +1,10 @@
 # Presentation
 
-Vendored reveal.js deck and Chrome-based PDF export. The deck tracks the repository at
-the time of export; regenerate `../VERA-presentation.pdf` after changing slides.
+The presentation uses a vendored copy of reveal.js and exports to PDF through Chrome.
+Each export reflects the repository at that point in time, so regenerate
+`../VERA-presentation.pdf` whenever the slides change.
 
-From the repository root:
+From the repository root, open the deck and install the export dependencies:
 
 ```bash
 cd presentation
@@ -13,15 +14,17 @@ npm run export
 node scripts/check-overflow.mjs
 ```
 
-Export writes `../VERA-presentation.pdf`. Chrome is detected automatically;
-use `--chrome /path/to/chrome` or `CHROME_PATH` to select another executable:
+The export writes `../VERA-presentation.pdf` and detects Chrome automatically.
+To use a different executable, set `CHROME_PATH` or pass `--chrome` from the
+`presentation` directory:
 
 ```bash
 node scripts/export-pdf.mjs --out ../other.pdf --chrome /path/to/chrome
 ```
 
-Charts under `images/finetuning-v3/` are generated from the retained scores, pack reports
-and training reports:
+The charts in `images/finetuning-v3/` come from retained scores, pack reports and
+training reports. Run the following commands from the repository root, not from
+the presentation directory:
 
 ```bash
 uv run --extra analysis python finetuning/plot_pack.py \
@@ -44,7 +47,10 @@ uv run --extra analysis python finetuning/plot_training.py \
   --output presentation/images/finetuning-v3
 ```
 
-The stage-2 points in `step400-validation-history.json` are transcribed from
-`docs/finetuning-run-20261101.md`; the run log was not retained as JSON.
+The stage-2 points in `step400-validation-history.json` were transcribed from the
+[step-400 report](../docs/finetuning-run-20261101.md), because that run's log was
+not retained as JSON. These charts describe historical experiments, not acceptance
+of the current runtime.
 
-Libron's [font license](fonts/LICENSE-Libron.txt) is included. Reveal.js remains vendored.
+Libron's [font license](fonts/LICENSE-Libron.txt) is included alongside the vendored
+reveal.js files.
