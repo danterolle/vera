@@ -8,6 +8,7 @@ from vera.domain.reports import DetectionAlert, GeneratedAnswer, StreamStatistic
 from vera.domain.requests import AnalysisRequest, ConversationMessage
 from vera.providers.prompts import SYSTEM_PROMPT, generation_prompt
 from vera.reasoning.validation import validate_and_repair
+from vera_domain.explanations import expanded_summary
 from vera_domain.models import (
     ScenarioMetadata,
     SourceFragment,
@@ -124,7 +125,7 @@ def compose(
         scenario.feedback, response_language=scenario.language, plan=plan,
     )
     answer = GeneratedAnswer(
-        summary=scenario.summary, claims=scenario.claims,
+        summary=expanded_summary(scenario), claims=scenario.claims,
         out_of_scope=scenario.out_of_scope,
     )
     _validate_answer(answer, evidence)

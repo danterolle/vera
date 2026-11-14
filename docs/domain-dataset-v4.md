@@ -1,21 +1,22 @@
 # VERA v4 public-evidence domain dataset
 
-This is the v4 dataset for teaching VERA's evidence-based defensive analysis contract.
-It is generated from **real, pinned public records** plus repository-bundled official
-snapshots and explicit synthetic analyst scenarios. Generation loads no model weights,
-calls no external language model and trains nothing.
+The v4 dataset teaches VERA how to answer defensive cybersecurity questions from
+evidence. It combines pinned public records, official snapshots bundled with the
+repository and explicitly synthetic analyst scenarios. Generation is data-only:
+it loads no model weights, calls no external language model and performs no training.
 
-The reviewed package was signed off on **2026-11-11** by `danterolle` after an 80-case
-review (`accept` 80/80). The authorized derivative sets `human_reviewed: true` and
-`training_authorized: true`; deployment remains unauthorized. The reviewed bytes and
-the signed pack are identified by the hashes in the sign-off section below.
+This card describes the archived package reviewed by `danterolle` on **2026-11-11**,
+with all 80 sampled cases accepted. Its authorized derivative sets `human_reviewed`
+and `training_authorized` to true, but does not authorize deployment. The hashes below
+identify the reviewed bytes. Later generator changes do not inherit that approval.
 
 ## Why v4 exists
 
-The v1 candidate matched an older runtime prompt and had narrow coverage. The v3 adapter
-showed the practical gaps: it refused in-domain unknown concepts, answered social turns
-as security questions, and only saw replays with zero or one alert. v4 rebuilds the data
-against the **current** runtime prompts and extends all of those dimensions.
+The earlier candidate used an older prompt and covered too few behaviors. Evaluation
+exposed the consequences: the step-400 adapter rejected unfamiliar cybersecurity
+concepts, treated social turns as security questions and had only seen replays with
+zero or one alert. The archived v4 package was rebuilt with the runtime prompts used
+for that experiment and broadened each of those areas.
 
 | Gap in v1/v3 data | v4 response |
 | --- | --- |
@@ -35,10 +36,10 @@ against the **current** runtime prompts and extends all of those dimensions.
 | CISA KEV | `fd12990e9c566a1ad3060e1a2073129778f438cc` | CC0-1.0, included |
 | Repository-bundled corpus | file hashes recorded per fragment | see upstream URLs on each record |
 
-The KEV snapshot is catalog `2026.10.21`. Neither source is presented as a current API
-result. Only official JSON records are used. `licenses/` retains the upstream notices.
-Every fragment records its source URL, original field, selected verbatim text, field path,
-snapshot revision and download hash.
+The KEV snapshot is catalog `2026.10.21`; neither it nor the ATT&CK snapshot is a
+current API result. The package uses official JSON records and keeps their notices
+under `licenses/`. Each fragment records its source URL, original field, verbatim
+excerpt, field path, snapshot revision and download hash.
 
 ## Scenario families
 
@@ -68,10 +69,11 @@ Knowledge families reuse the v1/v3 contract families (`missing_record`, `memory_
 | validation | 686 | 662 / 6 / 12 / 6 | 40 | 8 | 4 | 28 |
 | test | 720 | 696 / 12 / 6 / 6 | 40 | 8 | 4 | 30 |
 
-Train has 2,319 distinct factual texts and 2,535 answers that cite at least two evidence
-records. `defensive_guidance` (360 train) and `multiturn_followup` (320 train) use every
-eligible entity that has a mitigation companion. The longest input is 2,462 tokens and the
-longest target is 543, so `max_length=2560` is the smallest tested budget with no truncation.
+The archived training split has 2,319 distinct factual texts and 2,535 answers citing
+at least two records. Its 360 `defensive_guidance` and 320 `multiturn_followup` rows
+use every eligible entity with a mitigation companion. The recorded maximum sequence
+is 2,462 tokens, with a largest target of 543; `max_length=2560` was the smallest
+tested budget that avoided truncation. Expanded targets need a fresh receipt.
 
 ## Dataset layout
 
@@ -92,31 +94,27 @@ source text. A source, split group or verbatim factual target must not appear in
 
 ## Limits
 
-- Targets are deterministic, source-grounded scenarios, not expert SOC decisions or human annotations.
-- Traffic is controlled simulation, not production telemetry.
-- Social, clarification and language variants are authored templates, not observed users.
-- Sources are frozen snapshots, not live vulnerability intelligence.
-- Passing the audit only shows internal consistency; it does not prove model improvement.
-- Do not train or deploy without a human review, explicit consent and a Kaggle compatibility run.
+These targets are deterministic scenarios grounded in sources, not expert SOC
+decisions or human annotations. Traffic is simulated, conversational variants are
+authored templates and the sources are frozen snapshots rather than live intelligence.
+An audit can establish internal consistency, not model improvement. Training or
+deployment still requires human review, explicit consent and a Kaggle compatibility run.
 
 ## Human review
 
-Passing the audit is not authorization. A person must review the targets before
-`training_authorized` can become true. The review pack builder samples each task
-(including alert counts 0-3, social, clarification and the new defensive/multi-turn
-families) and writes a checklist:
+An audit does not authorize training. Before `training_authorized` can become true,
+a person must review the targets. The review-pack builder samples every task,
+including alert counts 0-3, social turns, clarification and defensive or multi-turn
+questions, and produces a checklist for that review.
 
 ### AI-assisted pre-review (not a sign-off)
 
-An AI-assisted pass inspected every case in the review pack and scanned the whole
-candidate for task/wording drift. It found three template defects that the automated
-checks could not detect in the previous candidate: technique scenarios using
-vulnerability wording in `graph_evidence` summaries (265 rows), `local_applicability`
-questions asking about "affected versions" for ATT&CK techniques (89 rows), and
-`risk_comparison` questions calling techniques "documented issues" (88 rows). The
-generator now selects technique-specific wording, the audit rejects the old phrases, and
-the candidate was rebuilt. This pass is advisory: it does not set `human_reviewed` or
-authorize training.
+An AI-assisted pass read every review case and scanned the candidate for wording
+that did not fit its task. It found vulnerability terminology in 265 `graph_evidence`
+technique summaries, "affected versions" in 89 ATT&CK `local_applicability` questions,
+and "documented issues" in 88 technique `risk_comparison` questions. The generator
+was corrected, the audit was extended and the candidate was rebuilt. This advisory
+pass did not set `human_reviewed` or authorize training.
 
 ### Human sign-off (2026-11-11)
 
@@ -160,10 +158,9 @@ The output directory is local and ignored. It contains:
 | `report.json` | selection counts and any failed automated check |
 | `signoff.json` | reviewer, date and the human training authorization |
 
-Automated checks cover target schema, citation resolution, verbatim factual quotes,
-scope/intent agreement, alert-claim agreement and the runtime contract. They are
-necessary, not sufficient: the reviewer still judges whether each claim is factually
-right and whether the summary overstates local impact. After filling the pack, run:
+Automated checks cover schema, citations, exact factual quotes, scope, intent, alerts
+and the runtime contract. The reviewer must still decide whether the claims are right
+and whether the summary overstates local impact. After completing the pack, run:
 
 ```bash
 uv run python finetuning/prepare_review_pack.py --summarize .vera/review/v4-review-20261111
@@ -190,5 +187,6 @@ uv run python finetuning/vera_domain/cli.py \
   --output .vera/datasets/vera-domain-v4
 ```
 
-The command is data-only. It refuses to overwrite an existing directory or archive.
-The visible `vera-domain-v4.zip` and the extracted directory are local, ignored artifacts.
+The command only builds data and refuses to overwrite an existing directory or archive.
+The ZIP and extracted directory remain local, ignored artifacts. Choose a fresh output
+for a replacement candidate and obtain a new review, authorization and token preflight.
