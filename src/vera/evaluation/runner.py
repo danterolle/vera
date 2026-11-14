@@ -42,6 +42,8 @@ class ScenarioResult(BaseModel):
     factual_validation_failures: int
     retrieval_match: bool
     has_events: bool
+    provider_fallback: bool
+    summary_requires_review: bool
 
 
 class EvaluationReport(BaseModel):
@@ -138,6 +140,8 @@ def _run_scenario(
         and retrieval_match
         and detector_match
         and result.reflection.validation_failures == 0
+        and not result.metadata.get("provider_fallback")
+        and not result.metadata.get("summary_requires_review")
     )
     return ScenarioResult(
         name=scenario.name,
@@ -159,6 +163,8 @@ def _run_scenario(
         factual_validation_failures=result.reflection.factual_validation_failures,
         retrieval_match=retrieval_match,
         has_events=bool(events),
+        provider_fallback=bool(result.metadata.get("provider_fallback")),
+        summary_requires_review=bool(result.metadata.get("summary_requires_review")),
     )
 
 

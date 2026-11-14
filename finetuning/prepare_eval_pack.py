@@ -41,10 +41,15 @@ def main() -> None:
     parser.add_argument("--previous-answers", type=Path, action="append", default=[])
     parser.add_argument("--previous-dataset", type=Path)
     parser.add_argument("--previous-contract", type=Path)
-    parser.add_argument(
+    independence = parser.add_mutually_exclusive_group()
+    independence.add_argument(
         "--require-independent-targets",
-        action="store_true",
+        action="store_true", default=True,
         help="Exclude targets seen in training and duplicate targets within the selected pack.",
+    )
+    independence.add_argument(
+        "--allow-template-targets", dest="require_independent_targets", action="store_false",
+        help="Exploratory scoring only, not acceptance.",
     )
     parser.add_argument(
         "--exclude-loss-sample",
@@ -108,13 +113,11 @@ def main() -> None:
         and row.get("alignment", {}).get("parent_id", row["id"]) not in previous_parent_ids
         and row.get("alignment", {}).get("parent_id", row["id"]) not in excluded_parent_ids
     ]
-    training_targets = {target_key(row) for row in splits["train"]}
-    grouped = {}
+    training_targets, grouped = {target_key(row) for row in splits["train"]}, {}
     for row in candidates:
         grouped.setdefault(row["task"], []).append(row)
     rng = random.Random(args.seed)
-    selected = []
-    selected_targets = set()
+    selected, selected_targets = [], set()
     for task in sorted(grouped):
         examples = list(grouped[task])
         rng.shuffle(examples)
@@ -193,7 +196,5 @@ def main() -> None:
     }
     (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2))
-
-
 if __name__ == "__main__":
     main()

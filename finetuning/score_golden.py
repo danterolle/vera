@@ -6,12 +6,23 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from vera_finetuning.evaluation import extract_json
+from vera.domain.evidence import Evidence
+from vera.evaluation.contract import strict_answer, used_fallback
+from vera.evaluation.review_verdicts import named_review
+from vera.reasoning.validation import validate_and_repair
+from vera.retrieval.subjects import subject_candidates
 
 ALLOWED = {
     "scope", "statuses_any", "statuses_none", "answer_any", "answer_none", "max_claims",
 }
 SCOPES = {"in", "out", "social"}
+REQUIRED_TASKS = {
+    "clarification", "concept_definition", "current_status", "defensive_guidance",
+    "graph_evidence", "language_variant", "local_applicability", "memory_only",
+    "missing_record", "multiturn_followup", "review_revision", "risk_comparison",
+    "scope_boundary", "social_conversation", "stream_triage", "unavailable_concept",
+    "untrusted_note", "vulnerability_triage",
+}
 
 
 def normalize(text: str) -> str:
@@ -37,23 +48,31 @@ def load_cases(path: Path) -> list[dict]:
         identifiers.add(case["id"])
         if not isinstance(case["reviewed"], bool):
             raise ValueError(f"line {number}: reviewed must be boolean")
+        if case["reviewed"] and not named_review(case):
+            raise ValueError(f"line {number}: reviewed cases need a human reviewer and date")
         unknown = set(case["expect"]) - ALLOWED
         if unknown:
             raise ValueError(f"line {number}: unknown expect keys {sorted(unknown)}")
         if case["expect"].get("scope") not in SCOPES:
             raise ValueError(f"line {number}: scope must be one of {sorted(SCOPES)}")
         cases.append(case)
+    if not cases:
+        raise ValueError("Golden case set is empty")
     return cases
 
 
 def evaluate(case: dict, payload: dict | None) -> list[str]:
     if payload is None:
         return ["answer does not contain valid JSON"]
+    try:
+        strict_answer(payload)
+    except ValueError as error:
+        return [f"invalid answer contract: {error}"]
     expect = case["expect"]
     claims = payload.get("claims") or []
     if not isinstance(claims, list):
         return ["claims is not a list"]
-    text = normalize(json.dumps(payload, ensure_ascii=False))
+    text = normalize(" ".join([payload["summary"], *(claim["text"] for claim in claims)]))
     failures = []
     scope = expect["scope"]
     out_of_scope = payload.get("out_of_scope")
@@ -109,22 +128,45 @@ def main() -> None:
         row = json.loads(line)
         if "id" not in row or "answer" not in row:
             raise ValueError(f"answers line {number}: id and answer are required")
-        answers[row.get("model", "unknown")][row["id"]] = row["answer"]
+        model = row.get("model", "unknown")
+        if row["id"] not in {case["id"] for case in cases}:
+            raise ValueError(f"answers line {number}: unknown case {row['id']}")
+        if row["id"] in answers[model]:
+            raise ValueError(f"answers line {number}: duplicate model/case answer")
+        answers[model][row["id"]] = row
+    if not answers:
+        raise ValueError("No answers to score")
     report = {
         "cases": len(cases),
         "reviewed": len(reviewed),
         "drafts_excluded": 0 if args.include_draft else len(drafts),
-        "draft_warning": None if args.include_draft else (
-            "Drafts are format examples, not evidence; pass --include-draft to inspect them."
-        ),
+        "draft_warning": "Draft cases are exploratory checks, never acceptance evidence.",
         "models": {},
+        "production_authorized": False,
     }
     for model, rows in sorted(answers.items()):
         results, passed = [], 0
         for identifier, case in by_case.items():
-            answer = rows.get(identifier)
-            payload = extract_json(answer) if isinstance(answer, str) else None
+            row = rows.get(identifier, {})
+            answer = row.get("answer")
+            try:
+                payload = json.loads(answer) if isinstance(answer, str) else None
+            except json.JSONDecodeError:
+                payload = None
+            if not isinstance(payload, dict):
+                payload = None
             failures = ["missing answer"] if answer is None else evaluate(case, payload)
+            if used_fallback(row):
+                failures.append("provider fallback is not a model answer")
+            if row.get("http_status") == 202:
+                failures.append("runtime answer is still pending human review")
+            if payload is not None and not failures and payload["claims"]:
+                evidence = [Evidence.model_validate(item) for item in row.get("evidence", [])]
+                outcome = validate_and_repair(
+                    strict_answer(payload), evidence, repair=False,
+                    subjects=subject_candidates(case["query"]),
+                )
+                failures.extend(outcome.errors)
             passed += not failures
             results.append({
                 "id": identifier,
@@ -137,6 +179,11 @@ def main() -> None:
         report["models"][model] = {
             "selected_cases": len(by_case),
             "passed": passed,
+            "evidence_eligible": (
+                len(by_case) >= 50 and not args.include_draft
+                and REQUIRED_TASKS.issubset({case["task"] for case in selected})
+            ),
+            "missing_tasks": sorted(REQUIRED_TASKS - {case["task"] for case in selected}),
             "results": results,
         }
     rendered = json.dumps(report, ensure_ascii=False, indent=2) + "\n"

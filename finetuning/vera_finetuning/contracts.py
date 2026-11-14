@@ -6,8 +6,8 @@ from vera.domain.plans import ResourcePlan
 from vera.domain.reports import DetectionAlert, GeneratedAnswer, StreamStatistics
 from vera.domain.requests import AnalysisRequest
 from vera.providers.prompts import generation_prompt
+from vera.reasoning.relevance import analysis_subjects
 from vera.reasoning.validation import validate_and_repair
-from vera.retrieval.subjects import subject_candidates
 
 INTENTS = {"cybersecurity", "social", "out_of_scope", "clarification"}
 
@@ -45,7 +45,12 @@ def validate_example(
         repair=False,
         minimum_coverage=minimum_coverage,
         subjects=(
-            subject_candidates(context["resolved_question"], context.get("current_subject"))
+            analysis_subjects(
+                context["query"],
+                [DetectionAlert.model_validate(item) for item in context["alerts"]],
+                resolved_query=context["resolved_question"],
+                current_subject=context.get("current_subject"),
+            )
             if intent == "cybersecurity"
             else []
         ),

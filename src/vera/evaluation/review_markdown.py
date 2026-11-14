@@ -1,0 +1,40 @@
+import json
+import re
+
+CHECKLIST = (
+    "Every supported_fact is relevant to the question and supported by its own citation.",
+    "Every quotation and supported_fact text is verbatim in the cited evidence.",
+    "The complete summary is correct, useful and does not overstate local impact.",
+    "Scope and conversational intent match the request.",
+    "Abstentions explain missing evidence without substituting an unrelated record.",
+    "User-facing prose follows the configured response language; quotations stay verbatim.",
+    "Fallbacks, validation repairs and remaining gaps are assessed explicitly.",
+)
+
+
+def block(text: str) -> str:
+    longest = max((len(match) for match in re.findall(r"`+", text)), default=0)
+    fence = "`" * max(3, longest + 1)
+    return f"{fence}text\n{text}\n{fence}\n"
+
+
+def render_case(case: dict) -> str:
+    lines = [
+        f"### {case['id']} - {case['task']} - expected scope: {case['expect_scope']}",
+        "",
+        f"Model: `{case['model']}`; HTTP {case['http_status']}; "
+        f"{case['seconds']}s; run `{case['run_id']}`.",
+        "",
+        "**Question**",
+        block(case["query"]),
+        "**Complete summary**",
+        block(case["summary"]),
+    ]
+    for label, key in (
+        ("Claims and citations", "claims"), ("Complete supplied evidence", "evidence"),
+        ("Reflection", "reflection"), ("Warnings", "warnings"), ("Review reasons", "reasons"),
+        ("Runtime provenance", "metadata"),
+    ):
+        lines.extend([f"**{label}**", block(json.dumps(case[key], ensure_ascii=False, indent=2))])
+    lines.extend(["**Verdict:** accept / fix / reject", "**Notes:**", ""])
+    return "\n".join(lines)
