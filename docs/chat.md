@@ -26,6 +26,10 @@ curl -fsS http://127.0.0.1:8000/v1/analyze \
 unpublished `ReviewRecord`. Expand the response details to see claims, quotations,
 source availability, warnings, route and model. Neither the selected route nor a
 successful `/health` response proves that inference or a live lookup succeeded.
+`GET /ready` sends one small synthetic JSON request to the configured external model.
+It returns `503` if inference is unavailable or the answer is invalid. It does not
+send conversation or incident data, store a run or qualify the model. Deterministic
+mode does not need a model probe.
 
 | Route | Selected resources |
 | --- | --- |

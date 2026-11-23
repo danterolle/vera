@@ -46,7 +46,8 @@ uv run --extra knowledge-graph vera serve --open-browser
 
 The model server runs separately from VERA. Check `metadata.model`,
 `metadata.provider_fallback` and the response warnings to confirm which provider
-answered. A successful `/health` response describes configuration, not inference.
+answered. `/health` describes configuration. `/ready` checks whether the configured
+external model can answer a small synthetic JSON request; it does not qualify the model.
 
 ## CLI
 

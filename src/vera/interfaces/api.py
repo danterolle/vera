@@ -110,6 +110,16 @@ def create_app(
             "corpus_documents": corpus.total_documents,
         }
 
+    @application.get("/ready", responses={503: {"description": "Model inference unavailable"}})
+    def ready() -> dict:
+        provider = engine.runtime.provider
+        if not provider.external:
+            return {"status": "ready", "model_probe": "not_required"}
+        probe = getattr(provider, "probe", None)
+        if not callable(probe) or not probe():
+            raise HTTPException(status_code=503, detail="Model inference unavailable")
+        return {"status": "ready", "model_probe": "passed"}
+
     @application.post("/v1/analyze", response_model=AnalysisResult | ReviewRecord)
     def analyze(request: AnalysisRequest, response: Response) -> AnalysisResult | ReviewRecord:
         try:

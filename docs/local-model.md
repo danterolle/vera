@@ -149,7 +149,8 @@ chain-of-thought. Enabling ReAct does not establish that a model chooses useful 
 ## Verify and stop
 
 Ask a question in `/chat` and inspect `metadata.model`, `metadata.provider_fallback`,
-warnings and citations. `/health` confirms configuration only. HTTP `202` means a
+warnings and citations. `/health` confirms configuration only; `/ready` checks basic
+inference with a synthetic request. HTTP `202` means a
 draft is waiting for review, not necessarily that inference failed.
 
 With both servers running, the bounded local check is:
