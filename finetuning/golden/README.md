@@ -77,3 +77,10 @@ only to inspect draft behavior; the output remains labeled as non-evidence.
 These are repeatable keyword, status and scope checks, not a semantic judge. They can
 catch missing findings, some contradictions and wrong scope, but cannot establish
 correctness or usefulness on their own. Human review supplies the ground truth.
+
+For the separate [served-model study](../../docs/finetuning-evaluation.md#prepare-an-independent-local-model-study),
+cases can include `conversation` in API format and simulated, timestamped `events`
+or `events_file` naming a bundled replay. Put source references and expected or
+forbidden findings in `notes`. The review pack displays the notes and structured
+expectations; it sends neither to the model. A `review_revision` label is not proof
+that an actual revision was exercised.

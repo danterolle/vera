@@ -108,6 +108,7 @@ def summarize(args: argparse.Namespace) -> None:
             and not report["fallback_cases"] and not report["contract_mismatch_cases"]
         ),
         "production_authorized": False,
+        **({"study": report["study"]} if "study" in report else {}),
     }
     (pack / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary, indent=2))

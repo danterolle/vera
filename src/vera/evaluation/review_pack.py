@@ -44,6 +44,7 @@ def fields(result: dict, status: int) -> dict:
         **{key: result[key] for key in ("evidence", "reflection", "warnings", "run_id")},
         "reasons": result["reasons"] if draft else [],
         "metadata": result.get("metadata", {}),
+        "incident": result.get("incident"),
     }
 
 
@@ -74,14 +75,18 @@ def pack_report(cases: list[dict], pack_hash: str) -> dict:
         "pack_sha256": pack_hash,
         "human_reviewed": False,
         "production_authorized": False,
+        **({"study": cases[0]["study"]} if "study" in cases[0] else {}),
     }
 
 
-def build(args: argparse.Namespace) -> None:
+def build(
+    args: argparse.Namespace, *, rows: list[dict] | None = None, study: dict | None = None,
+) -> None:
     pack = args.output
     if pack.exists():
         raise SystemExit(f"Choose a new pack directory; {pack} already exists")
-    rows = load_jsonl(args.answers)
+    if rows is None:
+        rows = load_jsonl(args.answers)
     if (
         not rows or len({row["id"] for row in rows}) != len(rows)
         or len({case_key(row) for row in rows}) != len(rows)
@@ -99,6 +104,8 @@ def build(args: argparse.Namespace) -> None:
             **extracted,
             "review": {"verdict": None, "reviewer": None, "notes": None, "reviewed_at": None},
         })
+        if study is not None:
+            cases[-1].update(study=study, rubric=row["rubric"], case_review=row["case_review"])
     pack.mkdir(parents=True)
     (pack / "cases.jsonl").write_text(
         "".join(json.dumps(case, ensure_ascii=False) + "\n" for case in cases), encoding="utf-8",

@@ -90,6 +90,53 @@ dataset, inference and evaluation modules, but no training entrypoint. Answers a
 preflight outputs go under `/kaggle/working`; dependencies and model caches stay
 under `/kaggle/temp`.
 
+## Prepare an independent local model study
+
+Use the [golden case format](../finetuning/golden/README.md) with at least 50 newly
+reviewed cases across all 18 tasks. Before seeing any model output, have a second
+person confirm each case's sources, expected findings and forbidden assertions, then
+record their name and ISO date with `"reviewed": true`. Keep the reviewed source file
+private. Neither the historical seven draft cases nor the old v1 questions qualify.
+
+Freeze the case file with the exact ID from the local server's `/v1/models` and the
+SHA-256 of the actual file being served. For example, use the following after setting
+`MODEL_ID` and `MODEL_FILE` to the values for the chosen merged model:
+
+```bash
+EVAL_DIR=.vera/reviews/independent-v1
+MODEL_SHA="$(shasum -a 256 "$MODEL_FILE" | cut -d ' ' -f 1)"
+uv run python scripts/review-pack.py prepare \
+  --cases "$EVAL_DIR/cases-reviewed.jsonl" \
+  --model "$MODEL_ID" --artifact-sha256 "$MODEL_SHA" \
+  --output "$EVAL_DIR/study"
+```
+
+Before generation, start a separate loopback VERA instance on port `8001` as
+described in the [local model guide](local-model.md#connect-vera), using a fresh
+`VERA_DB_PATH` and `VERA_CORPUS_DIR`. For these offline cases, disable live sources,
+web search and memory recall; build a separate graph if measuring graph retrieval.
+Record the Git revision, model server version and active settings with the study. Do not
+change the model file, adapter scale, profile or runtime while generating or resuming:
+the digest is operator-verified, not something the model API can attest.
+
+```bash
+uv run python scripts/review-pack.py generate \
+  --study "$EVAL_DIR/study" --url http://127.0.0.1:8001 \
+  --output "$EVAL_DIR/answers.jsonl"
+uv run python scripts/review-pack.py build \
+  --study "$EVAL_DIR/study" --answers "$EVAL_DIR/answers.jsonl" \
+  --output "$EVAL_DIR/pack"
+```
+
+This path checks that every frozen case has one matching answer from the declared
+model and validation contract; fallbacks remain visible and block readiness. Case
+expectations and reviewer names are not sent in the analysis request. Complete
+`record` and `summarize` as below. Score raw model output separately; runtime reports
+include normalization and repair. HTTP `202` is not autonomous success. Initial
+analysis does not exercise restart, decision retries, or the revision endpoint:
+exercise them separately for the target profile, along with any enabled graph or
+live-source integrations.
+
 ## Review fresh runtime answers
 
 The runtime pack tests the artifact actually being served. It does not train,

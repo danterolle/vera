@@ -27,9 +27,19 @@ def render_case(case: dict) -> str:
         "",
         "**Question**",
         block(case["query"]),
-        "**Complete summary**",
-        block(case["summary"]),
+        f"Observed `out_of_scope`: `{json.dumps(case.get('out_of_scope'))}`.",
     ]
+    if case.get("conversation"):
+        lines.extend([
+            "**Supplied conversation**", block(json.dumps(case["conversation"], indent=2)),
+        ])
+    if "rubric" in case:
+        lines.extend(["**Frozen expectations**", block(json.dumps(case["rubric"], indent=2))])
+        if case["note"]:
+            lines.extend(["**Case notes**", block(case["note"])])
+    lines.extend(["**Complete summary**", block(case["summary"])])
+    if case.get("events"):
+        lines.extend(["**Detector report**", block(json.dumps(case.get("incident"), indent=2))])
     for label, key in (
         ("Claims and citations", "claims"), ("Complete supplied evidence", "evidence"),
         ("Reflection", "reflection"), ("Warnings", "warnings"), ("Review reasons", "reasons"),
