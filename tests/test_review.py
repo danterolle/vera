@@ -1,4 +1,6 @@
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Barrier
@@ -175,3 +177,8 @@ class ReviewTests(TestCase):
             self.assertIsNotNone(saved)
             self.assertTrue(saved.evidence)
             self.assertEqual(len(engine.list_runs()), 1)
+            with closing(sqlite3.connect(self.settings.db_path)) as conn:
+                redundant = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE name IN ('evidence', 'reflections')"
+                ).fetchall()
+            self.assertEqual(redundant, [])

@@ -89,6 +89,9 @@ User-facing prose follows `VERA_RESPONSE_LANGUAGE`, which defaults to English,
 regardless of the query language. Evidence quotations keep their source language.
 
 SQLite stores completed runs, memories, review decisions and LangGraph checkpoints.
+Completed evidence and reflections live in `runs.result_json`. Older databases may
+still have separate `evidence` and `reflections` tables; VERA preserves their rows but
+no longer updates them. Use the runs API to read current reports.
 Pending drafts survive restarts but remain unpublished until approved. Human
 revisions have a separate limit, described in the [review guide](chat.md#human-review).
 Use one API worker per database and close Python orchestrators with a context manager.
