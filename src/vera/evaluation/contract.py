@@ -1,6 +1,17 @@
 import json
+from datetime import date
 
 from vera.domain.reports import GeneratedAnswer
+
+
+def named_review(row: dict) -> bool:
+    if not isinstance(row.get("reviewer"), str) or not row["reviewer"].strip():
+        return False
+    try:
+        date.fromisoformat(row.get("reviewed_at") or "")
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 def strict_answer(payload: dict) -> GeneratedAnswer:

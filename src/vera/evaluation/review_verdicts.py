@@ -3,24 +3,15 @@ import csv
 import json
 import sys
 from collections import Counter
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from vera.evaluation.contract import named_review
 from vera.evaluation.review_markdown import render_case
 from vera.evaluation.review_pack import case_key, digest, load_jsonl, pack_report
 
 VERDICTS = {"accept", "fix", "reject"}
-
-
-def named_review(row: dict) -> bool:
-    if not isinstance(row.get("reviewer"), str) or not row["reviewer"].strip():
-        return False
-    try:
-        date.fromisoformat(row.get("reviewed_at") or "")
-    except (ValueError, TypeError):
-        return False
-    return True
 
 
 def read_review(pack: Path) -> tuple[list[dict], list[dict]]:
