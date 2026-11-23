@@ -66,12 +66,14 @@ the draft is waiting for human review.
 
 ```bash
 uv run --extra dev --extra knowledge-graph ruff check .
+uv run python -m unittest discover -s tests
 VERA_LLM_PROVIDER=deterministic VERA_KG_ENABLED=false \
   uv run --extra knowledge-graph vera evaluate --json
 ```
 
-CI runs Ruff. The bundled evaluation exercises offline synthetic scenarios; it is
-neither an automated test suite nor evidence of general model accuracy.
+CI runs Ruff, regression tests and the deterministic offline evaluation. The
+evaluation uses synthetic scenarios with review disabled and is not evidence of
+general model accuracy.
 
 ## Documentation
 
