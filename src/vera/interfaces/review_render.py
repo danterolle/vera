@@ -67,15 +67,23 @@ def prompt_decision(record: ReviewRecord) -> ReviewDecision:
     if record.status != ReviewStatus.PENDING:
         typer.echo(f"Review {record.run_id} is already {record.status.value}.")
         raise typer.Exit(code=0)
-    choices = "a=approve, r=reject, v=revise, q=quit"
-    if not record.can_revise:
-        choices = "a=approve, r=reject, q=quit"
+    choices = ", ".join([
+        *(["a=approve"] if record.can_approve else []),
+        "r=reject",
+        *(["v=revise"] if record.can_revise else []),
+        "q=quit",
+    ])
     while True:
         choice = typer.prompt(f"Decision ({choices})", default="q").strip().lower()
         if choice in {"q", "quit"}:
             typer.echo(f"Review left pending. Run: vera review {record.run_id}")
             raise typer.Exit(code=2)
         if choice in {"a", "approve"}:
+            if not record.can_approve:
+                typer.echo(
+                    "This draft cannot be approved. Revise it or run a new analysis.", err=True
+                )
+                continue
             action = "approve"
             feedback = None
         elif choice in {"r", "reject"}:

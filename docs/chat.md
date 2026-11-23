@@ -73,6 +73,12 @@ with the same UUID and payload. Stale or competing decisions return `409`; a mis
 checkpoint returns `503` rather than publishing silently. Published reports are
 available at `/v1/runs/<run_id>`.
 
+The provider, model and validation contract are recorded with the draft. A checkpoint
+that lacks provenance or uses an older validation contract cannot be approved. Reject
+it, request a revision if available, or run the analysis again. A legacy approval
+interrupted before publication cannot be retried; an already published result remains
+available in history.
+
 Review-enabled serving is loopback-only. Do not expose it through a proxy or port
 forward: these are local decisions, not authenticated analyst identities.
 

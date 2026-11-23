@@ -6,15 +6,13 @@ from typing import Any
 
 from langgraph.types import Command
 
-from vera.domain.enums import ClaimStatus
-from vera.domain.reports import AnalysisResult, RunMetrics
+from vera.domain.reports import AnalysisResult
 from vera.domain.review import ReviewDecision, ReviewRecord, ReviewStatus
-from vera.domain.state import GraphState
 from vera.errors import ReviewUnavailable
 from vera.memory.review_decisions import ReviewDecisions
 from vera.memory.reviews import ReviewStore
-from vera.reasoning.validation import VALIDATION_CONTRACT
-from vera.workflow.knowledge_graph import graph_metadata
+from vera.workflow.provenance import STALE_DRAFT, has_current_validation
+from vera.workflow.review_record import pending_review
 from vera.workflow.runtime import Runtime
 
 logger = logging.getLogger(__name__)
@@ -42,46 +40,9 @@ class ReviewService:
         snapshot = self.snapshot(run_id)
         if not self.is_waiting(snapshot) or snapshot.values.get("run_id") != run_id:
             raise ReviewUnavailable("The pending review checkpoint is unavailable")
-        state: GraphState = snapshot.values
-        provider = self.runtime.provider
-        return ReviewRecord(
-            run_id=run_id,
-            session_id=state["request"].session_id,
-            created_at=state.get("request_received_at", snapshot.created_at),
-            status=ReviewStatus.PENDING,
-            version=version,
-            reasons=state["review_reasons"],
-            query=state["request"].query,
-            route=state["route"],
-            draft=state["draft"],
-            evidence=state["evidence"],
-            incident=state["incident"],
-            reflection=state["reflection"],
-            warnings=state["warnings"],
-            revision_count=state.get("revision_count", 0),
-            can_revise=self.runtime.provider.external and state.get("revision_count", 0) < 2,
-            feedback_history=history,
-            error=state.get("revision_error"),
-            metadata={
-                "provider": provider.name,
-                "model": self.runtime.settings.llm_model if provider.external else None,
-                "provider_fallback": state["provider_fallback"],
-                "validation_contract": VALIDATION_CONTRACT,
-                "summary_requires_review": bool(state.get("summary_errors")),
-                "origin": state["request"].origin,
-                "intent": state["resource_plan"].intent,
-                "resource_plan": state["resource_plan"].model_dump(mode="json"),
-                "knowledge_graph": graph_metadata(state),
-            },
-            metrics=RunMetrics(
-                latency_ms=state.get("active_ms", 0), model_calls=state["model_calls"],
-                tool_calls=state["tool_calls"], retrieved_documents=len(state["evidence"]),
-                source_coverage=(
-                    sum(claim.status == ClaimStatus.SUPPORTED_FACT and bool(claim.citations)
-                        for claim in state["draft"].claims)
-                    / max(1, len(state["draft"].claims))
-                ),
-            ),
+        return pending_review(
+            snapshot.values, version=version, history=history, created_at=snapshot.created_at,
+            revision_supported=self.runtime.provider.external,
         )
 
     def register(self, run_id: str) -> ReviewRecord:
@@ -89,23 +50,32 @@ class ReviewService:
 
     def get(self, run_id: str) -> ReviewRecord | None:
         record = self.reviews.get(run_id)
-        if record:
-            record = record.model_copy(
-                update={
-                    "can_revise": record.status == ReviewStatus.PENDING
-                    and self.runtime.provider.external
-                    and record.revision_count < 2
-                }
-            )
-        if record and record.status == ReviewStatus.PENDING:
+        if record is None:
+            return None
+        if record.status == ReviewStatus.PENDING:
             return self.from_snapshot(
                 run_id, version=record.version, history=record.feedback_history
             )
-        if record and record.status == ReviewStatus.ERROR:
-            return record.model_copy(
-                update={"retry_decision": self.decisions.unfinished(run_id)}
-            )
-        return record
+        update = {"can_approve": False, "can_revise": False}
+        if record.status == ReviewStatus.ERROR:
+            retry = self.decisions.unfinished(run_id)
+            if retry and self._approval_block(record, retry):
+                update.update(error=STALE_DRAFT, retry_decision=None)
+            else:
+                update["retry_decision"] = retry
+        return record.model_copy(update=update)
+
+    def _approval_block(self, record: ReviewRecord, decision: ReviewDecision) -> str | None:
+        if decision.action != "approve" or record.status not in {
+            ReviewStatus.PENDING, ReviewStatus.ERROR,
+        }:
+            return None
+        if record.status == ReviewStatus.ERROR and self.runtime.memory.get_run(record.run_id):
+            return None
+        state = self.snapshot(record.run_id).values
+        if state.get("run_id") == record.run_id and not has_current_validation(state):
+            return STALE_DRAFT
+        return None
 
     def list_open(self) -> list[ReviewRecord]:
         records = []
@@ -123,7 +93,8 @@ class ReviewService:
         if existing is None:
             raise KeyError(run_id)
         cached = self.decisions.claim(
-            run_id, decision, revision_supported=self.runtime.provider.external
+            run_id, decision, revision_supported=self.runtime.provider.external,
+            approval_block=self._approval_block(existing, decision),
         )
         if cached is not None:
             value = json.loads(cached)
@@ -132,6 +103,10 @@ class ReviewService:
                 if "status" in value else AnalysisResult.model_validate(value)
             )
         try:
+            if decision.action == "approve":
+                saved = self.runtime.memory.get_run(run_id)
+                if saved is not None:
+                    return self._approved(existing, decision, saved)
             snapshot = self.snapshot(run_id)
             if self.is_waiting(snapshot):
                 output = self.graph.invoke(
@@ -143,9 +118,6 @@ class ReviewService:
                 )
                 output = self.graph.invoke(None, self.config(run_id))
             else:
-                saved = self.runtime.memory.get_run(run_id)
-                if saved is not None and decision.action == "approve":
-                    return self._approved(existing, decision, saved)
                 if decision.action == "reject" and snapshot.values.get("run_id") == run_id:
                     return self._rejected(existing, decision)
                 raise ReviewUnavailable("The review checkpoint cannot be resumed")
@@ -175,6 +147,7 @@ class ReviewService:
         record = previous.model_copy(update={
             "status": ReviewStatus.APPROVED,
             "version": previous.version + 1,
+            "can_approve": False,
             "can_revise": False,
         })
         self.decisions.finish(decision, record, result)
@@ -185,6 +158,7 @@ class ReviewService:
         record = previous.model_copy(update={
             "status": ReviewStatus.REJECTED,
             "version": previous.version + 1,
+            "can_approve": False,
             "can_revise": False,
             "feedback_history": [*previous.feedback_history, decision.feedback or ""],
         })

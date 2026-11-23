@@ -3,14 +3,17 @@ import time
 from vera.domain.enums import ClaimStatus
 from vera.domain.reports import AnalysisResult, RunMetrics
 from vera.domain.state import GraphState
+from vera.errors import ReviewConflict
 from vera.providers.rendering import render_answer
-from vera.reasoning.validation import VALIDATION_CONTRACT
 from vera.workflow.knowledge_graph import graph_metadata, persist_result
 from vera.workflow.learning import validated_knowledge
+from vera.workflow.provenance import STALE_DRAFT, draft_metadata, has_current_validation
 from vera.workflow.runtime import Runtime
 
 
 def finalize_result(runtime: Runtime, state: GraphState) -> dict:
+    if not has_current_validation(state):
+        raise ReviewConflict(STALE_DRAFT)
     evidence, learning = validated_knowledge(state)
     claims = state["draft"].claims
     factual = [claim for claim in claims if claim.status == ClaimStatus.SUPPORTED_FACT]
@@ -28,11 +31,7 @@ def finalize_result(runtime: Runtime, state: GraphState) -> dict:
     coverage = grounded / denominator if denominator else 1.0
     trace = state["trace"] + ["persistence:sqlite"]
     metadata = {
-        "provider": runtime.provider.name,
-        "model": runtime.settings.llm_model if runtime.provider.external else None,
-        "provider_fallback": state["provider_fallback"],
-        "validation_contract": VALIDATION_CONTRACT,
-        "summary_requires_review": bool(state.get("summary_errors")),
+        **draft_metadata(state),
         "out_of_scope": state["draft"].out_of_scope,
         "intent": state["resource_plan"].intent,
         "session_id": state["request"].session_id,

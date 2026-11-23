@@ -38,7 +38,7 @@ function reviewCard(parent, message, record, callbacks, busy) {
     button(actions, "Riprova la stessa decisione", () => callbacks.decide(message, "retry"), "action-button primary");
     button(actions, "Aggiorna stato", () => callbacks.refresh(message));
   } else if (pending) {
-    button(actions, "Approva e salva", () => callbacks.decide(message, "approve"), "action-button primary");
+    if (record.can_approve) button(actions, "Approva e salva", () => callbacks.decide(message, "approve"), "action-button primary");
     if (record.can_revise) button(actions, "Chiedi una modifica", () => callbacks.intent(message, "revise"));
     button(actions, "Rifiuta", () => callbacks.intent(message, "reject"));
   } else if (record.status !== "rejected") button(actions, "Aggiorna stato", () => callbacks.refresh(message));

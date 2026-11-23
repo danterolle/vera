@@ -6,7 +6,7 @@ from vera.domain.state import GraphState
 from vera.reasoning.reflection import reflect
 from vera.reasoning.relevance import analysis_subjects
 from vera.reasoning.summary import summary_review_errors
-from vera.reasoning.validation import validate_and_repair
+from vera.reasoning.validation import VALIDATION_CONTRACT, validate_and_repair
 from vera.retrieval.subjects import WEB_INTENT, research_query
 from vera.stream.detectors import detect_events
 from vera.stream.incident import build_incident
@@ -51,6 +51,8 @@ class WorkflowNodes:
             "incident": build_incident(alerts, statistics),
             "memory": memory,
             "evidence": [],
+            "draft_source": None,
+            "validation_contract": None,
             "generation_attempts": 0,
             "validation_errors": [],
             "summary_errors": [],
@@ -156,15 +158,19 @@ class WorkflowNodes:
             subjects=subjects,
         )
         errors = list(dict.fromkeys(state["validation_errors"] + initial.errors + checked.errors))
+        source = state.get("draft_source")
+        external = source["external"] if source else self.runtime.provider.external
         summary_errors = (
             summary_review_errors(final.draft.summary, final.draft.claims)
-            if self.runtime.provider.external and plan.intent == "cybersecurity"
+            if (external or state["provider_fallback"])
+            and plan.intent == "cybersecurity"
             and not final.draft.out_of_scope else []
         )
         warnings = list(state["warnings"])
         warnings.extend(summary_errors)
         return {
             "draft": final.draft,
+            "validation_contract": VALIDATION_CONTRACT,
             "validation_errors": errors,
             "summary_errors": summary_errors,
             "retry_generation": False,
