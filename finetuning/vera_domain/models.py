@@ -5,7 +5,6 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from vera.domain.enums import SourceType
-from vera.domain.reports import GeneratedAnswer
 
 
 class Message(BaseModel):
@@ -75,10 +74,6 @@ def context_from_prompt(prompt: str) -> dict:
     if not isinstance(context, dict):
         raise ValueError("The generation context must be an object")
     return context
-
-
-def parsed_answer(record: TrainingRecord) -> GeneratedAnswer:
-    return GeneratedAnswer.model_validate_json(record.messages[-1].content)
 
 
 def semantic_fingerprint(record: TrainingRecord) -> str:
