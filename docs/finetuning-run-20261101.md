@@ -58,6 +58,9 @@ for two or three epochs. The chart joins 16-example monitoring before step 160 w
 Only the first 160 updates retained per-step training loss. They show the same decline
 with more noise, but cannot supply a missing stage-2 training curve.
 
+[`finetuning/stages.py`](../finetuning/stages.py) remains available to plot historical
+staged runs from saved score JSON and training reports with validation histories.
+
 ## Validation
 
 Both variants answered the same 33 examples with greedy decoding:
