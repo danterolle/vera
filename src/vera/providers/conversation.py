@@ -9,8 +9,13 @@ from vera.domain.plans import ResourcePlan
 from vera.domain.requests import AnalysisRequest
 from vera.errors import ProviderError
 from vera.providers.parsing import json_object
+from vera.retrieval.subjects import concept_subject, research_query
 
 Completion = Callable[[str, str, dict], str]
+_FIELD_ALIASES = {
+    "is_cybersecurity": "concerns_cybersecurity",
+    "cybersecurity": "concerns_cybersecurity",
+}
 INTERPRET_SYSTEM = (
     "Analyze the purpose of the latest message to a cybersecurity assistant. Identify the actual "
     "subject first. Mark requires_subject_matter when the user seeks information or help about a "
@@ -41,6 +46,33 @@ class SourceAssessment(BaseModel):
     accepted_ids: list[str]
 
 
+def _normalize_assessment(payload: dict, request: AnalysisRequest) -> dict:
+    """Keep model values; fill operational fields omitted by compact local models."""
+    fields = InteractionAssessment.model_fields
+    normalized = {
+        _FIELD_ALIASES.get(key, key): value
+        for key, value in payload.items()
+        if _FIELD_ALIASES.get(key, key) in fields
+    }
+    query = research_query(request.query, request.conversation) or request.query
+    normalized.setdefault("subject", concept_subject(query) or "")
+    normalized.setdefault("resolved_query", query[:1000])
+    normalized.setdefault("search_query", query[:300])
+    if "requires_subject_matter" not in normalized:
+        if "about_assistant" in normalized:
+            normalized["requires_subject_matter"] = not normalized["about_assistant"]
+        elif "concerns_cybersecurity" in normalized:
+            normalized["requires_subject_matter"] = bool(normalized["concerns_cybersecurity"])
+        else:
+            return payload
+    if "about_assistant" not in normalized:
+        normalized["about_assistant"] = not (
+            normalized["requires_subject_matter"]
+            or normalized.get("concerns_cybersecurity", False)
+        )
+    return normalized
+
+
 def interpret_request(complete: Completion, name: str, request: AnalysisRequest) -> InteractionPlan:
     content = complete(json.dumps({
         "message": request.query,
@@ -51,7 +83,8 @@ def interpret_request(complete: Completion, name: str, request: AnalysisRequest)
         "has_traffic": bool(request.events),
     }), INTERPRET_SYSTEM, InteractionAssessment.model_json_schema())
     try:
-        return InteractionAssessment.model_validate(json_object(content), strict=True).to_plan()
+        payload = _normalize_assessment(json_object(content), request)
+        return InteractionAssessment.model_validate(payload, strict=True).to_plan()
     except (ValidationError, json.JSONDecodeError) as exc:
         raise ProviderError(f"{name} returned an invalid conversation plan") from exc
 
