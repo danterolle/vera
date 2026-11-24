@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 572 168">
+  <title>VERA wordmark</title>
+  <defs>
+    <linearGradient id="wordmark-ink" x1="44" y1="128" x2="527" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#24284e"/>
+      <stop offset=".54" stop-color="#44346a"/>
+      <stop offset="1" stop-color="#145958"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="square" stroke-width="2">
+    <path d="M22 65V35L36 21H127M445 147H535L550 132V103" stroke="#167c76"/>
+    <path d="M22 103v29l15 15h63m373-126h63l14 14v30" stroke="#9474bd"/>
+    <path d="M169 21h68l10 10h48m-23 116h62l10-10h47" stroke="#d6c8e7"/>
+    <path d="M45 131h19l8 8h38l9-9m283-98h31l9-9h21" stroke="#da6d65"/>
+  </g>
+  <g fill="url(#wordmark-ink)" fill-rule="evenodd">
+    <path id="glyph-v" d="M44 40h20l29 64 29-64h20l-40 88H84Z"/>
+    <path id="glyph-e" d="M174 40h99l-14 17h-66v19h60v17h-60v18h80l-15 17h-84Z"/>
+    <path id="glyph-r" d="M306 40h61l25 21v22l-19 16h-16l37 29h-29l-32-29h-8v29h-19Zm19 17v25h36l13-10v-6l-13-9Z"/>
+    <path id="glyph-a" d="M422 128l43-88h18l44 88h-21l-10-20h-44l-10 20Zm38-37h28l-14-30Z"/>
+  </g>
+  <path d="M124 45h14l-12 5h-4ZM198 44h45l-8 4h-37ZM356 44h10l15 12-7 1Z"
+    fill="#ba90e1"/>
+  <path d="M487 68l14 28h-4l-13-28Z" fill="#64c6bb"/>
+  <path d="M127 18h6v6h-6zm312 126h6v6h-6z" fill="#da6d65"/>
+  <circle cx="22" cy="65" r="3" fill="#167c76"/>
+  <circle cx="550" cy="103" r="3" fill="#167c76"/>
+</svg>

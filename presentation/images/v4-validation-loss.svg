@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="323" viewBox="0 0 680 323">
+  <rect width="680" height="323" fill="#fffdf6"/>
+  <g font-family="Menlo, Consolas, monospace" font-size="14" fill="#625d56">
+    <text x="24" y="31" fill="#191a1c" font-weight="700">Validation loss</text>
+    <path d="M70 52H644M70 104H644M70 156H644M70 208H644M70 260H644"
+      stroke="#d2cbbb"/>
+    <path d="M70 52V260H644" fill="none" stroke="#625d56"/>
+    <text x="23" y="56">.020</text>
+    <text x="23" y="108">.015</text>
+    <text x="23" y="160">.010</text>
+    <text x="23" y="212">.005</text>
+    <text x="50" y="264">0</text>
+    <path d="M91 260v7m400-7v7m122-7v7" stroke="#625d56"/>
+    <text x="91" y="286" text-anchor="middle">350</text>
+    <text x="491" y="286" text-anchor="middle">600</text>
+    <text x="613" y="286" text-anchor="middle">676</text>
+    <text x="357" y="310" text-anchor="middle">Optimizer updates</text>
+  </g>
+  <path d="M91 76L491 173 613 108" fill="none" stroke="#c84627" stroke-width="3"/>
+  <g fill="#fffdf6" stroke="#c84627" stroke-width="3">
+    <circle cx="91" cy="76" r="5"/>
+    <circle cx="491" cy="173" r="5"/>
+    <circle cx="613" cy="108" r="5"/>
+  </g>
+  <g font-family="Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#a63820">
+    <text x="108" y="74">0.0177</text>
+    <text x="491" y="200" text-anchor="middle">0.0084</text>
+    <text x="613" y="94" text-anchor="middle">0.0146</text>
+  </g>
+</svg>
