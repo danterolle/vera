@@ -187,3 +187,12 @@ correct rejection from in-domain over-refusal. Add `--backend sentence-transform
 and `--extra embeddings` to compare retrieval backends. It writes only a JSON report.
 Stop manual servers with Ctrl+C and unload GUI models through LM Studio/Bionic.
 To run without a model server, select `VERA_LLM_PROVIDER=deterministic`.
+
+## Before a local rollout
+
+Keep VERA on loopback with one worker per database. Exercise draft recovery and
+versioned decisions against an isolated copy before upgrading; verify that a
+backup can be restored. Check `/ready` and real answers from the same model
+artifact, settings and hardware you intend to use. Publish no real findings
+until the [independent evaluation](finetuning-evaluation.md#prepare-an-independent-local-model-study)
+and human sign-off are complete. This profile does not authorize a shared service.
