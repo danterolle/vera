@@ -47,6 +47,7 @@ class ReviewRecord(BaseModel):
     reflection: ReflectionReport
     warnings: list[str]
     revision_count: int = Field(ge=0)
+    can_approve: bool = False
     can_revise: bool = False
     feedback_history: list[str]
     error: str | None = None

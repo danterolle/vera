@@ -39,4 +39,4 @@ class DeterministicProvider:
                 summary=messages[plan.intent], claims=[],
                 out_of_scope=plan.intent == "out_of_scope",
             )
-        return compose_deterministic(request, route, evidence, alerts, statistics)
+        return compose_deterministic(request, route, evidence, alerts, statistics, plan=plan)

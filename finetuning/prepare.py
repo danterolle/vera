@@ -25,8 +25,12 @@ def main() -> None:
     if args.output.exists():
         parser.error("The output already exists; choose a new --output path")
     with ZipFile(args.dataset) as archive:
-        manifest_hash = hashlib.sha256(archive.read("manifest.json")).hexdigest()
-        package_hash = hashlib.sha256(archive.read("package.json")).hexdigest()
+        manifest_bytes = archive.read("manifest.json")
+        package_bytes = archive.read("package.json")
+        manifest_hash = hashlib.sha256(manifest_bytes).hexdigest()
+        package_hash = hashlib.sha256(package_bytes).hexdigest()
+        manifest = json.loads(manifest_bytes)
+        package = json.loads(package_bytes)
     settings = Settings(_env_file=None)
     source_revision = subprocess.check_output(
         ["git", "-C", str(root), "rev-parse", "HEAD"], text=True,
@@ -45,7 +49,8 @@ def main() -> None:
         "max_length": args.max_length,
         "source_revision": source_revision,
         "source_worktree_dirty": source_worktree_dirty,
-        "training_authorized": False,
+        "human_reviewed": manifest.get("human_reviewed") is True,
+        "training_authorized": package.get("training_authorized") is True,
     }
     splits, warnings = load_candidate(args.dataset, contract)
     count = 0

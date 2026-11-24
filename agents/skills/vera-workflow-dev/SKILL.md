@@ -6,12 +6,12 @@ description: >-
 
 # Workflow changes
 
-Read [architecture](../../../docs/architecture.md) and
-[`graph.py`](../../../src/vera/workflow/graph.py).
-State fields belong in `domain/state.py` and must be initialized by the workflow.
-Nodes return partial updates and append meaningful trace entries.
+Before changing the workflow, read the [architecture guide](../../../docs/architecture.md)
+and [`graph.py`](../../../src/vera/workflow/graph.py). Define state fields in
+`domain/state.py` and initialize them in the workflow. Nodes should return partial
+updates and add trace entries that explain meaningful transitions.
 
-Keep original request identifiers, citation failures and model/tool budgets intact.
-Never replace rejected claims with unrelated quotations or bypass a required review.
-Use `reasoning/review.py` for deterministic review triggers and
-[review operations](../../../docs/chat.md#human-review) for decision semantics.
+Preserve the request's original identifiers, citation failures and model/tool budgets.
+Never replace a rejected claim with an unrelated quotation or bypass a required review.
+Put deterministic review triggers in `reasoning/review.py`, and follow the
+[review guide](../../../docs/chat.md#human-review) for decision semantics.

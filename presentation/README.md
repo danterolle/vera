@@ -1,33 +1,66 @@
 # Presentation
 
-Vendored reveal.js deck and Chrome-based PDF export. The deck tracks the repository at
-the time of export; regenerate `../VERA-presentation.pdf` after changing slides.
+The [26-slide deck](../VERA-presentation.pdf) explains VERA's architecture,
+evidence path and human review before comparing retrieval, fine-tuning and local
+inference. The [technical report](../docs/technical-report.md) provides the
+experiment protocols and separates measured results from open questions.
 
-From the repository root:
+## Edit and export
+
+Edit `index.html` for the main deck and `scripts/exam-slides.js` for the graph
+comparison, review trace, runtime budgets, model experiments and failure analysis.
+`scripts/deck.js` initializes the vendored reveal.js and numbers the
+slides. The light palette and Libron typography live in `css/theme.css`.
+`css/signal.css` styles the cover and workflow panels, `css/data.css` styles the
+tables and charts, and `images/vera-mark.svg` contains the centered wordmark.
+
+From the repository root, install the export dependencies, open the deck and
+regenerate the PDF:
 
 ```bash
 cd presentation
-open index.html
 npm ci
-npm run export
+open index.html
 node scripts/check-overflow.mjs
+npm run export
 ```
 
-Export writes `../VERA-presentation.pdf`. Chrome is detected automatically;
-use `--chrome /path/to/chrome` or `CHROME_PATH` to select another executable:
+The export overwrites `../VERA-presentation.pdf` and detects Chrome automatically.
+Regenerate it whenever the HTML, slide scripts, styles or figures change.
+To use a different executable, set `CHROME_PATH` or pass `--chrome` from the
+`presentation` directory:
 
 ```bash
 node scripts/export-pdf.mjs --out ../other.pdf --chrome /path/to/chrome
 ```
 
-Charts under `images/finetuning-v3/` are generated from the retained scores, pack reports
-and training reports:
+## Reproduce the figures
+
+| Figure | Source |
+| --- | --- |
+| Per-analysis resource budgets | [Runtime settings](../src/vera/config.py) and [workflow limits](../docs/architecture.md#budgets-and-persistence) |
+| Graph on/off and synthetic review trace | [Paired retrieval probe](../docs/technical-report.md#paired-retrieval-probe) |
+| Step-400 checkpoints, held-out results, 220-case comparison and retrieval audit | [Checkpoint comparison](../docs/finetuning-run-20261101.md#validation), [held-out report](../docs/finetuning-step400-heldout.md) and [scope audit](../docs/finetuning-adapter-assessment.md#scope-probe-refusal-in-both-directions-2026-11-09) |
+| V4 dataset split, alert counts, training resume and validation loss | [Dataset counts](../docs/domain-dataset-v4.md#size) and the [training record](../docs/finetuning-v4-results.md#the-completed-epoch). The three loss measurements are plotted in `images/v4-validation-loss.svg`. |
+| V4 schema, scope, tokens and generation time | [Historical paired test](../docs/finetuning-v4-results.md#paired-validation-and-test-samples). The [relevance guard rescore](../docs/finetuning-v4-results.md#the-historical-runtime-guard) reused those answers. |
+| Local request latency and targeted rerun | [Local comparison and failure analysis](../docs/technical-report.md#results-and-failures) |
+
+Run the graph probe from the repository root. It prints per-query JSON and uses
+temporary databases, so it leaves the existing VERA stores untouched:
 
 ```bash
-uv run --extra analysis python finetuning/plot_pack.py \
-  --scores .vera/finetuning/v3-english-20261102b/scores-kaggle-110.json \
-  --pack-report .vera/finetuning/v3-english-20261102b/evaluation-pack-10-per-task/report.json \
-  --output presentation/images/finetuning-v3
+uv run --extra knowledge-graph python presentation/scripts/measure-graph.py
+```
+
+When refreshing the deck's recorded values, update the matching table and chart
+labels as well as the report. The graph probe measures retrieval and provenance.
+The historical comparison reports generation time. The local probe times full requests.
+
+The historical charts in `images/finetuning-v3/` are used by the deck or the
+fine-tuning documentation. To rebuild them from the retained local reports, run
+the following commands from the repository root:
+
+```bash
 uv run --extra analysis python finetuning/plot_validation.py \
   --scores .vera/finetuning/v3-english-20261102b/scores-kaggle-110.json \
   --output presentation/images/finetuning-v3
@@ -44,7 +77,9 @@ uv run --extra analysis python finetuning/plot_training.py \
   --output presentation/images/finetuning-v3
 ```
 
-The stage-2 points in `step400-validation-history.json` are transcribed from
-`docs/finetuning-run-20261101.md`; the run log was not retained as JSON.
+The stage-2 points in `step400-validation-history.json` were transcribed from the
+[step-400 report](../docs/finetuning-run-20261101.md), because that run's log was
+not retained as JSON. The charts document historical experiments.
 
-Libron's [font license](fonts/LICENSE-Libron.txt) is included. Reveal.js remains vendored.
+Libron's [font license](fonts/LICENSE-Libron.txt) is included alongside the vendored
+reveal.js files.

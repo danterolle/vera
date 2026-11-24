@@ -1,15 +1,16 @@
 # Fine-tuning preview: answer-contract behavior
 
-Date: 2026-10-28/29. Status: bounded preview, not a deployment decision.
-This page records one experiment end to end: what was trained, how it was evaluated,
-what improved and what still fails. The raw artifacts stay under `.vera/`, which is
-ignored by Git; only this report, its charts and the tooling are versioned.
+This report follows the bounded experiment run on 2026-10-28/29, from training
+through evaluation. It records the improvements and failures observed at the time,
+not a deployment decision or a qualification of today's runtime. Raw artifacts stay
+under the ignored `.vera/` directory; the report, charts and tooling are versioned.
 
 ## Question
 
-The knowledge needed for VERA's answers comes from retrieval, not from the model
-weights. The experiment therefore asks a narrower question: after a short LoRA run,
-does the model follow VERA's **answer contract** more reliably?
+VERA is designed to retrieve the knowledge needed for an answer rather than rely
+on its model weights for current facts. This experiment therefore asked a narrower
+question: would a short LoRA run make the model follow the **answer contract**
+more reliably?
 
 The contract covers JSON shape, the `out_of_scope` decision, the claim-status
 vocabulary (`supported_fact`, `system_inference`, `unavailable`, `simulated`),
@@ -80,60 +81,56 @@ threshold of 0.55. It never uses the targets as if they were evidence.
 | Mean output tokens | 497 | 231 |
 | Mean generation seconds | 44.1 | 23.9 |
 
-The largest gaps are behavioral rather than factual. The base frequently produced
-invalid JSON, answered out-of-scope questions as security questions, treated memory as
-authoritative evidence and ran to the token limit on event streams. The adapter stopped
-earlier, used the status vocabulary and kept memory out of factual claims.
+The main differences were behavioral. The base often produced invalid JSON, treated
+unrelated questions as security requests, cited memory as authoritative evidence and
+ran out of output tokens on event streams. The adapter stopped earlier, used the
+expected statuses and kept memory out of factual claims.
 
 ## By task
 
 ![Schema-valid answers per task](images/finetuning-preview-20261028/schema-by-task.svg)
 
-- **`scope_boundary`**: the base answered a lunar-eclipse question with a security
-  explanation and `out_of_scope: false`; the adapter returned `out_of_scope: true`
-  with no claims on 3/3 examples.
-- **`memory_only`**: the base treated remembered content as a supported fact and
-  produced four memory citations; the adapter returned `unavailable` with no
-  evidence on 3/3 examples.
-- **`stream_triage`**: all three base answers hit the 768-token limit and were
-  truncated, which makes the JSON invalid; the adapter labelled the replay
-  `simulated` and cited the stream evidence.
-- **`current_status`**: the base cited snapshot or unavailable records as current
-  facts; the adapter separated the snapshot from a live lookup on 2/3 examples.
-- **`risk_comparison`, `vulnerability_triage`, `untrusted_note` and
-  `local_applicability`** moved from one or two valid answers out of three to three.
+On `scope_boundary`, the base answered a lunar-eclipse question as cybersecurity and
+set `out_of_scope=false`. The adapter rejected all three unrelated requests without
+claims. On `memory_only`, the base produced four citations to remembered content,
+while the adapter returned `unavailable` without evidence in all three cases.
+
+All three base `stream_triage` answers reached the 768-token limit and ended as
+truncated JSON. The adapter instead labeled the replay `simulated` and cited its
+stream evidence. On `current_status`, it distinguished a snapshot from live
+verification in two of three cases. `risk_comparison`, `vulnerability_triage`,
+`untrusted_note` and `local_applicability` each rose from one or two valid answers
+to three.
 
 ## Residual failures
 
-1. `graph_evidence`: one answer contains an unescaped quote inside a citation and is
-   not valid JSON.
-2. `current_status`: one citation quotes text that is not verbatim in the evidence.
-3. `current_status`: one answer omits the expected `unavailable` claim.
-
-These are contract-level defects, not missing domain facts. They are the first targets
-for another bounded run.
+Three contract defects remained: an unescaped quotation made one `graph_evidence`
+answer invalid JSON, one `current_status` citation was not verbatim, and another
+omitted the expected `unavailable` claim. These failures concerned the response
+contract rather than missing domain facts.
 
 ## Next stage
 
-The next stages resume from the latest complete checkpoint and evaluate at 410, 660,
-910 and 1,160 optimizer updates (0.83, 1.34, 1.85 and 2.35 epochs). `train.py` accepts
-`--epochs`; each epoch is reshuffled deterministically, and `--max-steps` remains an
-absolute target. Every stage keeps the same dataset, prompt, model revision,
-accumulation, validation sample and evaluation sample. A stage stops early if the
-answer-contract metrics plateau or regress; reaching a step target is not a goal by
-itself. The test split remains untouched until a configuration is selected.
+The original plan was to resume from a complete checkpoint and evaluate at 410, 660,
+910 and 1,160 updates, corresponding to 0.83, 1.34, 1.85 and 2.35 epochs. The runner's
+`--epochs` option reshuffles each epoch deterministically, while `--max-steps` remains
+an absolute target. The plan kept the dataset, prompt, model revision, accumulation
+and evaluation samples fixed, with an early stop if contract metrics plateaued or
+regressed. Reaching a step count was not a goal in itself. The test split was to
+remain untouched until configuration selection. The later
+[step-400 report](finetuning-run-20261101.md) records what was actually run.
 
 ## Limitations
 
-- Thirty-three examples and one seed: the confidence interval on every rate is wide.
-- Targets are synthetic and formulaic. The adapter also reproduces target phrasing
-  closely, so matching summary text is not evidence of reasoning.
-- One of the 33 evaluation examples overlaps the 16-example loss sample; the rest are
-  disjoint from it.
-- Citation rates are conditional on schema validity; invalid JSON is reported
-  separately and never counted as a clean citation result.
-- The test split remains untouched. A final claim about the recipe needs the test
-  split, more examples and ideally a second seed.
+Thirty-three examples and one seed leave wide uncertainty around the reported rates.
+The targets are synthetic and formulaic, and close reproduction of their wording
+does not demonstrate reasoning. One evaluation example overlaps the 16-row loss sample;
+the other 32 are disjoint.
+
+Citation rates are conditional on schema validity. Invalid JSON was reported
+separately rather than counted as citation-clean. At this stage the test split was
+still untouched; a stronger conclusion needed held-out results, more examples and
+ideally a second seed.
 
 ## Reproduce
 

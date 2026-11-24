@@ -1,8 +1,10 @@
 from vera.domain.enums import ClaimStatus, EvidenceStatus, Route, SourceType
 from vera.domain.evidence import Citation, Claim, Evidence
+from vera.domain.plans import ResourcePlan
 from vera.domain.reports import DetectionAlert, GeneratedAnswer, StreamStatistics
 from vera.domain.requests import AnalysisRequest
 from vera.providers.stream_composer import compose_stream
+from vera.reasoning.relevance import analysis_subjects, relevant_record_ids
 from vera.retrieval.cve import extract_cve_ids
 
 LIVE_SOURCES = {
@@ -33,13 +35,23 @@ def compose_deterministic(
     evidence: list[Evidence],
     alerts: list[DetectionAlert],
     statistics: StreamStatistics,
+    *,
+    plan: ResourcePlan | None = None,
 ) -> GeneratedAnswer:
+    subjects = analysis_subjects(
+        request.query,
+        alerts,
+        resolved_query=plan.resolved_query if plan else None,
+        current_subject=plan.subject if plan else None,
+    )
     if request.events:
-        return _stream_answer(request, evidence, alerts, statistics)
+        return _stream_answer(request, evidence, alerts, statistics, subjects)
     cve_ids = extract_cve_ids(request.query)
     if cve_ids:
         return _vulnerability_answer(cve_ids, evidence)
-    selected = _relevant_available(evidence, limit=3 if route == Route.CAG_RAG else 2)
+    selected = _relevant_available(
+        evidence, limit=3 if route == Route.CAG_RAG else 2, subjects=subjects,
+    )
     claims = [_evidence_claim(item) for item in selected]
     if not claims:
         claims = [_empty_claim()]
@@ -90,12 +102,13 @@ def _stream_answer(
     evidence: list[Evidence],
     alerts: list[DetectionAlert],
     statistics: StreamStatistics,
+    subjects: list[str],
 ) -> GeneratedAnswer:
     stream = next((item for item in evidence if item.source == SourceType.STREAM), None)
     summary, claims = compose_stream(request, stream, alerts, statistics)
     claims.extend(
         _evidence_claim(item)
-        for item in _relevant_available(evidence, limit=3)
+        for item in _relevant_available(evidence, limit=3, subjects=subjects)
         if item.source not in {SourceType.CAG, SourceType.STREAM}
     )
     unavailable = [item for item in evidence if item.status == EvidenceStatus.UNAVAILABLE]
@@ -104,13 +117,17 @@ def _stream_answer(
     return GeneratedAnswer(summary=summary, claims=claims)
 
 
-def _relevant_available(evidence: list[Evidence], limit: int) -> list[Evidence]:
+def _relevant_available(
+    evidence: list[Evidence], limit: int, subjects: list[str] | None = None,
+) -> list[Evidence]:
+    relevant = relevant_record_ids(evidence, subjects) if subjects else None
     selected = [
         item
         for item in evidence
         if item.status == EvidenceStatus.AVAILABLE
         and item.source not in {SourceType.MEMORY, SourceType.STREAM}
         and not item.metadata.get("fallback", False)
+        and (relevant is None or item.id in relevant)
     ]
     selected.sort(
         key=lambda item: (

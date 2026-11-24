@@ -4,7 +4,9 @@ from datetime import UTC, datetime
 from vera.domain.plans import ResourcePlan
 from vera.domain.state import GraphState
 from vera.reasoning.reflection import reflect
-from vera.reasoning.validation import validate_and_repair
+from vera.reasoning.relevance import analysis_subjects
+from vera.reasoning.summary import summary_review_errors
+from vera.reasoning.validation import VALIDATION_CONTRACT, validate_and_repair
 from vera.retrieval.subjects import WEB_INTENT, research_query
 from vera.stream.detectors import detect_events
 from vera.stream.incident import build_incident
@@ -49,8 +51,11 @@ class WorkflowNodes:
             "incident": build_incident(alerts, statistics),
             "memory": memory,
             "evidence": [],
+            "draft_source": None,
+            "validation_contract": None,
             "generation_attempts": 0,
             "validation_errors": [],
+            "summary_errors": [],
             "retry_generation": False,
             "provider_fallback": False,
             "model_calls": 0,
@@ -106,11 +111,21 @@ class WorkflowNodes:
         return generate_draft(self.runtime, state)
 
     def validate(self, state: GraphState) -> dict:
+        plan = state["resource_plan"]
+        subjects = (
+            analysis_subjects(
+                state["request"].query, state["alerts"],
+                resolved_query=plan.resolved_query, current_subject=plan.subject,
+            )
+            if plan.intent == "cybersecurity"
+            else []
+        )
         initial = validate_and_repair(
             state["draft"],
             state["evidence"],
             repair=False,
             minimum_coverage=self.runtime.settings.grounding_min_coverage,
+            subjects=subjects,
         )
         can_retry = (
             bool(initial.errors)
@@ -122,7 +137,9 @@ class WorkflowNodes:
         )
         if can_retry:
             return {
-                "validation_errors": initial.errors,
+                "validation_errors": list(dict.fromkeys(
+                    state["validation_errors"] + initial.errors,
+                )),
                 "retry_generation": True,
                 "trace": state["trace"] + [f"validation:retry={len(initial.errors)}"],
             }
@@ -131,12 +148,36 @@ class WorkflowNodes:
             state["evidence"],
             repair=True,
             minimum_coverage=self.runtime.settings.grounding_min_coverage,
+            subjects=subjects,
         )
+        checked = validate_and_repair(
+            final.draft,
+            state["evidence"],
+            repair=False,
+            minimum_coverage=self.runtime.settings.grounding_min_coverage,
+            subjects=subjects,
+        )
+        errors = list(dict.fromkeys(state["validation_errors"] + initial.errors + checked.errors))
+        source = state.get("draft_source")
+        external = source["external"] if source else self.runtime.provider.external
+        summary_errors = (
+            summary_review_errors(final.draft.summary, final.draft.claims)
+            if (external or state["provider_fallback"])
+            and plan.intent == "cybersecurity"
+            and not final.draft.out_of_scope else []
+        )
+        warnings = list(state["warnings"])
+        warnings.extend(summary_errors)
         return {
             "draft": final.draft,
-            "validation_errors": initial.errors,
+            "validation_contract": VALIDATION_CONTRACT,
+            "validation_errors": errors,
+            "summary_errors": summary_errors,
             "retry_generation": False,
-            "trace": state["trace"] + [f"validation:errors={len(initial.errors)}"],
+            "warnings": list(dict.fromkeys(warnings)),
+            "trace": state["trace"] + [
+                f"validation:errors={len(initial.errors)}:remaining={len(checked.errors)}"
+            ],
         }
 
     def reflection(self, state: GraphState) -> dict:

@@ -9,6 +9,7 @@ from vera.reasoning.review import review_reasons
 from vera.retrieval.subjects import WEB_INTENT, concept_subject, research_query
 from vera.workflow.acquisition import ContextAcquirer
 from vera.workflow.evidence import deduplicate_evidence
+from vera.workflow.provenance import draft_source
 from vera.workflow.runtime import Runtime
 
 
@@ -99,6 +100,8 @@ class ReviewNodes:
             **acquired,
             **self._elapsed(state),
             "draft": draft,
+            "draft_source": draft_source(self.runtime),
+            "validation_contract": None,
             "validation_errors": [],
             "generation_attempts": state["generation_attempts"] + 1,
             "model_calls": calls,

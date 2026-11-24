@@ -16,15 +16,6 @@ CREATE TABLE IF NOT EXISTS runs (
     id TEXT PRIMARY KEY, session_id TEXT, query TEXT NOT NULL, route TEXT NOT NULL,
     result_json TEXT NOT NULL, latency_ms REAL NOT NULL, created_at TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS evidence (
-    run_id TEXT NOT NULL, evidence_id TEXT NOT NULL, source TEXT NOT NULL,
-    status TEXT NOT NULL, title TEXT NOT NULL, content TEXT NOT NULL,
-    PRIMARY KEY (run_id, evidence_id), FOREIGN KEY (run_id) REFERENCES runs(id)
-);
-CREATE TABLE IF NOT EXISTS reflections (
-    run_id TEXT PRIMARY KEY, report_json TEXT NOT NULL,
-    FOREIGN KEY (run_id) REFERENCES runs(id)
-);
 CREATE TABLE IF NOT EXISTS memories (
     id TEXT PRIMARY KEY, kind TEXT NOT NULL, text TEXT NOT NULL,
     embedding_json TEXT NOT NULL, source_run_id TEXT NOT NULL,
@@ -69,29 +60,11 @@ class MemoryStore:
                     created_at,
                 ),
             )
-            connection.executemany(
-                "INSERT INTO evidence VALUES (?, ?, ?, ?, ?, ?)",
-                [
-                    (
-                        result.run_id,
-                        item.id,
-                        item.source.value,
-                        item.status.value,
-                        item.title,
-                        item.content,
-                    )
-                    for item in result.evidence
-                ],
-            )
             if graph_projection:
                 connection.execute(
                     "INSERT INTO graph_jobs(run_id, request_json) VALUES (?, ?)",
                     (result.run_id, request.model_dump_json()),
                 )
-            connection.execute(
-                "INSERT INTO reflections VALUES (?, ?)",
-                (result.run_id, result.reflection.model_dump_json()),
-            )
             connection.executemany(
                 "INSERT INTO memories VALUES (?, ?, ?, ?, ?, ?, ?)",
                 [

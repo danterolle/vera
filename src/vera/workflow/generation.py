@@ -1,6 +1,7 @@
 from vera.domain.state import GraphState
 from vera.errors import ProviderError
 from vera.providers.deterministic import DeterministicProvider
+from vera.workflow.provenance import draft_source
 from vera.workflow.runtime import Runtime
 
 
@@ -43,6 +44,8 @@ def generate_draft(runtime: Runtime, state: GraphState) -> dict:
         )
     return {
         "draft": draft,
+        "draft_source": draft_source(runtime, fallback=fallback),
+        "validation_contract": None,
         "generation_attempts": attempts,
         "model_calls": calls,
         "provider_fallback": fallback,

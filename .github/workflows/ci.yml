@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  lint:
+  validate:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -16,5 +16,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-      - run: uv sync --extra dev
-      - run: uv run ruff check .
+      - run: uv sync --locked --extra dev
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync python -m unittest discover -s tests
+      - run: uv run --no-sync vera evaluate --json
+        env:
+          VERA_LLM_PROVIDER: deterministic
+          VERA_LIVE_SOURCES: "false"
+          VERA_KG_ENABLED: "false"

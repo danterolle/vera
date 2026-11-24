@@ -12,7 +12,6 @@ import time
 from pathlib import Path
 
 import httpx
-from huggingface_hub import hf_hub_download
 
 BASE_REPO = "unsloth/Qwen3.5-4B-MTP-GGUF"
 BASE_REVISION = "86835bf9949e4d14d6860f7910b1340ad4f271a9"
@@ -44,6 +43,8 @@ def ensure_artifact(
     if target.exists():
         raise ValueError(f"Cached artifact has the wrong checksum: {target}")
     cache.mkdir(parents=True, exist_ok=True)
+    from huggingface_hub import hf_hub_download
+
     downloaded = Path(hf_hub_download(
         repo_id=repo, filename=filename, revision=revision,
         local_dir=str(cache), token=False,

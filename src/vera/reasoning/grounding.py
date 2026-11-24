@@ -66,7 +66,7 @@ def grounding_error(
 
 
 def quote_is_verbatim(citation: Citation, evidence: Evidence) -> bool:
-    return _normalize(citation.supporting_quote) in _normalize(evidence.content)
+    return citation.supporting_quote in evidence.content
 
 
 def _normalize(text: str) -> str:

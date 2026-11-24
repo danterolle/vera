@@ -19,6 +19,7 @@ export function createDecisions(context) {
     let decision = retry ? message.pendingDecision || record.retry_decision : null;
     if (!retry) {
       if (record.status !== "pending" || !["approve", "reject", "revise"].includes(action)) return;
+      if (action === "approve" && !record.can_approve) return;
       if (action === "revise" && !record.can_revise) return;
       const feedback = (message.feedback || "").trim();
       if (action !== "approve" && !feedback) {

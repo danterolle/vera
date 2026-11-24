@@ -11,7 +11,8 @@ class ReviewDecisions:
         self.reviews = reviews
 
     def claim(
-        self, run_id: str, decision: ReviewDecision, *, revision_supported: bool = True
+        self, run_id: str, decision: ReviewDecision, *,
+        revision_supported: bool, approval_block: str | None,
     ) -> str | None:
         with self.reviews.memory._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -35,6 +36,9 @@ class ReviewDecisions:
                     raise ReviewConflict("This decision ID was used with different input")
                 if previous["response_json"] is not None:
                     return previous["response_json"]
+            if decision.action == "approve" and approval_block:
+                raise ReviewConflict(approval_block)
+            if previous:
                 if decision.action == "revise" and not revision_supported:
                     raise ReviewConflict("Revision requires an external model provider")
                 if row["status"] != ReviewStatus.ERROR:
@@ -58,7 +62,10 @@ class ReviewDecisions:
                 )
             record = ReviewRecord.model_validate_json(row["review_json"])
             processing = record.model_copy(
-                update={"status": ReviewStatus.PROCESSING, "error": None}
+                update={
+                    "status": ReviewStatus.PROCESSING, "error": None,
+                    "can_approve": False, "can_revise": False,
+                }
             )
             connection.execute(
                 "UPDATE reviews SET status = ?, review_json = ? WHERE run_id = ?",

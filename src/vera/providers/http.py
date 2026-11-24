@@ -1,4 +1,5 @@
 import json
+from functools import partial
 
 import httpx
 from pydantic import ValidationError
@@ -11,20 +12,18 @@ from vera.domain.plans import ResourcePlan
 from vera.domain.reports import DetectionAlert, GeneratedAnswer, StreamStatistics
 from vera.domain.requests import AnalysisRequest
 from vera.errors import ProviderError
-from vera.providers.conversation import (
-    CONVERSATION_SYSTEM,
-    assess_sources,
-    conversation_prompt,
-    interpret_request,
-)
+from vera.providers.conversation import assess_sources, interpret_request
+from vera.providers.draft_inputs import draft_inputs
 from vera.providers.parsing import json_object
-from vera.providers.prompts import SYSTEM_PROMPT, generation_prompt, routing_prompt
+from vera.providers.prompts import SYSTEM_PROMPT, routing_prompt
 from vera.providers.react import ACTION_SYSTEM_PROMPT, action_prompt
-from vera.providers.schema import MAX_CLAIMS, answer_schema
+from vera.providers.readiness import check_model_response
+from vera.providers.schema import MAX_CLAIMS
 
 
 class HttpModelProvider:
     external = True
+    timeout: float
 
     def __init__(self, name: str, model: str, response_language: str) -> None:
         self.name = name
@@ -63,18 +62,12 @@ class HttpModelProvider:
         *,
         plan: ResourcePlan | None = None,
     ) -> GeneratedAnswer:
-        prompt = generation_prompt(
-            request, route, evidence, alerts, statistics, feedback,
-            response_language=self.response_language, plan=plan,
+        inputs = draft_inputs(
+            request, route, plan, evidence, alerts, statistics, feedback, self.response_language,
         )
-        system = SYSTEM_PROMPT
-        if plan is not None and plan.intent != "cybersecurity":
-            system = CONVERSATION_SYSTEM
-            prompt = conversation_prompt(request, plan, self.response_language)
-        schema = answer_schema(evidence, plan)
-        content = self._complete(prompt, system, schema)
+        content = self._complete(inputs.prompt, inputs.system, inputs.schema)
         try:
-            answer = GeneratedAnswer.model_validate(json_object(content))
+            answer = inputs.parse(content)
         except (ValidationError, json.JSONDecodeError) as exc:
             raise ProviderError(f"{self.name} returned an invalid analysis payload") from exc
         if len(answer.claims) > MAX_CLAIMS:
@@ -99,7 +92,10 @@ class HttpModelProvider:
         except (ValidationError, json.JSONDecodeError) as exc:
             raise ProviderError(f"{self.name} returned an invalid ReAct action") from exc
 
-    def _complete(self, prompt: str, system: str, schema: dict) -> str:
+    def probe(self) -> bool:
+        return check_model_response(partial(self._complete, timeout=min(self.timeout, 5.0)))
+
+    def _complete(self, prompt: str, system: str, schema: dict, *, timeout: float = 0) -> str:
         raise NotImplementedError
 
 
@@ -127,7 +123,7 @@ class OpenAICompatibleProvider(HttpModelProvider):
         self.reasoning_effort = reasoning_effort
         self.max_output_tokens = max_output_tokens
 
-    def _complete(self, prompt: str, system: str, schema: dict) -> str:
+    def _complete(self, prompt: str, system: str, schema: dict, *, timeout: float = 0) -> str:
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
         response_format = {"type": self.response_format}
         if self.response_format == "json_schema":
@@ -136,7 +132,7 @@ class OpenAICompatibleProvider(HttpModelProvider):
             response = httpx.post(
                 self.endpoint,
                 headers=headers,
-                timeout=self.timeout,
+                timeout=timeout or self.timeout,
                 json={
                     "model": self.model,
                     "temperature": 0,
@@ -152,10 +148,12 @@ class OpenAICompatibleProvider(HttpModelProvider):
             )
             response.raise_for_status()
             choice = response.json()["choices"][0]
+            if not isinstance(choice, dict):
+                raise TypeError("Expected a completion choice object")
             if choice.get("finish_reason") == "length":
                 raise ProviderError(f"{self.name} exceeded the output token limit")
             return choice["message"]["content"]
-        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        except (httpx.HTTPError, IndexError, KeyError, TypeError, ValueError) as exc:
             raise ProviderError(f"{self.name} request failed: {exc}") from exc
 
 
@@ -170,12 +168,12 @@ class GeminiProvider(HttpModelProvider):
         self.api_key = api_key
         self.timeout = timeout
 
-    def _complete(self, prompt: str, system: str, schema: dict) -> str:
+    def _complete(self, prompt: str, system: str, schema: dict, *, timeout: float = 0) -> str:
         try:
             response = httpx.post(
                 self.endpoint,
                 params={"key": self.api_key},
-                timeout=self.timeout,
+                timeout=timeout or self.timeout,
                 json={
                     "system_instruction": {"parts": [{"text": system}]},
                     "contents": [{"role": "user", "parts": [{"text": prompt}]}],
@@ -187,5 +185,5 @@ class GeminiProvider(HttpModelProvider):
             )
             response.raise_for_status()
             return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        except (httpx.HTTPError, IndexError, KeyError, TypeError, ValueError) as exc:
             raise ProviderError(f"gemini request failed: {exc}") from exc

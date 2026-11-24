@@ -1,208 +1,170 @@
-# Kaggle pilot and dataset
+# Kaggle training and evaluation
 
-The standalone [notebook](../finetuning/kaggle.ipynb) targets structured cybersecurity
-answer generation with **Qwen/Qwen3.5-4B**.
-A five-update FP32 pilot completed on two Kaggle T4 GPUs, peaking at 9.91 and 10.15 GiB
-of PyTorch-allocated VRAM. This establishes initial execution compatibility, not
-quality improvement or full-epoch reliability. It does not train social replies,
-intent interpretation, source assessment or ReAct decisions.
+VERA's fine-tuning experiments teach Qwen3.5-4B to produce structured answers from
+supplied cybersecurity evidence. They do not train retrieval policy, ReAct decisions
+or tool use. The [notebook](../finetuning/kaggle.ipynb) completed a five-update
+compatibility pilot and one full v4 epoch on two Kaggle T4 GPUs.
 
-## Dataset
+Deployment is still unauthorized. The current runtime contract, `vera-evidence-v2`,
+checks every cited record, retains failures through retries and repairs, and sends
+non-extractive model summaries and fallbacks for human review. Earlier measurements
+remain useful history, but do not qualify this changed runtime.
 
-**The retained dataset is incompatible with the current chat prompt.**
-Packaging intentionally rejects it until a compatible candidate is prepared and reviewed.
-`finetuning/align.py` can rebuild a compatible copy of its prompts while preserving
-targets, sources and splits. This is mechanical alignment, not new label generation
-or expert review.
+## The reviewed dataset
 
-`vera-domain-v1.zip` and its extracted copy in `.vera/datasets/vera-domain-v1/`
-are local, ignored artifacts. They contain 3,939 training, 528 validation and 522 test
-conversations, plus 252 controlled event replays. Targets combine pinned public
-MITRE ATT&CK and CISA KEV records with synthetic analyst scenarios, not expert SOC decisions.
-Upstream revisions, hashes and license notices are preserved in the archive.
+The archived v4 package contains 5,406 training, 686 validation and 720 test
+conversations, plus 160 controlled event replays. It combines pinned public ATT&CK
+and CISA KEV records, 122 bundled official documents and synthetic analyst scenarios.
+These are source-grounded targets, not expert SOC decisions. Source revisions,
+checksums and license notices travel with the archive.
 
-The original bytes remain unchanged. Its embedded generator instructions are historical,
-and its recorded system-prompt hash is inconsistent with the conversation text.
-`human_reviewed` and `training_authorized` remain false.
-The earlier code bundle is retained locally as `vera-kaggle-training-pre-chat.zip`;
-do not use it to train the current application.
+Compared with v1/v3, it adds in-domain and unavailable concepts, social and
+clarification turns, multi-turn follow-ups, language variants and alert counts 0-3.
+Both prompts were rebuilt from the runtime used for that experiment. The
+[dataset card](domain-dataset-v4.md) explains the task mix and source boundaries.
 
-User-facing prose follows `Settings.response_language` (`VERA_RESPONSE_LANGUAGE`,
-default `English`) rather than the input message language. This value is supplied to
-generation and conversation prompts; evidence quotations remain verbatim in their
-source language.
+`danterolle` accepted the 80-case review pack on 2026-11-11. The authorized derivative
+preserved the reviewed shards byte-for-byte, set `human_reviewed` and
+`training_authorized` to true, and added `AUTHORIZATION.md`. These hashes identify
+the archived authorization:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Reviewed manifest | `485bd329a5c3409929b17f7618b3cd95e0a35bcbccc8a29a7dd863437823d98d` |
+| Authorized manifest | `04d18fbb7db8b35571bff755f43ad3eadadbc3c30d01d3f54426bfbcf27feb10` |
+| Authorized package | `6a3b5aa90252cecabc0560f2376929c8b4d0f7b38f85f580e98af011a1c0cd24` |
+| Authorized dataset archive | `f0e288f4bf78be8a351f3a7f403a7fe0c870c6137af44c2b1b7f0bf611997142` |
+| Authorized Kaggle bundle | `f13248e11a6a5d0f99ac905fd8ee50d89de98f2f0884a41c2cb1b1928fa8ce48` |
+
+Training authorization was separate from permission to launch the GPU run, and neither
+authorized deployment. Local datasets and weights remain ignored by Git.
+
+## New candidates are not the archived package
+
+The generator now expands summaries with cited source content and no longer teaches
+citing a distractor merely because the main record lacks a mitigation companion.
+That changes targets, not the existing authorized archive or trained weights.
+Any replacement needs its own review, authorization and token-budget receipt.
+The old 2,560-token receipt does not qualify expanded targets.
+
+To build a fresh candidate without overwriting the archived v4 data:
+
+```bash
+uv run python finetuning/vera_domain/cli.py \
+  --output .vera/datasets/vera-domain-v4-candidate
+```
+
+Generation loads no weights, calls no external language model and performs no training.
+It verifies source hashes and refuses an existing output directory or archive.
+Review the candidate using the [dataset procedure](domain-dataset-v4.md#human-review)
+before considering a training authorization.
+
+## Token budget
+
+The archived v4 preflight passed at `max_length=2560` without truncation and verified
+the assistant-only loss boundary. Its maximum sequence was 2,462 tokens; its largest
+target was 543. A 2,048-token budget would lose 80 `stream_triage` rows, and 2,304
+would still truncate 48. Keeping two- and three-alert examples was part of the task,
+so dropping them to fit a smaller budget was not acceptable.
+
+`token-budget.json` binds those findings to the manifest SHA-256. Packaging rejects
+a mismatched receipt. For a replacement candidate, measure the complete sequences
+again rather than assuming that the archived budget still fits.
+
+User-facing prose follows `Settings.response_language`, defaulting to English,
+while evidence quotations retain their original wording and language.
 
 ## Training approach
 
-Two T4 GPUs have separate memory. This recipe uses one process with **FP32 LoRA
-and model sharding**, not DDP, BF16, FP16 or 4-bit QLoRA.
-T4 lacks native BF16 training; Qwen3.5 has documented FP16 gradient stability issues,
-and its model-specific guide discourages 4-bit QLoRA.
-Full-epoch cost and memory fit for other workloads remain unverified.
+The recipe uses one process, FP32 LoRA and model sharding across two T4 GPUs.
+Their memories are separate; this is not DDP, BF16, FP16 or four-bit QLoRA.
+T4 has no native BF16 training, Qwen3.5 has documented FP16 gradient-stability issues,
+and its model-specific guide discourages four-bit QLoRA.
 
 The [model setup](../finetuning/vera_finetuning/model.py) pins the base revision
 and uses eager attention, gradient checkpointing, LoRA rank 8 and alpha 16.
-The pilot performs five updates including the longest input and largest target.
-A full experiment performs `--epochs` passes (default 1) with accumulation 8; each
-epoch is reshuffled deterministically, and a resume continues from the saved epoch and
-data cursor. Neither recipe is optimized. For an intermediate experiment, `--max-steps`
-stops a full-mode run after a bounded absolute number of updates, `--validation-every`
-records validation loss during training and `--validation-examples` controls the fixed
-validation sample. These runs write `metrics.jsonl` so the curve survives outside the
-notebook log.
+The pilot runs five updates, including the longest input and largest target.
+A full run uses accumulation 8 and `--epochs` passes, defaulting to one, with a
+deterministic reshuffle each epoch. A complete checkpoint preserves optimizer state,
+epoch and data cursor for resuming.
+
+For bounded runs, `--max-steps` is an absolute update limit. `--validation-every`
+and `--validation-examples` control fixed-sample loss monitoring. The recipe is
+conservative rather than optimized, and fit or cost on other workloads is unverified.
 
 ## Prepare and run
 
-To create a separate aligned candidate without model inference:
+`finetuning/prepare.py` checks archive hashes, actual runtime prompts and grounded
+targets, then writes a data-free code bundle. It refuses examples above the declared
+token budget and never trains, edits the dataset, uploads it or overwrites a bundle.
+For reference, the archived v4 packaging used:
 
 ```bash
-uv run --with transformers==5.17.0 --with 'jinja2>=3.1,<4' python finetuning/align.py \
-  --output .vera/finetuning/aligned/vera-domain-v1.zip
 uv run python finetuning/prepare.py \
-  --dataset .vera/finetuning/aligned/vera-domain-v1.zip --max-length 2560
+  --dataset .vera/datasets/vera-domain-v4.zip --max-length 2560 \
+  --output .vera/finetuning/vera-kaggle-training-v4.zip
 ```
 
-Use the token budget reported by alignment; this runtime's retained candidate needs
-2,560 tokens. No examples are truncated or removed. The original archive is untouched.
-The command validates archive hashes, actual prompts and grounded targets, then writes
-`.vera/finetuning/vera-kaggle-training.zip`. It never trains, modifies the dataset,
-uploads data or overwrites an existing bundle.
+This records the archived recipe, not approval of a newly generated candidate.
+Current checks may reject historical data that no longer meets the runtime contract.
+Use the reviewed bytes, a matching receipt and a fresh output path for any new run.
 
-1. Import the notebook into Kaggle. Attach a private dataset containing the compatible
-   `vera-domain-v1.zip` and `vera-kaggle-training.zip`; these exact filenames are required.
-   Do not overwrite the retained original or upload credentials, databases or company telemetry.
-2. Select **GPU T4 x2**, enable Internet and run preflight. Every example must fit
-   the declared token budget without truncation, with a verified assistant-only loss boundary.
-3. Read the warnings, set `ACKNOWLEDGE_CANDIDATE_DATA = True` and run the five-update pilot.
-   Non-finite loss or gradients stop execution. Retain any OOM/kernel traceback;
-   do not silently truncate examples or switch to unstable reduced precision.
-4. Inspect the report, memory peaks and duration before explicitly enabling
-   `RUN_FULL_TRAINING`. For a bounded preview set `MAX_STEPS` (for example 50),
-   keep `VALIDATION_EVERY` enabled and set `RUN_BEHAVIORAL_EVAL = True` to generate
-   base/adapter answers on a stratified validation sample. Save notebook outputs
-   with Kaggle **Save Version**.
+On Kaggle, import the notebook and attach a private dataset containing files named
+exactly `vera-domain-v4.zip` and `vera-kaggle-training.zip`. Use the authorized archive
+and matching bundle, renaming the uploaded files as required. Never upload credentials,
+runtime databases or company telemetry.
 
-The notebook installs dependencies in a separate environment and runs training in
-subprocesses. It avoids `ensurepip` and targets the environment with the image's existing pip.
-Dependencies, code and base-model caches stay in a temporary runtime, outside saved outputs.
-ZIPs and Kaggle-extracted directories are supported; package and per-file hashes verify
-extracted contents. Subprocesses share `RUN_TIME_LIMIT_SECONDS` (1,800 by default).
-Downloads are public packages and the pinned model/tokenizer;
-no tracking service or automatic publishing is configured.
+Select **GPU T4 x2**, enable Internet and run preflight. Every example must fit
+without truncation, with the assistant-only boundary verified. After reading the
+warnings, explicitly set `ACKNOWLEDGE_CANDIDATE_DATA = True` to run the pilot.
+Non-finite loss or gradients stop execution; retain any OOM or kernel traceback
+instead of silently truncating data or switching to unstable precision.
+
+Inspect the pilot's duration and memory before enabling `RUN_FULL_TRAINING`.
+For a bounded preview, set `MAX_STEPS`, retain `VALIDATION_EVERY`, and enable
+`RUN_BEHAVIORAL_EVAL` for a paired validation sample. Save outputs with Kaggle's
+**Save Version** action.
+
+The notebook uses a separate dependency environment and subprocesses, targeting the
+image's existing pip rather than `ensurepip`. Dependencies, code and model caches
+stay in temporary storage. ZIPs and extracted datasets are both supported and checked
+against package/file hashes. Subprocesses share `RUN_TIME_LIMIT_SECONDS`, whose
+default is 1,800. There is no tracking service or automatic publishing.
 
 ## Outputs and acceptance
 
-Outputs include `report.json`, `metrics.jsonl`, an `adapter/` directory and complete
-checkpoints. `metrics.jsonl` appends train, validation and end events, including updates
-written before a timeout. Reports record package versions, hashes, losses, validation
-history, duration and memory peaks.
-Fixed validation losses are a numerical smoke check, not a quality benchmark.
-The test split is checked for integrity/token length, never used for training or selection.
+Runs write `report.json`, append-only `metrics.jsonl`, an `adapter/` directory and
+complete checkpoints every 50 updates and at completion. Reports retain package
+versions, hashes, losses, validation history, timing and memory peaks; metrics include
+updates completed before a timeout. Resume with a complete `checkpoint-*`,
+`FULL_RESUME` and a new `FULL_OUTPUT`, keeping data, prompt, model revision, mode and
+accumulation unchanged.
 
-For behavioral evidence, the notebook can run `evaluate.py` after training. It generates
-base and adapter answers on a deterministic stratified sample of the validation split and
-writes `answers.jsonl`. Download that file and run the local scorer, which uses VERA's
-production `GeneratedAnswer` and `validate_and_repair` contract:
+Loss is an optimization check, not an acceptance criterion. Compare base and adapter
+on identical contexts and decoding settings, inspect raw and repaired behavior
+separately, and reserve the test split until selection is complete. Once consumed,
+it must not be reused to tune or select a model. The
+[evaluation guide](finetuning-evaluation.md) covers scoring, independent targets and
+human review.
 
-```bash
-uv run python finetuning/score.py --dataset /path/to/vera-domain-v1.zip \
-  --contract /path/to/runtime-contract.json \
-  --answers /path/to/answers.jsonl --output /path/to/scores.json
-```
+The training output is a LoRA adapter, not a replacement MTP GGUF. Merging with the
+same pinned base, converting with a compatible llama.cpp version and validating the
+served artifact are separate manual steps.
 
-The score report compares JSON validity, schema validity, `out_of_scope` decisions,
-claim-status behavior (unavailable and simulated cases), citation failures, exact
-quote use and memory-citation violations by task. This measures behavior on supplied
-evidence, not latent cybersecurity knowledge. Use the test split only after selecting
-a configuration. A completed preview with its charts and residual failures is recorded
-in [the 2026-10-28 experiment report](finetuning-preview-20261028.md).
-The resumed run to step 400, together with the 40-case perturbed evaluation that tests
-generalization beyond the training templates, is recorded in
-[the 2026-11-01 run report](finetuning-run-20261101.md).
+## v4 runtime guard and merged artifact (2026-11-13)
 
-For a larger validation comparison that excludes earlier behavioral cases and the
-fixed loss-monitoring sample, prepare a deterministic, task-balanced pack:
+The [v4 results](finetuning-v4-results.md) record the epoch, paired behavioral
+measurements, historical relevance guard and merged Q6_K artifact. They also explain
+why the old 40-answer review pack cannot qualify `vera-evidence-v2`.
 
-```bash
-uv run python finetuning/prepare_eval_pack.py \
-  --dataset .vera/finetuning/v3-english-20261102b/aligned/vera-domain-v3-english-candidate.zip \
-  --contract .vera/finetuning/v3-english-20261102b/bundle/runtime-contract.json \
-  --previous-answers .vera/finetuning/kaggle-preview-20261028-103035/resume-results/vera-eval-resume-20261029-104525/answers.jsonl \
-  --previous-dataset .vera/finetuning/v2-eval-20261101/aligned/vera-domain-v2-candidate.zip \
-  --previous-contract .vera/finetuning/v2-eval-20261101/bundle/runtime-contract.json \
-  --exclude-loss-sample 24 \
-  --per-task 20 \
-  --seed 20261102 \
-  --max-new-tokens 768 \
-  --output .vera/finetuning/v3-english-20261102b/evaluation-pack-20-per-task
-```
-
-The 220-case selection (20 per task) reports exact-target overlap and duplicates:
-40 targets are seen in training and 38 rows duplicate a target within the pack. The
-smaller 110-case selection has 20 overlaps and 18 duplicates; it was run on Kaggle with
-the v3 English-only candidate on 2026-11-07. The base produced 97/110 schema-valid
-answers and 43 strict passes; the adapter produced 110/110 and 109 strict passes (89/90
-on rows whose exact target is unseen). The adapter's only failure is a non-verbatim quote
-in `graph_evidence`. Results and caveats are in
-[the fine-tuning report](finetuning-run-20261101.md#english-only-evaluation-2026-11-0607).
-Both selections are validation slices, not independent tests; they do not change targets,
-authorize training or use the held-out test split. Prompt alignment preserves all targets,
-so this candidate is not ready for training until labels are reviewed and corrected. Use a
-fresh output directory because the packer never overwrites an existing selection.
-
-The same packer can select from the held-out test split. Test packs do not reuse
-validation-only exclusions, so prior-answer and loss-sample flags are rejected:
-
-```bash
-uv run python finetuning/prepare_eval_pack.py \
-  --dataset .vera/finetuning/v3-english-20261102b/aligned/vera-domain-v3-english-candidate.zip \
-  --contract .vera/finetuning/v3-english-20261102b/bundle/runtime-contract.json \
-  --split test \
-  --per-task 20 \
-  --seed 20261107 \
-  --max-new-tokens 768 \
-  --output .vera/finetuning/v3-english-20261102b/evaluation-pack-test-20-per-task
-```
-
-The 220-case test selection has no ID overlap with the validation pack. Targets are still
-shared with training in `memory_only` (20) and `scope_boundary` (20), because those tasks
-have a single target in the dataset; 38 rows duplicate another target within the pack.
-That remains a template limitation, not a split problem. The selection was run locally
-on 2026-11-08: the base reached 86/220 strict passes, the adapter 219/220, and its only
-failure was a non-verbatim supporting quote. Template reproduction persists on this split
-(209/220 exact target summaries, 169/180 on unseen targets). Results are in
-[the fine-tuning report](finetuning-run-20261101.md#test-split-pack-220-cases).
-A consolidated view of purpose, evidence, serving and limits is in
-[the adapter assessment](finetuning-adapter-assessment.md).
-
-For a future independent pack, pass `--require-independent-targets` to
-`prepare_eval_pack.py`. It excludes canonical answer JSON already present in training
-and duplicate answer targets within the selected pack, in addition to the existing
-source/group/entity leakage checks. The current v3 candidate cannot satisfy this option
-for all tasks; new, independently authored and reviewed targets are required. Exact
-JSON novelty does not by itself establish semantic diversity or factual accuracy.
-
-For inference-only comparison, `finetuning/kaggle_eval.py` runs preflight followed by
-base/adapter generation on a private Kaggle T4 x2 kernel. Its uploaded code bundle contains
-only dataset, inference and evaluation modules; it does not include the training entrypoint.
-The script writes answers and preflight output under `/kaggle/working`, while dependencies
-and model caches stay under `/kaggle/temp`.
-
-A full run checkpoints every 50 updates and at completion. To resume, preserve a complete
-`checkpoint-*`, set `FULL_RESUME` and choose a new `FULL_OUTPUT`.
-Data, prompt, model revision, mode and accumulation must match.
-
-Compare base and adapted models with identical validation contexts and decoding settings.
-Check JSON, citations, relevance, missing-data behavior, scope and actual VERA review outcomes.
-Use the held-out test only after selection; decreasing loss is not deployment approval.
-
-The output is a LoRA adapter, not a replacement MTP GGUF. Merge it with the same pinned
-Hugging Face base, convert with a compatible llama.cpp version, then revalidate the
-served artifact. Conversion and deployment are separate, manual steps.
+For earlier experiments, see the [80-update preview](finetuning-preview-20261028.md),
+[step-400 report](finetuning-run-20261101.md) and
+[adapter assessment](finetuning-adapter-assessment.md).
 
 ## References
 
-- [Qwen3.5 text-only architecture and loading](https://huggingface.co/docs/transformers/main/en/model_doc/qwen3_5)
-- [Model checkpoint](https://huggingface.co/Qwen/Qwen3.5-4B)
-- [Model-specific training caveats](https://unsloth.ai/docs/models/qwen3.5/fine-tune)
-- [FP32 architecture guard](https://github.com/unslothai/unsloth/blob/main/unsloth/models/loader.py)
+The recipe follows the [Qwen3.5 architecture documentation](https://huggingface.co/docs/transformers/main/en/model_doc/qwen3_5)
+and the pinned [model checkpoint](https://huggingface.co/Qwen/Qwen3.5-4B).
+The [model-specific training caveats](https://unsloth.ai/docs/models/qwen3.5/fine-tune)
+and [FP32 architecture guard](https://github.com/unslothai/unsloth/blob/main/unsloth/models/loader.py)
+explain the conservative precision choice.

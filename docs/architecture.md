@@ -1,9 +1,10 @@
 # Architecture
 
-VERA is one stateful LangGraph workflow, not a swarm of autonomous agents.
-The [graph definition](../src/vera/workflow/graph.py) is the source of truth:
-normalize events and detect signals, interpret the question, acquire evidence,
-generate, validate, reflect, then publish or wait for human review.
+VERA runs as a single stateful LangGraph workflow rather than a group of autonomous
+agents. It normalizes events, detects signals, interprets the question and gathers
+evidence before generating a draft. Validation and reflection then decide whether
+the draft can be published or needs human review. The
+[graph definition](../src/vera/workflow/graph.py) is the reference for this sequence.
 
 ## Domains
 
@@ -20,13 +21,21 @@ generate, validate, reflect, then publish or wait for human review.
 | `knowledge_graph` | Kuzu import, traversal and run projection |
 | `interfaces`, `data/web` | CLI, HTTP API and browser UI |
 
-`ResourcePlan` selects CAG, RAG, tools and stream processing independently; its route
-is derived from those flags. Original explicit identifiers survive model rewriting.
-Conversation history can resolve references but is not factual evidence.
+`ResourcePlan` selects CAG, RAG, tools and stream processing independently, then
+derives the route from those choices. Identifiers supplied explicitly by the user
+remain authoritative even if a model rewrites the question. Conversation history
+helps resolve references, but it never becomes factual evidence.
+The external model assesses the purpose of the message and whether it needs
+subject-matter help, then VERA derives its intent from that structured assessment.
+Explicit technical identifiers, supplied events, and definitions with a
+matching local record still require an evidence path. Without a conversation model,
+the deterministic provider selects facts from on-topic evidence without inferring
+conversational intent.
 
-Retrieval combines BM25 and embedding similarity, followed by provenance, freshness
-and diversity heuristics. Hash embeddings are the default; Sentence Transformers
-are optional. Ranking is not an independent accuracy check.
+Retrieval combines BM25 with embedding similarity, then considers provenance,
+freshness and diversity. It uses hash embeddings by default, with Sentence
+Transformers available as an option. A high ranking is a selection signal, not
+an independent check that the source or answer is correct.
 
 ## Evidence and limits
 
@@ -37,18 +46,36 @@ are optional. Ranking is not an independent accuracy check.
 | `simulated` | A finding tied to explicitly simulated evidence |
 | `unavailable` | Missing evidence or an unavailable lookup |
 
-Validation checks evidence IDs, quotations, term coverage, identifiers, numbers and
-negation. The external-provider analysis schema allows up to six claims.
-Failed claims retain their errors and require review; unrelated quotations must not
-be substituted to make a draft appear grounded.
+For each claim, validation checks evidence IDs, exact quotations, term coverage,
+identifiers, numbers and negation. A `supported_fact` must reproduce its supporting
+quotation exactly, and every cited knowledge record must concern a subject of the
+question. A relevant document elsewhere in the context does not justify an unrelated
+citation. An explicitly named relationship can supplement the subject's own record,
+but cannot replace it; identifiers produced by stream detectors are also subjects.
 
-Grounding is lexical, not complete semantic verification. It does not validate every
-statement in the prose summary. Model quality and source relevance still need review.
+External providers can return up to six claims. When validation fails, VERA keeps
+the error through automatic retries and repairs and sends the draft for review.
+Repairing an off-topic claim replaces the assertion with a statement of what the
+evidence does not establish, rather than disguising the original assertion as a fact.
+When a request names exact security identifiers but has no matching available records
+or events, the model receives an empty evidence context and must abstain. VERA
+enforces that shape even when the provider does not support constrained decoding.
+Retrieved records stay in the run for audit, and non-extractive prose still requires
+review.
 
-Exact live clients cover CVE.org, NVD, CISA KEV, FIRST EPSS and OSV. Local sources
-include focused ATT&CK, CWE, CAPEC, OWASP, NIST and FIRST material. Bundled records
-are snapshots, not current intelligence. Explicit `vera corpus-sync` refreshes
-ATT&CK and KEV feeds; rebuild Kuzu afterwards.
+These checks are lexical, not a complete semantic verifier. For that reason,
+non-extractive cybersecurity summaries from an external provider require human review
+even when their citations pass. Only prose made entirely from validated factual claim
+text counts as extractive. This deliberately increases the review workload. Provider
+fallbacks also require review and do not count as successful model answers.
+
+Reports identify these rules as `vera-evidence-v2`. Scores collected under earlier
+runtime behavior do not establish acceptance of this contract.
+
+Live clients support exact lookups through CVE.org, NVD, CISA KEV, FIRST EPSS and OSV.
+The local corpus contains selected ATT&CK, CWE, CAPEC, OWASP, NIST and FIRST material.
+Bundled records are snapshots, not current intelligence. To refresh the ATT&CK and
+KEV feeds, run `vera corpus-sync` explicitly, then rebuild Kuzu.
 
 CVSS is severity, EPSS is exploitation probability, and KEV records known exploitation.
 None proves compromise or asset-specific risk. Asset inventory and affected-version
@@ -62,18 +89,22 @@ normalized fields rather than raw packets to the model.
 
 ## Budgets and persistence
 
-Model/tool calls, timeouts and input sizes are bounded by `Settings`. Optional ReAct
-can choose local corpus searches and exact CVE lookups, not arbitrary URLs or commands.
-It is disabled by default and requires an external model provider. Its trace records
-the selected action, a short operational reason, the outcome and newly retained
-evidence IDs; it is an audit trace, not private chain-of-thought.
-The initial model-call budget defaults to four; ReAct resolves its budget separately.
-User-facing prose follows `VERA_RESPONSE_LANGUAGE` (default: English), not the query
-language. Evidence quotations remain verbatim in their source language.
+`Settings` bounds model calls, tool calls, timeouts and input sizes. Optional ReAct
+lets an external model choose local corpus searches or exact CVE lookups, but never
+arbitrary URLs or commands. It is disabled by default. Its audit trace records the
+action, a short operational reason, the outcome and new evidence IDs; it does not
+expose private chain-of-thought. The initial workflow allows four model calls by
+default, while ReAct resolves its budget separately.
+
+User-facing prose follows `VERA_RESPONSE_LANGUAGE`, which defaults to English,
+regardless of the query language. Evidence quotations keep their source language.
 
 SQLite stores completed runs, memories, review decisions and LangGraph checkpoints.
-Pending drafts are durable but unpublished until approved. Human revisions are
-bounded separately; see [review operations](chat.md#human-review).
+Completed evidence and reflections live in `runs.result_json`. Older databases may
+still have separate `evidence` and `reflections` tables; VERA preserves their rows but
+no longer updates them. Use the runs API to read current reports.
+Pending drafts survive restarts but remain unpublished until approved. Human
+revisions have a separate limit, described in the [review guide](chat.md#human-review).
 Use one API worker per database and close Python orchestrators with a context manager.
 
 Kuzu is optional and separate from LangGraph. Traversal supplies evidence candidates;

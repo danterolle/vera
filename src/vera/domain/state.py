@@ -15,6 +15,12 @@ from vera.domain.reports import (
 from vera.domain.requests import AnalysisRequest
 
 
+class DraftSource(TypedDict):
+    provider: str
+    model: str | None
+    external: bool
+
+
 class GraphState(TypedDict, total=False):
     request: AnalysisRequest
     request_received_at: str
@@ -30,10 +36,13 @@ class GraphState(TypedDict, total=False):
     statistics: StreamStatistics
     incident: IncidentReport | None
     draft: GeneratedAnswer
+    draft_source: DraftSource | None
+    validation_contract: str | None
     reflection: ReflectionReport
     result: AnalysisResult
     generation_attempts: int
     validation_errors: list[str]
+    summary_errors: list[str]
     retry_generation: bool
     provider_fallback: bool
     model_calls: int
