@@ -79,6 +79,8 @@ general model accuracy.
 
 - [Chat, API and human review](docs/chat.md)
 - [Architecture, evidence and limits](docs/architecture.md)
+- [Technical report and experiment protocols](docs/technical-report.md)
+- [Presentation PDF](VERA-presentation.pdf) and [source and export guide](presentation/README.md)
 - [Knowledge graph](docs/knowledge-graph.md)
 - [Local models](docs/local-model.md)
 - [Kaggle training and evaluation](docs/kaggle-finetuning.md)
