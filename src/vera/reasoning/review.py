@@ -1,15 +1,6 @@
-import re
-
 from vera.domain.enums import ClaimStatus, EvidenceStatus, Severity, SourceType
 from vera.domain.state import GraphState
 from vera.retrieval.cve import extract_cve_ids
-
-CYBER_INTENT = re.compile(
-    r"\b(?:CWE-\d+|CAPEC-\d+|T\d{4}(?:\.\d{3})?|ATT&CK|cybersecurity|"
-    r"vulnerabilit(?:y|ies)|malware|ransomware|phishing|firewall|"
-    r"exploit(?:ation)?|authentication|security|injection|attack)\b",
-    re.IGNORECASE,
-)
 
 
 def review_reasons(state: GraphState) -> list[str]:
@@ -17,14 +8,18 @@ def review_reasons(state: GraphState) -> list[str]:
     if state.get("provider_fallback"):
         reasons.append("Model generation failed or exhausted its budget; fallback requires review.")
     reasons.extend(state.get("summary_errors", []))
+    intent = state["resource_plan"].intent
+    draft = state["draft"]
+    cve_ids = extract_cve_ids(state["request"].query)
     if (
-        state["resource_plan"].intent in {"social", "out_of_scope", "clarification"}
+        intent != "cybersecurity"
+        and not cve_ids
         and not state["alerts"]
         and not state["reflection"].validation_failures
         and not state["reflection"].unsupported_claims
-        and not extract_cve_ids(state["request"].query)
-        and not CYBER_INTENT.search(state["request"].query)
     ):
+        if draft.claims or draft.out_of_scope != (intent == "out_of_scope"):
+            reasons.append("The draft does not match the conversational intent.")
         return reasons
     alerts = [
         alert for alert in state["alerts"]
@@ -38,11 +33,8 @@ def review_reasons(state: GraphState) -> list[str]:
         reasons.append(f"{reflection.unsupported_claims} claim(s) lack verified support.")
     elif reflection.validation_failures:
         reasons.append(f"{reflection.validation_failures} claim(s) failed citation validation.")
-    draft = state["draft"]
-    query = state["request"].query
-    cve_ids = extract_cve_ids(query)
     if draft.out_of_scope:
-        if cve_ids or CYBER_INTENT.search(query) or state["alerts"]:
+        if intent == "cybersecurity" or cve_ids or state["alerts"]:
             reasons.append("A cybersecurity request was classified as out of scope.")
         return reasons
 

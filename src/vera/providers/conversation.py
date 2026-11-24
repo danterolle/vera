@@ -4,7 +4,7 @@ from collections.abc import Callable
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from vera.domain.evidence import Evidence
-from vera.domain.interaction import InteractionPlan
+from vera.domain.interaction import InteractionAssessment, InteractionPlan
 from vera.domain.plans import ResourcePlan
 from vera.domain.requests import AnalysisRequest
 from vera.errors import ProviderError
@@ -12,18 +12,15 @@ from vera.providers.parsing import json_object
 
 Completion = Callable[[str, str, dict], str]
 INTERPRET_SYSTEM = (
-    "Interpret the latest message for VERA, a conversational cybersecurity assistant. "
-    "Return only the requested JSON. Greetings, thanks, introductions and acknowledgements "
-    "are social, not out_of_scope. Cooking, travel and unrelated substantive requests are "
-    "out_of_scope, even if earlier turns concerned security. Unknown security tools, attacks, "
-    "malware, vulnerabilities and concepts are cybersecurity, never out_of_scope. "
-    "Preserve exact technical identifiers from the latest message. "
-    "If earlier turns discussed cybersecurity, follow-up questions inherit that topic. "
-    "Set resolved_query to the self-contained question combining the previous topic and "
-    "current question. Set subject to that security topic. search_query contains short "
-    "English search terms about that topic and question. "
-    "Use clarification only when intent cannot be inferred from conversation context. "
-    "needs_current is true for explicit current information, news, recent events or online lookup."
+    "Analyze the purpose of the latest message to a cybersecurity assistant. Identify the actual "
+    "subject first. Mark requires_subject_matter when the user seeks information or help about a "
+    "topic rather than simply interacting with the assistant. A question about the assistant "
+    "itself sets about_assistant; a question to the assistant about another subject does not. "
+    "Indicate whether the request concerns cybersecurity. Mark needs_clarification only "
+    "when the subject or purpose cannot be determined in context. Return the assessment, "
+    "not an answer. "
+    "Resolve references using the conversation, preserve exact identifiers, provide short "
+    "retrieval terms, and set needs_current for requests requiring fresh information."
 )
 CONVERSATION_SYSTEM = (
     "You are VERA, a warm cybersecurity assistant in an ordinary conversation. "
@@ -52,9 +49,9 @@ def interpret_request(complete: Completion, name: str, request: AnalysisRequest)
             for item in request.conversation[-4:]
         ],
         "has_traffic": bool(request.events),
-    }), INTERPRET_SYSTEM, InteractionPlan.model_json_schema())
+    }), INTERPRET_SYSTEM, InteractionAssessment.model_json_schema())
     try:
-        return InteractionPlan.model_validate(json_object(content))
+        return InteractionAssessment.model_validate(json_object(content), strict=True).to_plan()
     except (ValidationError, json.JSONDecodeError) as exc:
         raise ProviderError(f"{name} returned an invalid conversation plan") from exc
 

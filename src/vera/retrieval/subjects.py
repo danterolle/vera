@@ -28,26 +28,6 @@ IDENTIFIERS = re.compile(
     r"\b(?:CVE-\d{4}-\d{4,19}|CWE-\d+|CAPEC-\d+|T\d{4}(?:\.\d{3})?|[SGM]\d{4})\b",
     re.IGNORECASE,
 )
-EXPLICIT_SECURITY_TOPIC = re.compile(
-    r"\b(?:mitre|att&ck|cve|cwe|capec|"
-    r"cyber[\s-]?(?:attack|attacco|security|sicurezza)|"
-    r"attacc[oi] informatic[oi]|sicurezza informatica|"
-    r"malware|ransomware|phishing|firewall|antivirus|edr|siem|soc|"
-    r"vulnerabilit(?:à|a|y|ies)|exploit|zero-day|0-day|"
-    r"rootkit|trojan|backdoor|spyware|adware|keylogger|worm|botnet|"
-    r"ddos|dos|brute[\s-]?force|credential[\s-]?stuffing|"
-    r"injection|sql[i]?|xss|csrf|ssrf|buffer[\s-]?overflow|"
-    r"man-in-the-middle|mitm|spoofing|social[\s-]?engineering|"
-    r"ingegneria sociale|hacker|defacement|privilege[\s-]?escalation|"
-    r"powershell|sysinternals|wireshark|nmap|metasploit|mimikatz|"
-    r"cobalt[\s-]?strike|burp[\s-]?suite|dns|tunnel(?:l)?ing)\b",
-    re.IGNORECASE,
-)
-
-
-def explicit_security_topic(query: str) -> bool:
-    """Explicit ATT&CK/CVE-style identifiers are not a conversational clarification."""
-    return bool(IDENTIFIERS.search(query) or EXPLICIT_SECURITY_TOPIC.search(query))
 
 
 def research_query(query: str, conversation: Sequence[ConversationMessage] = ()) -> str:
