@@ -25,6 +25,12 @@ the draft can be published or needs human review. The
 derives the route from those choices. Identifiers supplied explicitly by the user
 remain authoritative even if a model rewrites the question. Conversation history
 helps resolve references, but it never becomes factual evidence.
+The external model assesses the purpose of the message and whether it needs
+subject-matter help, then VERA derives its intent from that structured assessment.
+Explicit technical identifiers, supplied events, and definitions with a
+matching local record still require an evidence path. Without a conversation model,
+the deterministic provider selects facts from on-topic evidence without inferring
+conversational intent.
 
 Retrieval combines BM25 with embedding similarity, then considers provenance,
 freshness and diversity. It uses hash embeddings by default, with Sentence
