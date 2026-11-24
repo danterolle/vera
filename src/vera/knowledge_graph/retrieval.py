@@ -15,8 +15,19 @@ RETURN a.id, s.id, t.id, r.record_key LIMIT $limit
 RECORDS = """
 MATCH (r:SourceRecord)-[:DESCRIBES]->(e:Entity)
 WHERE e.id IN $ids AND r.status = 'available' AND r.source <> 'memory'
-RETURN DISTINCT r.record_key, r.payload_json ORDER BY r.record_key LIMIT $limit
+RETURN DISTINCT r.record_key, r.payload_json, e.id
+ORDER BY r.record_key LIMIT $limit
 """
+
+
+def _ordered(rows: list[tuple], rank) -> list[tuple]:
+    """Order records by proximity to the seed; keep only the best rank per key."""
+    best: dict[str, tuple[tuple, tuple]] = {}
+    for row in rows:
+        candidate = rank(row)
+        if row[0] not in best or candidate < best[row[0]][0]:
+            best[row[0]] = (candidate, row)
+    return [row for _, row in sorted(best.values(), key=lambda item: item[0])]
 
 
 def search_graph(store: KnowledgeGraphStore, query: str) -> GraphRetrieval:
@@ -39,43 +50,68 @@ def search_graph(store: KnowledgeGraphStore, query: str) -> GraphRetrieval:
             ).get_all()
             visited = {row[0] for row in present}
             frontier = sorted(visited)
+            seed_order = {key: index for index, key in enumerate(report.seed_ids)}
+            distance = {key: 0 for key in visited}
+            assertion_level: dict[str, int] = {}
             source_assertions: dict[str, list[str]] = {}
-            for _ in range(report.hops):
+            for level in range(1, report.hops + 1):
                 if not frontier:
                     break
                 rows = conn.execute(NEIGHBORS, {"ids": frontier, "limit": limit}).get_all()
                 next_nodes = set()
                 for assertion, subject, target, record_key in rows:
+                    assertion_level.setdefault(assertion, level)
                     source_assertions.setdefault(record_key, []).append(assertion)
                     next_nodes.update((subject, target))
                     if assertion not in report.assertion_ids:
                         report.assertion_ids.append(assertion)
                 frontier = sorted(next_nodes - visited)[:limit]
+                for key in frontier:
+                    distance[key] = level
                 visited.update(frontier)
             report.entity_ids = sorted(visited)
             # Exact entity documents precede neighboring records; all lists remain bounded.
-            direct = conn.execute(RECORDS, {"ids": report.seed_ids, "limit": limit}).get_all()
+            direct = _ordered(
+                conn.execute(RECORDS, {"ids": report.seed_ids, "limit": limit}).get_all(),
+                lambda row: (seed_order.get(row[2], limit), row[2]),
+            )
             supporting = (
-                conn.execute(
-                    "MATCH (r:SourceRecord) WHERE r.record_key IN $keys "
-                    "RETURN r.record_key, r.payload_json ORDER BY r.record_key LIMIT $limit",
-                    {"keys": list(source_assertions)[:limit], "limit": limit},
-                ).get_all()
+                _ordered(
+                    conn.execute(
+                        "MATCH (r:SourceRecord) WHERE r.record_key IN $keys "
+                        "RETURN r.record_key, r.payload_json ORDER BY r.record_key LIMIT $limit",
+                        {"keys": list(source_assertions)[:limit], "limit": limit},
+                    ).get_all(),
+                    lambda row: (
+                        min(
+                            assertion_level.get(item, limit)
+                            for item in source_assertions[row[0]]
+                        ),
+                        row[0],
+                    ),
+                )
                 if source_assertions
                 else []
             )
             adjacent = (
-                conn.execute(
-                    RECORDS,
-                    {
-                        "ids": report.entity_ids,
-                        "limit": limit,
-                    },
-                ).get_all()
+                _ordered(
+                    conn.execute(
+                        RECORDS, {"ids": report.entity_ids, "limit": limit},
+                    ).get_all(),
+                    lambda row: (
+                        distance.get(row[2], limit),
+                        seed_order.get(row[2], limit),
+                        row[2],
+                    ),
+                )
                 if report.entity_ids
                 else []
             )
-            records = dict(direct + supporting + adjacent)
+            records = dict(
+                [(key, payload) for key, payload, _ in direct]
+                + [(key, payload) for key, payload in supporting]
+                + [(key, payload) for key, payload, _ in adjacent]
+            )
             for key, payload in list(records.items())[:limit]:
                 original = Evidence.model_validate(json.loads(payload))
                 evidence = original.model_copy(
