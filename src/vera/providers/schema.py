@@ -1,5 +1,6 @@
 import re
 
+from vera.domain.enums import ClaimStatus
 from vera.domain.evidence import Evidence
 from vera.domain.plans import ResourcePlan
 from vera.domain.reports import GeneratedAnswer
@@ -7,7 +8,9 @@ from vera.domain.reports import GeneratedAnswer
 MAX_CLAIMS = 6
 
 
-def answer_schema(evidence: list[Evidence], plan: ResourcePlan | None) -> dict:
+def answer_schema(
+    evidence: list[Evidence], plan: ResourcePlan | None, *, unavailable_only: bool = False,
+) -> dict:
     schema = GeneratedAnswer.model_json_schema()
     schema["required"] = [*schema.get("required", []), "out_of_scope"]
     schema["properties"]["claims"]["maxItems"] = MAX_CLAIMS
@@ -16,6 +19,15 @@ def answer_schema(evidence: list[Evidence], plan: ResourcePlan | None) -> dict:
         schema["properties"]["out_of_scope"]["const"] = plan.intent == "out_of_scope"
     claim_schema = schema["$defs"]["Claim"]
     claim_schema["required"] = ["text", "status", "evidence_ids", "citations"]
+    if unavailable_only:
+        schema["properties"]["claims"].update(minItems=1, maxItems=1)
+        schema["properties"]["out_of_scope"]["const"] = False
+        claim_schema["properties"]["status"] = {
+            "const": ClaimStatus.UNAVAILABLE.value, "type": "string",
+        }
+        for key in ("evidence_ids", "citations"):
+            claim_schema["properties"][key]["maxItems"] = 0
+        return schema
     evidence_ids = list(dict.fromkeys(item.id for item in evidence))
     if evidence_ids:
         claim_schema["properties"]["evidence_ids"]["items"]["enum"] = evidence_ids

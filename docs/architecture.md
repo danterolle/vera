@@ -57,6 +57,11 @@ External providers can return up to six claims. When validation fails, VERA keep
 the error through automatic retries and repairs and sends the draft for review.
 Repairing an off-topic claim replaces the assertion with a statement of what the
 evidence does not establish, rather than disguising the original assertion as a fact.
+When a request names exact security identifiers but has no matching available records
+or events, the model receives an empty evidence context and must abstain. VERA
+enforces that shape even when the provider does not support constrained decoding.
+Retrieved records stay in the run for audit, and non-extractive prose still requires
+review.
 
 These checks are lexical, not a complete semantic verifier. For that reason,
 non-extractive cybersecurity summaries from an external provider require human review

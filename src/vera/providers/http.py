@@ -12,17 +12,13 @@ from vera.domain.plans import ResourcePlan
 from vera.domain.reports import DetectionAlert, GeneratedAnswer, StreamStatistics
 from vera.domain.requests import AnalysisRequest
 from vera.errors import ProviderError
-from vera.providers.conversation import (
-    CONVERSATION_SYSTEM,
-    assess_sources,
-    conversation_prompt,
-    interpret_request,
-)
+from vera.providers.conversation import assess_sources, interpret_request
+from vera.providers.draft_inputs import draft_inputs
 from vera.providers.parsing import json_object
-from vera.providers.prompts import SYSTEM_PROMPT, generation_prompt, routing_prompt
+from vera.providers.prompts import SYSTEM_PROMPT, routing_prompt
 from vera.providers.react import ACTION_SYSTEM_PROMPT, action_prompt
 from vera.providers.readiness import check_model_response
-from vera.providers.schema import MAX_CLAIMS, answer_schema
+from vera.providers.schema import MAX_CLAIMS
 
 
 class HttpModelProvider:
@@ -66,18 +62,12 @@ class HttpModelProvider:
         *,
         plan: ResourcePlan | None = None,
     ) -> GeneratedAnswer:
-        prompt = generation_prompt(
-            request, route, evidence, alerts, statistics, feedback,
-            response_language=self.response_language, plan=plan,
+        inputs = draft_inputs(
+            request, route, plan, evidence, alerts, statistics, feedback, self.response_language,
         )
-        system = SYSTEM_PROMPT
-        if plan is not None and plan.intent != "cybersecurity":
-            system = CONVERSATION_SYSTEM
-            prompt = conversation_prompt(request, plan, self.response_language)
-        schema = answer_schema(evidence, plan)
-        content = self._complete(prompt, system, schema)
+        content = self._complete(inputs.prompt, inputs.system, inputs.schema)
         try:
-            answer = GeneratedAnswer.model_validate(json_object(content))
+            answer = inputs.parse(content)
         except (ValidationError, json.JSONDecodeError) as exc:
             raise ProviderError(f"{self.name} returned an invalid analysis payload") from exc
         if len(answer.claims) > MAX_CLAIMS:
